@@ -1,0 +1,108 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: ClearData 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+
+foreach(var inst in this)
+{
+	//***********************************CI Sprint 7 - CC_48: Clear Category Fields from Quick Create Screen on Button Click ********************************************
+	if(inst.IsSet())
+	{
+		//Clear Complaint
+		if(inst.MainObjectPartServiceIssueCategory.IsSet()) //If(1.1)
+		{
+			var ComplaintNode = inst.MainObjectPartServiceIssueCategory;
+
+			if(!ComplaintNode.ServiceIssueCategoryCatalogueCategoryKey.IsInitial()) //If(1.2)
+			{
+				if(!ComplaintNode.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.IsInitial())
+				{
+					ComplaintNode.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.Clear();
+					raise InformationMessages.Create("I","Relevant fields have been cleared");
+				}
+			} //If(1.2)
+		} //If(1.1)
+
+		//Clear RFC
+		if(inst.MainCauseServiceIssueCategory.IsSet()) //If(2.1)
+		{
+			var RFCNode = inst.MainCauseServiceIssueCategory;
+
+			if(!RFCNode.ServiceIssueCategoryCatalogueCategoryKey.IsInitial()) //If(2.2)
+			{
+				if(!RFCNode.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.IsInitial())
+				{
+					RFCNode.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.Clear();
+					raise InformationMessages.Create("I","Relevant fields have been cleared");
+				}
+			} //If(2.2)
+		} //If(2.1)
+
+		//Clear Resolution Category
+		if(inst.MainActivityServiceIssueCategory.IsSet()) //If(3.1)
+		{
+			var ResolutionCategoryNode = inst.MainActivityServiceIssueCategory;
+
+			if(!ResolutionCategoryNode.ServiceIssueCategoryCatalogueCategoryKey.IsInitial()) //If(3.2)
+			{	
+				if(!ResolutionCategoryNode.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.IsInitial())
+				{
+					ResolutionCategoryNode.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.Clear();
+					raise InformationMessages.Create("I","Relevant fields have been cleared");
+				}
+			} //If(3.2)
+		} //If(3.1)
+
+		//Clear Resolution Code
+		if(!inst.ResolutionCode.IsInitial()) //If(4.1)
+		{
+			inst.ResolutionCode.Clear();
+			raise InformationMessages.Create("I","Relevant fields have been cleared");
+		} //If(4.1)
+
+		//Clear Coverage
+		if(!inst.LX_TKT_COVG.IsInitial()) //If(5.1)
+		{
+			inst.LX_TKT_COVG.Clear();
+			raise InformationMessages.Create("I","Relevant fields have been cleared");
+		} //If(5.1)
+
+		//Clear Coverage Group
+		if(!inst.LX_TCK_CVRG.IsInitial()) //If(6.1)
+		{
+			inst.LX_TCK_CVRG.Clear();
+			raise InformationMessages.Create("I","Relevant fields have been cleared");
+		} //if(6.1)
+
+		//Clear Description
+		if(inst.TextCollection.IsSet()) //If(7.1)
+		{
+			var TextColl = inst.TextCollection;
+
+			if(TextColl.Text.Count() > 0) //If(7.2)
+			{
+				foreach(var texts in inst.TextCollection.Text)
+				{
+					if(texts.TypeCode.content == "10004")
+					{
+						texts.TextContent.Text.Clear();
+						raise InformationMessages.Create("I","Relevant fields have been cleared");
+					}
+				}
+			} //If(7.2)
+		} //If(7.1)
+		//************************************CI Sprint 7 - CC_48: Clear Category Fields from Quick Create Screen on Button Click ********************************************
+	}
+}

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sadl:definition xmlns:ass="http://sap.com/sap.nw.f.sadl/association" date="20200224" time="131528" uuid="0DA9A551BCE548678555125746C500A1" xmlns:sadl="http://sap.com/sap.nw.f.sadl">
+  <sadl:conversions>
+    <sadl:conversion type="ALPHA" />
+  </sadl:conversions>
+  <sadl:modes>
+    <sadl:mode type="QUERY" />
+  </sadl:modes>
+  <sadl:dataSource name="DS" binding="Y7OUE035Y_PBBO1BAEA25ADA819FF8/ass:ROOT4F903855210031B0" type="BusinessObjectNode" d2p1:mdrsBinding="PBO_MergeCustomerBO.Root" xmlns:d2p1="http://sap.com/xi/AP/PDI" />
+  <sadl:resultSet>
+    <sadl:structure name="Y7OUE035Y_PBBO1BAEA25ADA819FF8" dataSource="DS" d3p1:mdrsName="PBO_MergeCustomerBO.Root" xmlns:d3p1="http://sap.com/xi/AP/PDI">
+      <sadl:attribute name="Y7OUE035Y_CUOT8932EF81A01B6242" binding="CUSTOMER_ID573B230E3B4372BC" d3p1:mdrsName="Customer_ID" />
+      <sadl:attribute name="Y7OUE035Y_CUOT2846123DFC0C3D81" binding="CUSTOM_UUID167F4D2BC6A16BEC-CONTENT" d3p1:mdrsName="Customer_UUID/content" />
+      <sadl:attribute name="Y7OUE035Y_CUOTE262297A7450DED8" binding="CUSTOMFNAMEF8F838B5D1F5A166" d3p1:mdrsName="Customer_FName" />
+      <sadl:attribute name="Y7OUE035Y_CUOT285703EA830E277A" binding="CUSTOMLNAME25AEE041B2DE6FA0" d3p1:mdrsName="Customer_LName" />
+      <sadl:attribute name="Y7OUE035Y_CUOTE4AE756D7E48B89A" binding="CUSTOMEMAIL9703FB314E1CCAD3" d3p1:mdrsName="Customer_Email" />
+      <sadl:attribute name="Y7OUE035Y_CUOT3AC40D682255C8AB" binding="CUSTOMPHONEFE5B02AD700B7AE4" d3p1:mdrsName="Customer_Phone" />
+      <sadl:attribute name="Y7OUE035Y_CUOT2C9559A98B63B148" binding="CUSTOMUNTRY1164F449245B6B85" d3p1:mdrsName="Customer_Country" />
+      <sadl:attribute name="Y7OUE035Y_CUOTDD9D09FBBBA4B123" binding="CUSTOMSCIIDF2905FB247D5A12F" d3p1:mdrsName="Customer_SCIID" />
+      <sadl:attribute name="Y7OUE035Y_CUOTF7A591782CBB4260" binding="CUSTOMTCODEA498664F359C654C" d3p1:mdrsName="Customer_PostCode" />
+      <sadl:attribute name="Y7OUE035Y_PROT548A6AA581850C58" binding="PROCESTATUS6BA42223B175E196" d3p1:mdrsName="Processing_Status" />
+      <sadl:attribute name="Y7OUE035Y_CROT3517F56DD403F8CC" binding="CREATEDON3AA8885761080E3D" d3p1:mdrsName="CreatedOn" />
+      <sadl:attribute name="Y7OUE035Y_LAOT89D3BED10C2BCDF3" binding="LAST_U_DATEA288306E9EC22986" d3p1:mdrsName="Last_Updated_Date" />
+    </sadl:structure>
+  </sadl:resultSet>
+  <sadl:query bo="Y7OUE035Y_PBBO1BAEA25ADA819FF8" name="QUERY_BY_ELEMENTS" node="MDRO_MTOMERD219C5458EDDADCB" type="ESI_QUERY">
+    <sadl:inputStructure>
+      <sadl:inputParameter name="CUSTOMROOT9F6767A3F605C7E4">
+        <sadl:attribute binding="Y7OUE035Y_CUOT8932EF81A01B6242" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOT08502BB9152E9537-CONTENT">
+        <sadl:attribute binding="Y7OUE035Y_CUOT2846123DFC0C3D81" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOTBC42A7A0DC36973C">
+        <sadl:attribute binding="Y7OUE035Y_CUOTE262297A7450DED8" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOT1AACF2F198149827">
+        <sadl:attribute binding="Y7OUE035Y_CUOT285703EA830E277A" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOT8189626F714908CA">
+        <sadl:attribute binding="Y7OUE035Y_CUOTE4AE756D7E48B89A" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOT5AC8871B43A1173E">
+        <sadl:attribute binding="Y7OUE035Y_CUOT3AC40D682255C8AB" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOTB98AFFADFEB34212">
+        <sadl:attribute binding="Y7OUE035Y_CUOT2C9559A98B63B148" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOTD61ECAD2D70B316A">
+        <sadl:attribute binding="Y7OUE035Y_CUOTDD9D09FBBBA4B123" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CUSTOMROOTDDCF6C9580A9C745">
+        <sadl:attribute binding="Y7OUE035Y_CUOTF7A591782CBB4260" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="PROCESROOTE2389E8BA3E683D0">
+        <sadl:attribute binding="Y7OUE035Y_PROT548A6AA581850C58" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="CREATEROOTDD5163979E190A18">
+        <sadl:attribute binding="Y7OUE035Y_CROT3517F56DD403F8CC" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="LASTUROOT744AF37F478501F8">
+        <sadl:attribute binding="Y7OUE035Y_LAOT89D3BED10C2BCDF3" />
+      </sadl:inputParameter>
+    </sadl:inputStructure>
+    <sadl:outputStructure>
+      <sadl:attribute name="CUSTOMROOT9F6767A3F605C7E4" binding="Y7OUE035Y_CUOT8932EF81A01B6242" />
+      <sadl:attribute name="CUSTOMROOT08502BB9152E9537-CONTENT" binding="Y7OUE035Y_CUOT2846123DFC0C3D81" />
+      <sadl:attribute name="CUSTOMROOTBC42A7A0DC36973C" binding="Y7OUE035Y_CUOTE262297A7450DED8" />
+      <sadl:attribute name="CUSTOMROOT1AACF2F198149827" binding="Y7OUE035Y_CUOT285703EA830E277A" />
+      <sadl:attribute name="CUSTOMROOT8189626F714908CA" binding="Y7OUE035Y_CUOTE4AE756D7E48B89A" />
+      <sadl:attribute name="CUSTOMROOT5AC8871B43A1173E" binding="Y7OUE035Y_CUOT3AC40D682255C8AB" />
+      <sadl:attribute name="CUSTOMROOTB98AFFADFEB34212" binding="Y7OUE035Y_CUOT2C9559A98B63B148" />
+      <sadl:attribute name="CUSTOMROOTD61ECAD2D70B316A" binding="Y7OUE035Y_CUOTDD9D09FBBBA4B123" />
+      <sadl:attribute name="CUSTOMROOTDDCF6C9580A9C745" binding="Y7OUE035Y_CUOTF7A591782CBB4260" />
+      <sadl:attribute name="PROCESROOTE2389E8BA3E683D0" binding="Y7OUE035Y_PROT548A6AA581850C58" />
+      <sadl:attribute name="CREATEROOTDD5163979E190A18" binding="Y7OUE035Y_CROT3517F56DD403F8CC" />
+      <sadl:attribute name="LASTUROOT744AF37F478501F8" binding="Y7OUE035Y_LAOT89D3BED10C2BCDF3" />
+    </sadl:outputStructure>
+  </sadl:query>
+</sadl:definition>

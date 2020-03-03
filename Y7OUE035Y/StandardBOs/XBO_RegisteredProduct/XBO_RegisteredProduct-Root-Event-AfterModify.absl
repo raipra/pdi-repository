@@ -1,0 +1,53 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: InstallationPoint
+		Node: Root
+		Event: AfterModify 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script if:
+		- the value of any field in the node in which this script is contained is modified.
+		- the node itself is modified by another business object within the same solution.
+*/
+
+import ABSL;
+
+foreach (var item in this)
+{
+	//CC_22: Purchase date be empty on the product registration
+	var Serial_Number;
+	var PrimaryInstalledObj = item.PrimaryInstalledObject;
+	var PrimInstObj_InstObjIndPdt;
+	var PrimInstObj_InstObjIndPdt_IndPdt;
+	var PrimInstObj_InstObjIndPdt_ServProcess;
+
+	if (PrimaryInstalledObj.IsSet())
+	{
+		PrimInstObj_InstObjIndPdt = PrimaryInstalledObj.InstalledObjectIndividualProduct;
+		if (PrimInstObj_InstObjIndPdt.IsSet())
+		{
+			PrimInstObj_InstObjIndPdt_IndPdt = PrimInstObj_InstObjIndPdt.IndividualProduct;
+			if (PrimInstObj_InstObjIndPdt_IndPdt.IsSet())
+			{
+				PrimInstObj_InstObjIndPdt_ServProcess = PrimInstObj_InstObjIndPdt_IndPdt.ServiceProcessInformation;
+				if (PrimInstObj_InstObjIndPdt_ServProcess.IsSet())
+				{
+					if (item.LX_PRD_SN1.IsInitial() && PrimInstObj_InstObjIndPdt_ServProcess.LX_PRD_SN.IsInitial() && item.LX_PRD_CH1 == "110")//source - C4C
+					{
+						if (!PrimInstObj_InstObjIndPdt_ServProcess.PurchaseDateTime.IsInitial())
+						{
+							PrimInstObj_InstObjIndPdt_ServProcess.PurchaseDateTime.Clear();
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	//CC_22: Purchase date be empty on the product registration
+}

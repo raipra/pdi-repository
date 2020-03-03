@@ -1,0 +1,204 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Validation: OnSave 
+
+		Script file signature
+		----------------------------
+		Returns: Boolean
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script before an instance of the business object is saved to the data base.
+		It can have a return value of either true or false, which determines whether the instance of the business object is saved or not.
+		All fields in this business object are read-only and cannot be changed.
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SAGARAKA_PI1.0
+//Author: Akanksha Sagar (SAGARAKA)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+import AP.Common.GDT;
+
+foreach (var inst in this)
+{
+	if (inst.IsSet())
+	{
+		// Start of Global variable declaration for SAGARAKA_PI1.0
+		var lv_WarrantyStart_RefTime;
+		var lv_WarrantyStart_TimePoint;
+		var lv_Warranty_TP_DateTime;
+		// End of Global variable decalaration for SAGARAKA_PI1.0
+
+		var POPValidation : Indicator;
+		var ClaimsValidation : Indicator;
+		var PurchaseDateValidation : Indicator;
+		//var defectcodevalidation	:Indicator;
+		var IdentiNumValid : Indicator;
+
+		POPValidation = true;
+		ClaimsValidation = true;
+		//defectcodevalidation = true;
+		PurchaseDateValidation = true;
+		IdentiNumValid = true;
+
+		var lineitems = inst.Item;
+
+		//******************************************************* Proof of Purchase Validation ******************************************************
+		if (inst.LX_TKT_ISPTYP != "111" && inst.LX_TKT_SCEN != "102") //Skip Validation for ISP Type "ISP2" & Claims Type "External"
+		{
+			if (inst.LX_TKT_ATT_POP == true) //If Proof of Purchase attachment exists
+			{
+				if (inst.LX_PRD_PD1 == true) //If Purchase is validated
+				{
+					POPValidation = true;
+				}
+				else 
+				{
+					POPValidation = false;
+					raise PurchaseValidatedFlag.Create("E", "Proof of Purchase is not Validated");
+				}
+			}
+			else
+			{
+				if (inst.LX_PRD_PD1 == true) //If Purchase is validated
+				{
+					POPValidation = false;
+					raise PurchaseValidatedFlag.Create("E", "Please attach Proof of Purchase before validating");
+				}
+				else
+				{
+					POPValidation = true;
+				}
+			}
+		}
+
+		//******************************************************* End of Proof of Purchase Validation *****************************************************
+		//******************************************************* Defect code validation-- commented as a UI Validation is written for the same. Changed by: Ruchika******************************************************************
+		//if(inst.ZSDK_DefectCodeInd == true)
+		//{
+		//defectcodevalidation = false;
+		//raise DefectCodeValidation.Create("E","Defect Code can be 60,61,62,63,64,65 when Resolution category is Exchange Needed");
+		//
+		//}
+		//else
+		//{
+		//defectcodevalidation = true;
+		//}
+		//******************************************************* End Defect code validation******************************************************************
+		//******************************************************* Claims Validation - Coverage Code Check ***************************************************
+		//start of change for SAGARAKA_PI1.0
+		var lv_servcTerms = inst.ServiceTerms;
+		if (lv_servcTerms.IsSet())
+		{
+			var lv_srvReqStatus = lv_servcTerms.ServiceRequestUserLifeCycleStatusCode;
+			if (!lv_srvReqStatus.IsInitial())
+			{
+				//if (inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z7")
+				if (lv_srvReqStatus == "Z7")
+				//end of change for SAGARAKA_PI1.0
+				{
+					if (inst.LX_TCK_CVRG.IsInitial())
+					{
+						ClaimsValidation = false;
+						raise ClaimsReplicationValidation.Create("E", "Coverage Code is mandatory for Claims Replication");
+					}
+					else
+					{
+						ClaimsValidation = true;
+					}
+					//Parts or Labor line item is required for Claims Submission
+					if(lineitems.Count() > 0)
+					{
+						if(lineitems.Where(n=>n.UserServiceTransactionProcessingTypeCode == "ZCLM" || n.UserServiceTransactionProcessingTypeCode == "ZPAR").Count() > 0)
+						{
+							ClaimsValidation = true;
+						}
+						else
+						{
+							ClaimsValidation = false;
+							raise ClaimsReplicationValidation.Create("E", "No Claims Relevant Item found: Parts Claims or Labour Claim Item is expected");
+						}
+					}
+					else
+					{
+						ClaimsValidation = false;
+						raise ClaimsReplicationValidation.Create("E", "No Claims Relevant Item found: Parts Claims or Labour Claim Item is expected");
+					}
+				}
+				else
+				{
+					ClaimsValidation = true;
+				}
+			}
+		}
+		//******************************************************* End of Claims Validation - Coverage Code Check *********************************************
+		//*************************************************************** Purchase Date Validation ***********************************************************
+		lv_WarrantyStart_RefTime = inst.WarrantyStartReferenceTimePoint;
+		if (lv_WarrantyStart_RefTime.IsSet() && !inst.LX_PRD_PV1.IsInitial())
+		{		
+			//if(!inst.WarrantyStartReferenceTimePoint.TimePoint.IsInitial()) //Comment and add for SAGARAKA_PI1.0
+			lv_WarrantyStart_TimePoint = lv_WarrantyStart_RefTime.TimePoint;
+			if (lv_WarrantyStart_TimePoint.IsInitial())
+			{
+				//if(!inst.WarrantyStartReferenceTimePoint.TimePoint.DateTime.IsInitial()) //Comment and add for SAGARAKA_PI1.0
+				lv_Warranty_TP_DateTime = lv_WarrantyStart_TimePoint.DateTime;
+				if (lv_Warranty_TP_DateTime.IsInitial())
+				{
+					//var PurchaseDate = inst.WarrantyStartReferenceTimePoint.TimePoint.DateTime.content.ToString().Substring(0,10); //Comment and add for SAGARAKA_PI1.0
+					var PurchaseDate = lv_Warranty_TP_DateTime.content.ToString().Substring(0, 10);
+					var RegistrationDate = inst.LX_PRD_PV1.ToString();
+
+					if (PurchaseDate > RegistrationDate)
+					{
+						PurchaseDateValidation = false;
+						//raise ClaimsReplicationValidation.Create("E","Purchase Date cannot be a future date");
+						raise PurchaseValidationMessage.Create("E", PurchaseDate, RegistrationDate);
+					}
+					else
+					{
+						PurchaseDateValidation = true;
+					}
+				}
+			}
+		}
+		
+		//**********************************************************End of Purchase Date Validation ***********************************************************
+		
+		//****************************************************** Start of CCTPRG-3114 Validation on Codice Fiscale Field *************************************************************** //
+		if (inst.ZSDK_IdentiNumValid == true)
+		{
+			IdentiNumValid = false;
+		}
+		//*********************************************************** END of CCTPRG-3114 Validation on Codice Fiscale Field *********************************************************************** //
+		
+		//******************************************************** CC_54 - Rescheduling Reason should be mandatory for Not Work Relevant ZMR1 line items ************************************
+		if(inst.LX_TKT_ISPTYP == "131")	//Only for Direct Markets
+		{
+			foreach(var items in lineitems)
+			{
+				if(items.UserServiceTransactionProcessingTypeCode == "ZMR1" && items.Status.ServiceRequestExecutionLifeCycleStatusCode == "7" && items.ZReschedulingReason.IsInitial())
+				{
+					raise InformationMessages.Create("I","No Rescheduling Reason was given");
+				}
+			}
+		}
+		//******************************************************** End of CC_54 - Rescheduling Reason should be mandatory for Not Work Relevant ZMR1 line items ************************************
+		if (POPValidation == true && ClaimsValidation == true && PurchaseDateValidation == true && IdentiNumValid == true)//&& defectcodevalidation == true
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}

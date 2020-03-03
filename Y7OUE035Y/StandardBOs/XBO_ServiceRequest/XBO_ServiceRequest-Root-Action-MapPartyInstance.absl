@@ -1,0 +1,174 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: MapPartyInstance 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+import AP.Common.GDT;
+import AP.FO.BusinessPartner.Global;
+import AP.FO.IBase.Global;
+import BASIS.Global;
+
+//Workaround solution to Map New Customer & Registered Product Instance for File Uploaded Entries - Customer & Registered Product Internal IDs are not generated on creation
+foreach (var inst in this)
+{
+	if (inst.LX_TKT_FUPSOURCE == "495" || inst.LX_TKT_FUPSOURCE == "504")	//Execute only for Retailer & ISP Tickets
+	{
+		var CustInstance;
+		var RPInstance;
+		
+		if (!inst.LX_TKT_FUPID.IsInitial())
+		{
+			var FileInstanceRecord = PBO_DataUpload.Retrieve(inst.LX_TKT_FUPID);
+			if (FileInstanceRecord.IsSet())
+			{
+				//Link New Consumer created via PBO_DataUpload BO
+				if (!inst.LX_TKT_DATAUPLOAD_CUUID.IsInitial())
+				{
+					var CustUUID : DataType::UUID;
+					CustUUID.content = Library::UUID.ParseFromString(inst.LX_TKT_DATAUPLOAD_CUUID);
+
+					CustInstance = Customer.Retrieve(CustUUID); //Retrieve Customer ID using UUID
+					if (CustInstance.IsSet())
+					{
+						// Assign Customer ID to TicketInstance
+						if (inst.BuyerID.IsInitial())
+						{
+							if (inst.BuyerParty.IsSet())
+							{
+								inst.BuyerParty.PartyKey.PartyID.content = CustInstance.InternalID.RemoveLeadingZeros();
+							}
+							else
+							{
+								var NewBuyerPartyInstance : elementsof ServiceRequest.Party;
+
+								NewBuyerPartyInstance.PartyKey.PartyID.content = CustInstance.InternalID.RemoveLeadingZeros();
+								NewBuyerPartyInstance.RoleCode = "1001";
+
+								inst.Party.Create(NewBuyerPartyInstance);
+							}
+						}
+
+						//Update Customer ID in File Instance Record ID
+						
+						FileInstanceRecord.CustomerID = CustInstance.InternalID.RemoveLeadingZeros();
+					}
+				}
+
+				//Link New Registered Product created via PBO_DataUpload BO
+				if (!inst.LX_TKT_DATAUPLOAD_RPUUID.IsInitial())
+				{
+					var RegPdtUUID : DataType::UUID;
+					RegPdtUUID.content = Library::UUID.ParseFromString(inst.LX_TKT_DATAUPLOAD_RPUUID);
+
+					RPInstance = InstallationPoint.Retrieve(RegPdtUUID); //Retrieve Registered Prod ID using UUID
+					if (RPInstance.IsSet())
+					{
+						// Assign Registered Product ID to TicketInstance
+						if (inst.MainServiceReferenceObject.IsSet())
+						{
+							inst.MainServiceReferenceObject.InstallationPointID.content = RPInstance.ID.content; 
+					
+						}
+						else
+						{
+							var newRegPdtInstance : elementsof ServiceRequest.ServiceReferenceObject;
+					
+							newRegPdtInstance.InstallationPointID.content = RPInstance.ID.content;
+					
+							inst.ServiceReferenceObject.Create(newRegPdtInstance);
+					
+						}
+
+						//Update Reg Pdt ID in File Instance Record ID
+						
+						FileInstanceRecord.RegisteredProdID.content = RPInstance.ID.content;
+					}
+				}
+
+				//Required for Claims Submission to Service Power
+				if (inst.LX_TKT_FUPSOURCE == "495")
+				{
+					//Auto Populate ISP Type, Claims Type & Status
+					inst.LX_TKT_ISPTYP = "111";
+					inst.LX_TKT_SCEN = "102";
+					inst.LX_REF_PO	= FileInstanceRecord.PORefrenceNumber;
+
+					if (inst.Item.Count() > 0)
+					{
+						var ClaimItem = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZCLM" || n.UserServiceTransactionProcessingTypeCode == "ZPAR");
+						if(inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z1")
+						{
+						   if((inst.ResolutionCode == "101" || inst.ResolutionCode == "111"|| inst.ResolutionCode == "161"))
+						   {
+								inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "5";			//Status -completed		
+						   }
+						   if ((ClaimItem.Count() > 0) && (inst.ResolutionCode == "121" || inst.ResolutionCode == "131"|| inst.ResolutionCode == "181")) //Change Status to Claims Validation only for Ticket with Part or Labor Claim
+						   {
+								inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z7";			//Status - Claims Validation
+						   }  
+						   if(inst.ResolutionCode == "191" ||inst.ResolutionCode=="")
+						   {
+								inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z6";			//Status - Action Needed								
+						   }
+						   if(inst.ResolutionCode == "141")
+						   {
+								inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z2";			//Status - Cancelled								
+						   }
+						   //if(ClaimItem.Count() == 0 && inst.ResolutionCode==" ")  
+						   //{
+							 //inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z6";			//Status - Action Needed		
+						   //}
+
+						}
+					}
+					else
+					{
+						if(FileInstanceRecord.IsSet())
+						{
+							var CreateProcessLog : elementsof PBO_DataUpload.ProcessLog;
+							CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+							CreateProcessLog.Trans_ProcessedObject.content = "02";					//"Ticket Creation";
+							CreateProcessLog.Trans_ObjectType.content = "05";						//"Transactional Data";
+							CreateProcessLog.LogDescriptions.content = "68";
+							FileInstanceRecord.ProcessLog.Create(CreateProcessLog);
+						}
+					}
+				}
+
+				else if (inst.LX_TKT_FUPSOURCE == "504" && (inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z3"))
+				{
+					inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z4";					//Status - PPP'
+				}
+			}
+		}
+	}
+}
+
+
+//if (inst.Item.Count() > 0)
+//{
+	//var ClaimItem = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZCLM" || n.UserServiceTransactionProcessingTypeCode == "ZPAR");
+	//if(inst.ResolutionCode == "191" && (inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z1"))
+		//{
+			//inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z6";			//Status - Action Needed								
+		//}
+	//
+	//else
+	//{
+		//if (ClaimItem.Count() > 0 && (inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z1")) //Change Status to Claims Validation only for Ticket with Part or Labor Claim
+	//{
+		//inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z7";			//Status - Claims Validation
+	//}
+	//}
+//}

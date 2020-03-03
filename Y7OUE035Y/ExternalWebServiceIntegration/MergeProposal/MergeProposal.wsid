@@ -1,0 +1,1 @@
+﻿<?xml version="1.0" encoding="utf-8"?><WSIntegrationDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><IsStateful>false</IsStateful><WebServiceType>2</WebServiceType><Url>https://my324697.crm.ondemand.com/sap/c4c/odata/v1/c4codataapi/BusinessPartnerMergeCollection</Url></WSIntegrationDefinition>

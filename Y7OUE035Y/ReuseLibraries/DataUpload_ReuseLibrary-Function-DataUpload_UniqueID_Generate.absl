@@ -1,0 +1,6 @@
+﻿import ABSL;
+
+var result : DataType::ID;
+var number = NumberRange.DrawNumber("UniqueID");
+result=number.ToString();
+return result;

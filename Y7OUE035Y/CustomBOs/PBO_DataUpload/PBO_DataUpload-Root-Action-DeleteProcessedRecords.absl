@@ -1,0 +1,29 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: PBO_DataUpload
+		Node: Root
+		Action: DeleteProcessedRecords 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+
+var From_Date = Context.GetCurrentSystemDate().SubtractDuration(Duration.ParseFromString("60D"));//library
+var Data_Upld = PBO_DataUpload.QueryByElements;
+var Data_Upld_SelParam = Data_Upld.CreateSelectionParams();
+Data_Upld_SelParam.Add(Data_Upld.CreatedOn,"I","EQ",From_Date);
+var Data_Upld_Qry_Res = Data_Upld.Execute(Data_Upld_SelParam);//fetch records created before 60 days
+foreach(var header_data in Data_Upld_Qry_Res)
+{
+	if(header_data.ProcessingStatus == "C")
+	{
+		header_data.Delete();//delete the processed line item inside each recods
+	}
+}

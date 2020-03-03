@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="SI_Claim_Submission_Sync"
+	targetNamespace="urn:electrolux.com" xmlns:p1="urn:electrolux.com"
+	xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy"
+	xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+	<wsdl:documentation />
+	<wsp:UsingPolicy wsdl:required="true" />
+	<wsp:Policy wsu:Id="OP_SI_Claim_Submission_Sync" />
+	<wsdl:types>
+		<xsd:schema targetNamespace="urn:electrolux.com" xmlns="urn:electrolux.com"
+			xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+			<xsd:element name="MT_Claim_Response" type="DT_Claim_Response" />
+			<xsd:element name="MT_SERVICEPOWER_REQ" type="SERVICEPOWER_REQ" />
+			<xsd:complexType name="DT_Claim_Response">
+				<xsd:sequence>
+					<xsd:element name="responseCode" type="xsd:string" minOccurs="0" maxOccurs="1" />
+					<xsd:element name="messages" minOccurs="0" maxOccurs="unbounded">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="message" type="xsd:string" minOccurs="0" maxOccurs="1" />
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="claimsResponse" minOccurs="0" maxOccurs="unbounded">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="claimResponseCode" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="manufacturerName" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="claimNumber" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="claimSequenceNumber" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="claimBatchNumber" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="messages" minOccurs="0" maxOccurs="unbounded" >
+									<xsd:complexType>
+										<xsd:sequence>
+											<xsd:element name="message" type="xsd:string"
+												minOccurs="0" maxOccurs="unbounded" />
+										</xsd:sequence>
+									</xsd:complexType>
+								</xsd:element>
+								<xsd:element name="errors" minOccurs="0" maxOccurs="unbounded">
+									<xsd:complexType>
+										<xsd:sequence>
+											<xsd:element name="errorDescription" type="xsd:string" minOccurs="0" maxOccurs="1" />
+											<xsd:element name="partNumber" type="xsd:string" minOccurs="0" maxOccurs="1" />
+										</xsd:sequence>
+									</xsd:complexType>
+								</xsd:element>
+								<xsd:element name="serviceCenterLocationCode" type="xsd:string" minOccurs="0" maxOccurs="1"  />
+								<xsd:element name="claimStatusDescription" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="serviceCenterNumber" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="Type" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="claimStatusCode" type="xsd:string" minOccurs="0" maxOccurs="1" />
+								<xsd:element name="claimTransactionId" type="xsd:string" minOccurs="0" maxOccurs="1" />
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="transactionId" type="xsd:string" minOccurs="0" maxOccurs="1" />
+					<xsd:element name="totalClaimProcessedSuccessfully" type="xsd:string" minOccurs="0" maxOccurs="1" />
+					<xsd:element name="totalClaimsReceived" type="xsd:string" minOccurs="0" maxOccurs="1" />
+					<xsd:element name="totalClaimsNotProcessedSuccessfully" type="xsd:string" minOccurs="0" maxOccurs="1" />
+				</xsd:sequence>
+			</xsd:complexType>
+			<xsd:complexType name="SERVICEPOWER_REQ">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="EN">Electrolux
+					</xsd:documentation>
+				</xsd:annotation>
+				<xsd:sequence>
+					<xsd:element name="authentication" minOccurs="0">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="userId" type="xsd:string" />
+								<xsd:element name="password" type="xsd:string" />
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="claims" minOccurs="0" maxOccurs="unbounded">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="manufacturerName" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="distributorNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serviceCenterNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serviceCenterLocationCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serviceCenterLocationName" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="claimNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerFirstName" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerLastName" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerAddress1" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerAddress2" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerCity" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerState" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerCountryCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerZipCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerPhone" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerType" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="customerEmail" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="demographicCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="brandName" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="modelNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serialNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="datePurchased" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="eiaDefectOrComplaintCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="defectOrComplaintDescription"
+									type="xsd:string" minOccurs="0" />
+								<xsd:element name="servicePerformedDescription"
+									type="xsd:string" minOccurs="0" />
+								<xsd:element name="eiaRepairCode1" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="eiaRepairCode2" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="eiaRepairCode3" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="eiaRepairCode4" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborSchematicLocation1" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborSchematicLocation2" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborSchematicLocation3" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborSchematicLocation4" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborSchematicLocation5" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborSchematicLocation6" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="reworkNumberOrPolicy" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="warrantyType" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="softwareVersion" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="repairCategory" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="stockRepairFlag" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="type" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="existingClaimBatchNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="existingClaimSequenceNumber"
+									type="xsd:string" minOccurs="0" />
+								<xsd:element name="productSalesReceipt" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="glAccountNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="validationFlag" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="debitNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="keypunchOperator" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dateReceived" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dateRequested" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dateStarted" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="timeStarted" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dateCompleted" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="timeCompleted" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="totalRepairMinutes" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serviceHours" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="travelHours" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="travelTime" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tripCount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="callNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dealerNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dealerName" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dealerAddress" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dealerCity" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dealerState" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="dealerZipCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="laborAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="partsAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="otherAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="taxFederalAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="taxStateAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="taxOtherAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="diagFeeAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="shippingChargeAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="codOrFreightAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="travelChargeAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="mileageAmount" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="travelMiles" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="stickerType" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="stickerNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serviceContractNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="distributorTransmittalNumber"
+									type="xsd:string" minOccurs="0" />
+								<xsd:element name="refurbished" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="reference" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="purchasedOverseasFlag" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="authorizationNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="partMarkupPercentage" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="microwaveBefore" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="microwaveAfter" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="specialCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="defectivePartNumber" type="xsd:string"
+									minOccurs="0" />
+									<xsd:element name="warrantyClock" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="defectivePartSerialNumber"
+									minOccurs="0">
+									<xsd:complexType>
+										<xsd:sequence>
+											<xsd:element name="specialCustomerNote" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="serviceSignedBy" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="alternateStoreNumber" type="xsd:string"
+												minOccurs="0" />
+										</xsd:sequence>
+									</xsd:complexType>
+								</xsd:element>
+								<xsd:element name="productSKU" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="warrantySKU" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="serviceBusinessUnit" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="pspSourceType" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="foodSpoilageCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaContractNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaClaimNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaContractError" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaProductPurchaseDate" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaLaborWarrantyDays" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaPartsWarrantyDays" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaSubProgram" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaRuleSet" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaEquipmentRetailPrice" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaProductCode" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaResubmittedFlag" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaResubmittedClaimNumber" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaClaimType" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaContractStartDate" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaContractEndDate" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaProductDescription" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaContractSKUDescription" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaProgramType" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="tpaRemarkId" type="xsd:string"
+									minOccurs="0" />
+								<xsd:element name="parts" minOccurs="0" maxOccurs="unbounded">
+									<xsd:complexType>
+										<xsd:sequence>
+											<xsd:element name="number" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="quantity" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="description" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="schematicLocation" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="reference" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="claimType" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="invoiceNumber" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="priceRequested" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="priceApproved" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="reorder" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="returned" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="returnReceived" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="returnDate" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="returnAuthorization" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="returnPartNumber" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="returnSerialNumber" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="creditApproval" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="distributorNumber" type="xsd:string"
+												minOccurs="0" />
+												<xsd:element name="shippingCharge" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="faultCode" type="xsd:string"
+												minOccurs="0" />
+											<xsd:element name="jobCode" type="xsd:string"
+												minOccurs="0" />
+										</xsd:sequence>
+									</xsd:complexType>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:complexType>
+		</xsd:schema>
+	</wsdl:types>
+	<wsdl:message name="p1.MT_SERVICEPOWER_REQ">
+		<wsdl:documentation />
+		<wsdl:part name="MT_SERVICEPOWER_REQ" element="p1:MT_SERVICEPOWER_REQ" />
+	</wsdl:message>
+	<wsdl:message name="p1.MT_Claim_Response">
+		<wsdl:documentation />
+		<wsdl:part name="MT_Claim_Response" element="p1:MT_Claim_Response" />
+	</wsdl:message>
+	<wsdl:portType name="SI_Claim_Submission_Sync">
+		<wsdl:documentation />
+		<wsdl:operation name="SI_Claim_Submission_Sync">
+			<wsdl:documentation />
+			<wsp:Policy>
+				<wsp:PolicyReference URI="#OP_SI_Claim_Submission_Sync" />
+			</wsp:Policy>
+			<wsdl:input message="p1:p1.MT_SERVICEPOWER_REQ" />
+			<wsdl:output message="p1:p1.MT_Claim_Response" />
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="SI_Claim_Submission_SyncBinding" type="p1:SI_Claim_Submission_Sync">
+		<soap:binding style="document"
+			transport="http://schemas.xmlsoap.org/soap/http" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+		<wsdl:operation name="SI_Claim_Submission_Sync">
+			<soap:operation soapAction="SI_Claim_Submission_Sync"
+				xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+			<wsdl:input>
+				<soap:body use="literal" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+
+	<wsdl:service name="NewService">
+		<wsdl:port name="NewPort" binding="p1:SI_Claim_Submission_SyncBinding">
+			<soap:address location="https://my327660.crm.ondemand.com" />
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

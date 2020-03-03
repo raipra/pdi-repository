@@ -1,0 +1,27 @@
+﻿import AP.Common.GDT;
+import AP.PC.ActivityManagement.Global;
+
+[Extension] businessobject AP.PC.ActivityManagement.Global:BusinessActivityIndustryExtension {
+ 
+        // You must activate this business object before you can access the extension fields
+        // or messages in script files, forms, and screens.
+
+    
+   		node Banking {
+   	   
+      		node TopicsDiscussed {
+      	    } 
+       
+      		node LineOfBusinessNotes {
+      	    } 
+
+        } 
+    
+   		node Assignment {
+
+   	    } 
+
+	action SetToInProcess;
+	action SetToComplete;   
+  
+}

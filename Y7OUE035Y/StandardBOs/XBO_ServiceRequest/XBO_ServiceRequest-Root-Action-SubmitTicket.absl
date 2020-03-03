@@ -1,0 +1,49 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: SubmitTicket 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SAGARAKA_PI1.0
+//Author: Akanksha Sagar (SAGARAKA)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+
+//Invoke Finish Work, Request External Pricing and Release to ERP
+foreach (var inst in this)
+{
+	if (inst.IsSet())
+	{
+		inst.FinishFulfilmentProcessingOfAllItems(); //Finish Work (Header Level)
+	
+		//Request External Pricing action will be triggered only if items are pricing relevant
+		var lv_item = inst.Item; //add for SAGARAKA_PI1.0
+		if (lv_item.Count() > 0)
+		{
+			//var PricingRelevantItems = inst.Item.Where(n => n.ExternalPricingRelevantIndicator); //Pricing Relevant line items //comment and add for SAGARAKA_PI1.0
+			var PricingRelevantItems = lv_item.Where(n => n.ExternalPricingRelevantIndicator); //Pricing Relevant line items
+			if (PricingRelevantItems.Count() > 0)
+			{
+				inst.RequestExternalData(); //Request External Pricing (Header Level)
+			}
+		}
+		inst.ReleaseAllItemsToExternalFollowUpProcessing(); //Release to ERP (Header Level)
+
+		if(inst.LX_TKT_ISPTYP == "131")	//Only for Direct Markets, for Indirect Markets 3rd party systems shall populate
+		{
+			inst.ResolutionCode = "121"; //Change Resolution Code to "Visit Completed" on successful execution of the above actions
+		}
+	}
+}

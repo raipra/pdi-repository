@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions name="SI_Book_Submission_Sync"
+	targetNamespace="urn:electrolux.com" xmlns:p1="urn:electrolux.com"
+	xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy"
+	xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/">
+	<wsdl:documentation />
+	<wsp:UsingPolicy wsdl:required="true" />
+	<wsp:Policy wsu:Id="OP_SI_Book_Submission_Sync" />
+	<wsdl:types>
+		<xsd:schema targetNamespace="urn:electrolux.com" xmlns="urn:electrolux.com"
+			xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+			<xsd:element name="MT_TOnlineBookResponseDetails" type="TOnlineBookResponseDetails" />
+			<xsd:element name="MT_TOnlineBookRequestDetails_REQ"
+				type="TOnlineBookRequestDetails" />
+			<xsd:complexType name="TOnlineBookResponseDetails">
+				<xsd:sequence>
+					<xsd:element name="BookSuccessfully" type="xsd:boolean"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="ErrorCode" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="ErrorMsg" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="ServiceID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="CustomerID" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="CustomerName" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="DiaryID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="FraudCheckCode" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+				</xsd:sequence>
+			</xsd:complexType>
+			<xsd:complexType name="TOnlineBookRequestDetails">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="EN">Electrolux
+					</xsd:documentation>
+				</xsd:annotation>
+				<xsd:sequence>
+					<xsd:element name="ServiceID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="CustomerID" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+						<xsd:element name="ClientCustomerRef" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="Postcode" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+						<xsd:element name="FirstName" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+						<xsd:element name="LastName" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="CustAplID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="ApplianceCode" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+						<xsd:element name="PNC" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="Model" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="ModelDesc" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="SupplyDat" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="SNO" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="MFR" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="PolicyNumber" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="PolicyExpireyDate" type="xsd:dateTime"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="AltCode" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="ReportFault" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="ClientID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="ClientRef" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="StatusID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="SubStatusID" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="ClientLabourID" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="CustomerContactID" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="EngineerID" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="VisitCode" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="VisitDate" type="xsd:dateTime"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="Skills" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="AppointmentNote" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="RequestedEarlierAppt" type="xsd:boolean"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="RequestedLaterAppt" type="xsd:boolean"
+						minOccurs="0" maxOccurs="1" />
+					<xsd:element name="JobID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="AuthNo" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="SlotID" type="xsd:string" minOccurs="0"
+						maxOccurs="1" />
+					<xsd:element name="OrigRef" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+						<xsd:element name="AllocatedCentreCode" type="xsd:string"
+						minOccurs="0" maxOccurs="1" />
+				
+		</xsd:sequence>
+		</xsd:complexType>
+		</xsd:schema>
+	</wsdl:types>
+	<wsdl:message name="p1.MT_TOnlineBookRequestDetails_REQ">
+		<wsdl:documentation />
+		<wsdl:part name="MT_TOnlineBookRequestDetails_REQ" element="p1:MT_TOnlineBookRequestDetails_REQ" />
+	</wsdl:message>
+	<wsdl:message name="p1.MT_TOnlineBookResponseDetails">
+		<wsdl:documentation />
+		<wsdl:part name="MT_TOnlineBookResponseDetails" element="p1:MT_TOnlineBookResponseDetails" />
+	</wsdl:message>
+	<wsdl:portType name="SI_Book_Submission_Sync">
+		<wsdl:documentation />
+		<wsdl:operation name="SI_Book_Submission_Sync">
+			<wsdl:documentation />
+			<wsp:Policy>
+				<wsp:PolicyReference URI="#OP_SI_Book_Submission_Sync" />
+			</wsp:Policy>
+			<wsdl:input message="p1:p1.MT_TOnlineBookRequestDetails_REQ" />
+			<wsdl:output message="p1:p1.MT_TOnlineBookResponseDetails" />
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="SI_Book_Submission_SyncBinding" type="p1:SI_Book_Submission_Sync">
+		<soap:binding style="document"
+			transport="http://schemas.xmlsoap.org/soap/http" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+		<wsdl:operation name="SI_Book_Submission_Sync">
+			<soap:operation soapAction="SI_Book_Submission_Sync"
+				xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+			<wsdl:input>
+				<soap:body use="literal" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" />
+			</wsdl:output>
+		</wsdl:operation>
+	</wsdl:binding>
+
+	<wsdl:service name="NewService">
+		<wsdl:port name="NewPort" binding="p1:SI_Book_Submission_SyncBinding">
+			<soap:address location="https://my327660.crm.ondemand.com" />
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

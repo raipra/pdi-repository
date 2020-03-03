@@ -1,0 +1,33 @@
+﻿import AP.Common.GDT as apCommonGDT;
+import AP.CRM.Global;
+
+//******************************* Show Spare Parts Details and Work Description in Tickets QV Screen ******************************
+businessobject PBO_TicketSpareParts {
+
+        // Root node must not be specified, it is created implicitly
+        //
+        // Add elements here. 
+        // 
+        // To declare an element as alternative key, use the [AlternativeKey] annotation.
+        // Please note:
+        // - An alternative key of type UUID exists implicitly for each node, enabling the node
+        //   to be used as an association target.
+        // - The QueryByElements query is created automatically for each node.
+        // - Code completion is available with CTRL + SPACE.
+
+												element TicketID			:BusinessTransactionDocumentID;
+		[Transient] [Label("Work Description")]	element WorkDescription		:Text;
+		
+		node SpareParts [0,n]
+		{
+			[Transient]	[Label("PNC ID")]			element PartsNumber		:LANGUAGEINDEPENDENT_ENCRYPTED_LONG_Name;
+			[Transient]	[Label("Description")]		element PartsName		:LANGUAGEINDEPENDENT_ENCRYPTED_LONG_Name;
+			[Transient] [Label("Planned Quantity")]	element PlannedQuantity	:Quantity;
+			[Transient] [Label("Processing")]		element ProcessingType	:LANGUAGEINDEPENDENT_ENCRYPTED_LONG_Name;
+
+		}
+		
+		action FetchPartsDetails;
+
+		association toTicket to ServiceRequest;
+}

@@ -1,0 +1,104 @@
+﻿import AP.Common.GDT;
+import AP.CRM.Global;
+
+[Extension] businessobject AP.CRM.Global:ServiceRequest raises PurchaseValidatedFlag, ClaimsReplicationValidation, MSG_ReplicationResponse, DefectCodeValidation, MSG_Error, MSG_FieldLength, MSG_Pattern, PurchaseValidationMessage, InformationMessages{
+ 
+        // You must activate this business object before you can access the extension fields
+        // or messages in script files, forms, and screens.
+ 
+		[Transient] element ZSDK_ApptOfferFromDate : Date;
+		[Transient] element ZSDK_ApptOfferToDate : Date;
+		[Transient] element ZSDK_ApptOfferSlotType : ApptOffSlotTypeCode;
+		[Transient] element ZSDK_DefectCodeInd : Indicator;
+		[Transient] element ZSDK_IdentiNumValid : Indicator;
+		
+
+		element ZSDK_ISP1Indi : Indicator;
+		element ZSDK_ISP2Indi : Indicator;
+		element ZSDK_ApptBtnISP2 : Indicator;
+		element ZSDK_CountryLanguageBCO :UPDATECOUNTRYLANGUAGECode;
+		element ZSDK_ShipToDetermination : Indicator;
+   		node Item 
+		{
+		
+			[Label("Specific Technician")] element ZSDK_Preferred_Tech		:PartyID;
+
+			message WarningMessage text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+
+   	    } 
+    
+   		node ServiceReferenceObject {
+   	    } 
+		
+		node AppointmentSlots [0,n] raises BookNowError
+		{
+			[Transient] element ZSDK_AppointmentDate : Date;
+			[Transient] element ZSDK_StartTime : Time;
+			[Transient] element ZSDK_EndTime : Time;
+			[Transient] element ZSDK_AllocEngID : LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+			[Transient] element ZSDK_AllocCntrCode : LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;	
+			
+			 action BookNowCall;			
+			 message BookNowError text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;		
+		}
+
+		node EStockTicket [0,n] raises ServiceError
+		{
+			[Transient]	[Label("Client")]					element ZSDK_Mandt				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("C4C Service Org.")]			element ZSDK_ServiceOrg			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("C4C Service Team")]			element ZSDK_ServiceTeam		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Service Emp. ID")]			element ZSDK_ServiceTech		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Ticket Number")]			element ZSDK_Ticket				:LANGUAGEINDEPENDENT_MEDIUM_Description;
+			[Transient]	[Label("Item")]						element ZSDK_TicketItem			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Item Number")]				element ZSDK_TicketItemNumber	:BusinessTransactionDocumentID;
+			[Transient]	[Label("SAP Part Number")]			element ZSDK_Matnr				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Item Seq. Number")]			element ZSDK_LfdnrItm			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Seq. Number")]				element ZSDK_Lfdnr				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Ticket Status ID")]			element ZSDK_Zc4cStatus			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Status Description")]		element ZSDK_Ddtext				:LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+			[Transient]	[Label("REX Part Number")]			element ZSDK_Bismt				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Material Desc.")]			element ZSDK_Maktx				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Plant")]					element ZSDK_Plant				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Storage Location")]			element ZSDK_Lgort				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Storage Location Desc.")]	element ZSDK_Lgobe				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Quantity")]					element ZSDK_Menge				:DecimalValue;
+			[Transient]	[Label("Service Proc. Type")]		element ZSDK_C4cProcType		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Service User Proc. Type")]  element ZSDK_C4cServeProcType	:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("ECC Proc. Type")]			element ZSDK_EccProcTpye		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Schedule line date")]		element ZSDK_Edatu				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Work Date")]				element ZSDK_WorkDate			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Doc. Date")]				element ZSDK_DocDate			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Rejection Reason")]			element ZSDK_Abgru				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("ATP Check")]				element ZSDK_C4cAtp				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Current User")]				element ZSDK_Uname				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Current Date")]				element ZSDK_Datum				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Transient]	[Label("Current Time")]				element ZSDK_Uzeit				:Time;
+			[Transient]	[Label("Event TimeStamp")]			element ZSDK_EventDateTime		:LANGUAGEINDEPENDENT_MEDIUM_Description;
+			
+			message ServiceError text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+		}
+
+	 action SubmitTicket;
+	 action ReleaseTicket;
+	 action SecondVisit;
+	 action SubmitClaimsTicket;
+	 action GetAppointment;
+	 action CalcOfferApptDates;	
+	 action RetriveEStockTicket;
+	 action ClearEStockTicket;
+	 action FaultCodeDetermination;
+	 action MapPartyInstance;
+	 action ClearData;
+	 action FetchAttachment;
+
+	 message PurchaseValidatedFlag text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+	 message ClaimsReplicationValidation text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+	 message MSG_ReplicationResponse text	"&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+	 message DefectCodeValidation text "&1" : LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+	 message MSG_Error text "&1" : LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;	 
+	 message MSG_FieldLength text "Codice Fiscale field Length must be of 16 charaters only";
+	 message MSG_Pattern text "Pattern of Field Codice Fiscale is not correct";
+	 message InformationMessages text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+	
+	 message PurchaseValidationMessage text "Purchase Date &1 can not be later than Registration Date &2" : LANGUAGEINDEPENDENT_EXTENDED_Text,LANGUAGEINDEPENDENT_EXTENDED_Text;
+}

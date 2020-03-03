@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sadl:definition xmlns:ass="http://sap.com/sap.nw.f.sadl/association" date="20200116" time="184748" uuid="0E75F63EB97C4619BE155FD20E5B2A16" xmlns:sadl="http://sap.com/sap.nw.f.sadl">
+  <sadl:conversions>
+    <sadl:conversion type="ALPHA" />
+  </sadl:conversions>
+  <sadl:modes>
+    <sadl:mode type="QUERY" />
+  </sadl:modes>
+  <sadl:dataSource name="DS" binding="Y7OUE035Y_PBUN3EF52FC45FDDA20E/ass:ROOT4F903855210031B0" type="BusinessObjectNode" d2p1:mdrsBinding="PBO_MassDataRun.Root" xmlns:d2p1="http://sap.com/xi/AP/PDI" />
+  <sadl:resultSet>
+    <sadl:structure name="Y7OUE035Y_PBUN3EF52FC45FDDA20E" dataSource="DS" d3p1:mdrsName="PBO_MassDataRun.Root" xmlns:d3p1="http://sap.com/xi/AP/PDI">
+      <sadl:attribute name="Y7OUE035Y_MDOTDE1E0AE1F59ED2F6" binding="MDRORUNIDF39A24EF1537F15A" d3p1:mdrsName="MDRORunID" />
+      <sadl:attribute name="Y7OUE035Y_MDOTAAAE03F50B802858" binding="MDRORUNNAME4AFF4FCC19FC73E0" d3p1:mdrsName="MDRORunName" />
+      <sadl:attribute name="Y7OUE035Y_MDOT7303507F8DA3ECF7" binding="MDRORUBJECTA5297BDC550A28B0" d3p1:mdrsName="MDRORunObject" />
+      <sadl:attribute name="Y7OUE035Y_DAOT8E9F922D326013F4" binding="DATAUPISPID85A46706CFD04270" d3p1:mdrsName="DataUploadISPID" />
+    </sadl:structure>
+  </sadl:resultSet>
+  <sadl:query bo="Y7OUE035Y_PBUN3EF52FC45FDDA20E" name="QUERY_BY_ELEMENTS" node="MASSDAQUERYA7CBD91719BD5A3D" type="ESI_QUERY">
+    <sadl:inputStructure>
+      <sadl:inputParameter name="MDRORUROOT0F8F66F723D77916">
+        <sadl:attribute binding="Y7OUE035Y_MDOTDE1E0AE1F59ED2F6" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="MDRORUROOT73012132DDE52ED3">
+        <sadl:attribute binding="Y7OUE035Y_MDOTAAAE03F50B802858" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="MDRORUROOTBFA71C754A982378">
+        <sadl:attribute binding="Y7OUE035Y_MDOT7303507F8DA3ECF7" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="DATAUPROOT6193C223ADB03492">
+        <sadl:attribute binding="Y7OUE035Y_DAOT8E9F922D326013F4" />
+      </sadl:inputParameter>
+    </sadl:inputStructure>
+    <sadl:outputStructure>
+      <sadl:attribute name="MDRORUROOT0F8F66F723D77916" binding="Y7OUE035Y_MDOTDE1E0AE1F59ED2F6" />
+      <sadl:attribute name="MDRORUROOT73012132DDE52ED3" binding="Y7OUE035Y_MDOTAAAE03F50B802858" />
+      <sadl:attribute name="MDRORUROOTBFA71C754A982378" binding="Y7OUE035Y_MDOT7303507F8DA3ECF7" />
+      <sadl:attribute name="DATAUPROOT6193C223ADB03492" binding="Y7OUE035Y_DAOT8E9F922D326013F4" />
+    </sadl:outputStructure>
+  </sadl:query>
+</sadl:definition>

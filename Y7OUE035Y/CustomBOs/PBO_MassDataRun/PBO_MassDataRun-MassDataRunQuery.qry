@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<QueryDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://sap.com/xi/BASIS/Global">
+  <ProxyName xmlns="">Y7OUE035Y_2YKHNKECUXBXQ8</ProxyName>
+  <QueryDefintionXrepPath xmlns="">/Y7OUE035Y_MAIN/SRC/CustomBOs/PBO_MassDataRun/PBO_MassDataRun-MassDataRunQuery.sadl</QueryDefintionXrepPath>
+  <Description xmlns="">This query is used in MDRO to process uploaded file records individually</Description>
+  <AnalyticalQueryIndicator xmlns="">false</AnalyticalQueryIndicator>
+  <SensitiveQueryIndicator xmlns="">false</SensitiveQueryIndicator>
+  <LanguageCode xmlns="">EN</LanguageCode>
+  <ParentNodeProxyName xmlns="">ROOT4F903855210031B0</ParentNodeProxyName>
+  <BOProxyName xmlns="">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+  <LogReferenceFields xmlns="">false</LogReferenceFields>
+  <QueryAnnotationElements xmlns="">
+    <QueryInputParameters>
+      <ProxyName>MDRORUROOT0F8F66F723D77916</ProxyName>
+      <Name>MDRORunID</Name>
+      <Type>APC_V_LANGIND_ENC_MED_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">MDRORUNIDF39A24EF1537F15A</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>MDRORUROOT73012132DDE52ED3</ProxyName>
+      <Name>MDRORunName</Name>
+      <Type>APC_V_LANGIND_ENC_MED_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">MDRORUNNAME4AFF4FCC19FC73E0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>MDRORUROOTBFA71C754A982378</ProxyName>
+      <Name>MDRORunObject</Name>
+      <Type>APC_V_LANGIND_ENC_MED_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">MDRORUBJECTA5297BDC550A28B0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>DATAUPROOT6193C223ADB03492</ProxyName>
+      <Name>DataUploadISPID</Name>
+      <Type>APC_V_LANGUAGEINDEP_SHORT_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">DATAUPISPID85A46706CFD04270</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryQRTNElements>
+      <ProxyName>MDRORUROOT0F8F66F723D77916</ProxyName>
+      <Name>MDRORunID</Name>
+      <Type>APC_V_LANGIND_ENC_MED_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">MDRORUNIDF39A24EF1537F15A</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>MDRORUROOT73012132DDE52ED3</ProxyName>
+      <Name>MDRORunName</Name>
+      <Type>APC_V_LANGIND_ENC_MED_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">MDRORUNNAME4AFF4FCC19FC73E0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>MDRORUROOTBFA71C754A982378</ProxyName>
+      <Name>MDRORunObject</Name>
+      <Type>APC_V_LANGIND_ENC_MED_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">MDRORUBJECTA5297BDC550A28B0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>DATAUPROOT6193C223ADB03492</ProxyName>
+      <Name>DataUploadISPID</Name>
+      <Type>APC_V_LANGUAGEINDEP_SHORT_NAME</Type>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBUN3EF52FC45FDDA20E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">ROOT4F903855210031B0</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">DATAUPISPID85A46706CFD04270</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <ParentNodeProxyName>ROOT4F903855210031B0</ParentNodeProxyName>
+    <UseForFeedsIndicator>false</UseForFeedsIndicator>
+    <UseForEnterpriseSearchIndicator>false</UseForEnterpriseSearchIndicator>
+  </QueryAnnotationElements>
+</QueryDefinition>

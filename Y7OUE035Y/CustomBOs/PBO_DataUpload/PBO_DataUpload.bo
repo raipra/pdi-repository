@@ -1,0 +1,273 @@
+﻿import AP.Common.GDT as apCommonGDT;
+import AP.CRM.Global;
+import AP.FO.BusinessPartner.Global;
+import AP.FO.IBase.Global;
+import AP.FO.ProductDataMaintenance.Global;
+
+businessobject PBO_DataUpload raises errormessage {
+
+        message errormessage text "&1":LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;	
+        // Root node must not be specified, it is created implicitly
+        //
+        // Add elements here. 
+        // 
+        // To declare an element as alternative key, use the [AlternativeKey] annotation.
+        // Please note:
+        // - An alternative key of type UUID exists implicitly for each node, enabling the node
+        //   to be used as an association target.
+        // - The QueryByElements query is created automatically for each node.
+        // - Code completion is available with CTRL + SPACE.
+
+	//Header Fields
+	[Label("Header ID")]			element	UniqueID				:ID;
+	[Label("Record ID")][AlternativeKey]element RecordID			:ID;
+	[Label("ISP ID")]				element ISPID					:LANGUAGEINDEPENDENT_SHORT_Name;
+	[Label("File Name")]			element FileName				:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Description;
+	[Label("Item Type")]			element ItemType				:DataUploadItemTypeCode;
+	[Label("Received Timestamp")]	element FileTimestamp			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Processed Timestamp")]	element ProcessedTimestamp		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Created On")]			element CreatedOn				:Date;
+	[Label("Status")]				element ProcessingStatus		:DataUploadProcessingStatusCode;
+	
+	//Customer Fields
+	[Label("Customer UUID")]			element CustomerUUID			:UUID;
+	[Label("Customer First Name")]		element CustomerFirstName		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Customer Last Name")]		element CustomerLastName		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Customer Language")]		element CustomerLanguage		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Customer Address Line1")]	element CustomerAddressLine1	:LANGUAGEINDEPENDENT_LONG_Description;
+	[Label("Customer Address Line2")]	element CustomerAddressLine2	:LANGUAGEINDEPENDENT_LONG_Description;
+	[Label("Customer City")]			element CustomerCity			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("State")]					element CustomerState			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Country")]					element CustomerCountry			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Postal Code")]				element CustomerPostCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Telephone Prefix")]			element TelephonePrefix			:LANGUAGEINDEPENDENT_SHORT_Name;
+	[Label("Phone Number")]				element PhoneNumber				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Mobile Number")]			element MobileNumber			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Customer Email")]			element CustomerEmail			:EmailURI;
+		
+	//Registered Product Fields
+	[Label("Registered Product UUID")]	element RegisteredProdUUID		:UUID;
+	[Label("PNC Number")]				element ProductPNC				:ProductInternalID;
+	[Label("Model Part Number")]		element ModelPartNum			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Serial Number")]			element SerialNumber			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Purchase Date")]			element PurchaseDate			:Date;
+	[Label("Proof of Purchase")]		element ProofOfPurchase			:Indicator;
+	[Label("Retailer")]					element Retailer				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Warranty Type")]			element WarrantyType			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("ExternalWarranty")]			element ExternalWarranty		:Indicator;
+	[Label("Warranty Start Date")]		element WarrantyStartDate		:Date;
+	[Label("Warranty End Date")]		element WarrantyEndDate			:Date;	
+
+	//Contract Fields
+	[Label("Contract ID")]				element ContractID				:BusinessTransactionDocumentID;
+	[Label("Contract Type")]			element ContractType			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Third Party Contract ID")]	element ThirdPartyContractID	:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Begins On")]				element ContractStartDate		:Date;
+	[Label("Ends On")]					element ContractEndDate			:Date;
+	[Label("Signed On")]				element ContractSignedOn		:Date;
+	[Label("Contract Name Notused")]	element ContractName			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	//[Label("Contract Name")]			element ContractNameNew			:LANGUAGEINDEPENDENT_EXTENDED_Name;
+	[Label("Contract Name")]			element ContractNameNew			:LANGUAGEINDEPENDENT_EXTENDED_Name;				
+	[Label("Contract UUID")]			element ContractUUID			:UUID;
+	
+	//Claim - Ticket Fields
+	[Label("Claim Number")]				element ClaimNumber				:BusinessTransactionDocumentID;
+	[Label("Customer")]					element CustomerID				:BusinessPartnerInternalID;
+	[Label("Registered Product")]		element RegisteredProdID		:InstallationPointID_V2;
+	[Label("Ticket Status")]			element TicketStatus			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Description")]				element ClaimDescription		:LANGUAGEINDEPENDENT_LONG_Description;
+	[Label("Service Category")]			element ServiceCategory			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Object Appliance Code")]	element ObjectApplianceCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Complaint")]				element Compliant				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Date of Claim")]			element ClaimDate				:Date;
+	[Label("Reported Date")]			element ReportedDate			:Date;
+	[Label("Completion Date")]			element CompletionDate			:Date;
+	[Label("Subject")]					element TicketSubject			:LANGUAGEINDEPENDENT_LONG_Description;
+	[Label("Technician ID")]			element TechnicianID			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Street")]					element ServiceLocStreet		:StreetName;
+	[Label("City")]						element ServiceLocCity			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Province")]					element ServiceLocProvince		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Service Loc Postal Code")]	element ServiceLocPostalCode	:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Visit Start Date")]			element VisitStartDate			:Date;
+	[Label("Visit End Date")]			element VisitEndDate			:Date;
+	[Label("Retailer Ticket")]			element SourceAsRetailer		:Indicator;
+	[Label("Resolution Code")]			element ResolutionCode			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Resolution Category")]		element ResolutionCategory		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Fault Code")]				element FaultCode				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Component Code")]			element ComponentCode			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Defect Code")]				element DefectCode				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Action Taken")]				element ActionTaken				:LANGUAGEINDEPENDENT_LONG_Name;
+	[Label("Authorization Code")]		element AuthorizationCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Third Party Claim Number")]	element ThirdPartyClaimNum		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Claim PO Reference No")]	element PORefrenceNumber		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Third Party Contract Number")]element ContractNumber		:LANGUAGEINDEPENDENT_MEDIUM_Name;	
+	[Label("Third Party Authorization")] element ThirdPartyAuthCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Coverage Group")]			element CoverageGroup			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Coverage Code")]			element CoverageCode			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Work Description")]			element WorkDescription			:LANGUAGEINDEPENDENT_LONG_Description;
+	[Label("Privacy")]					element PrivacyFlag				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	[Label("Third Party Warranty Provider")]element ThirdPartyWarrantyProvider:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	node TicketItems [0,n]		//Service Request Ticket Additional Details
+	{
+		[Label("ID")]					element	UniqueID				:ID;
+		[Label("Item Type")]			element ItemType				:DataUploadItemTypeCode;		
+		[Label("Claim Number")]			element ClaimNumber				:BusinessTransactionDocumentID;
+		[Label("Claim Item Number")]	element ClaimItemNumber			:NumberValue;
+		[Label("Rex Part Number Flag")]	element RexPartNumFlag			:Indicator;
+		[Label("Spare Code")]			element SpareCode				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Spare Quantity")]		element SpareQuantity			:NumberValue;
+		[Label("Claim Amount")]			element ClaimAmount				:Amount;
+		[Label("Processing Type")]		element ItemProcessingType		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+	}
+
+	node ProcessLog [0,n]
+	{
+		[Label("TimeStamp")]			element	TimeStamp				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Processed Object")]		element ProcessedObject			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Object Type")]			element ObjectType				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Error Description")]	element ErrorDescription		:LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+
+
+		[Label("Log Description")]      element LogDescriptions  		:DATAUPLOADTRANSLATIONSCode;
+		[Label("Object Type")]			element Trans_ObjectType      	:DATAUPLOADTRANSLATIONSCode;
+		[Label("Processed Object")]		element Trans_ProcessedObject	:DATAUPLOADTRANSLATIONSCode;
+	}
+
+	node BusinessPartnerDuplicate [0,n]
+	{
+		element CustomerID						: BusinessPartnerInternalID;
+		element CustomerUUID					: UUID;
+		element CustomerLastChangedDateTime		: DateTime;
+		element CustomerCreatedOnDateTime		: DateTime;
+		element MatchPercent					: LANGUAGEINDEPENDENT_MEDIUM_Name;
+
+	}
+
+	association ToCustomer to Customer;
+	association ToRegisteredProduct to InstallationPoint;
+	association ToTicket to ServiceRequest;
+	association ToContract to Contract;
+
+	action ProcessDataUpload;
+	action DeleteProcessedRecords;
+	action ReProcessDataUpload;
+	action DeleteSelectedRecord;
+
+	node FileInstance [0,n]
+	{
+		//Header Fields
+		[Label("Header ID")]				element	UniqueID				:ID;
+		[Label("ISP ID")]					element ISPID					:LANGUAGEINDEPENDENT_SHORT_Name;
+		[Label("Item Type")]				element ItemType				:DataUploadItemTypeCode;
+		[Label("Status")]				element ProcessingStatus		:DataUploadProcessingStatusCode;
+		[AlternativeKey][Label("Record ID")]		element FileInstanceID          :ID;
+		
+		//Customer Fields
+		[Label("Customer UUID")]			element CustomerUUID			:UUID;
+		[Label("Customer First Name")]		element CustomerFirstName		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Last Name")]		element CustomerLastName		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Language")]		element CustomerLanguage		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Address Line1")]	element CustomerAddressLine1	:LANGUAGEINDEPENDENT_LONG_Description;
+		[Label("Customer Address Line2")]	element CustomerAddressLine2	:LANGUAGEINDEPENDENT_LONG_Description;
+		[Label("State")]					element CustomerState			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Country")]					element CustomerCountry			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Postal Code")]				element CustomerPostCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Telephone Prefix")]			element TelephonePrefix			:LANGUAGEINDEPENDENT_SHORT_Name;
+		[Label("Phone Number")]				element PhoneNumber				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Mobile Number")]			element MobileNumber			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Email")]			element CustomerEmail			:EmailURI;
+		
+		//Registered Product Fields
+		[Label("Registered Product UUID")]	element RegisteredProdUUID		:UUID;
+		[Label("PNC Number")]				element ProductPNC				:ProductInternalID;
+		[Label("Model Part Number")]		element ModelPartNum			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Serial Number")]			element SerialNumber			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Purchase Date")]			element PurchaseDate			:Date;
+		[Label("Proof of Purchase")]		element ProofOfPurchase			:Indicator;
+		[Label("Retailer")]					element Retailer				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Warranty Type")]			element WarrantyType			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("ExternalWarranty")]			element ExternalWarranty		:Indicator;
+		[Label("Warranty Start Date")]		element WarrantyStartDate		:Date;
+		[Label("Warranty End Date")]		element WarrantyEndDate			:Date;	
+
+		//Contract Field
+		[Label("Contract ID")]				element ContractID				:BusinessTransactionDocumentID;
+		[Label("Contract Type")]			element ContractType			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Third Party Contract ID")]	element ThirdPartyContractID	:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Contract Start Date")]		element ContractStartDate		:Date;
+		[Label("Contract End Date")]		element ContractEndDate			:Date;
+		
+
+		//Claim - Ticket Fields
+		[Label("Claim Number")]				element ClaimNumber				:BusinessTransactionDocumentID;
+		[Label("Customer")]					element CustomerID				:BusinessPartnerInternalID;
+		[Label("Registered Product")]		element RegisteredProdID		:InstallationPointID_V2;
+		[Label("Description")]				element ClaimDescription		:LANGUAGEINDEPENDENT_LONG_Description;
+		[Label("Service Category")]			element ServiceCategory			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Object Appliance Code")]	element ObjectApplianceCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Complaint")]				element Compliant				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Date of Claim")]			element ClaimDate				:Date;
+		[Label("Reported Date")]			element ReportedDate			:Date;
+		[Label("Completion Date")]			element CompletionDate			:Date;
+		[Label("Subject")]					element TicketSubject			:LANGUAGEINDEPENDENT_LONG_Description;
+		[Label("Technician ID")]			element TechnicianID			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Street")]					element ServiceLocStreet		:StreetName;
+		[Label("City")]						element ServiceLocCity			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Province")]					element ServiceLocProvince		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Service Loc Postal Code")]	element ServiceLocPostalCode	:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Visit Start Date")]			element VisitStartDate			:Date;
+		[Label("Visit End Date")]			element VisitEndDate			:Date;
+		[Label("Resolution Code")]			element ResolutionCode			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Fault Code")]				element FaultCode				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Component Code")]			element ComponentCode			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Defect Code")]				element DefectCode				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Action Taken")]				element ActionTaken				:LANGUAGEINDEPENDENT_LONG_Name;
+		[Label("Authorization Code")]		element AuthorizationCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Third Party Claim Number")]	element ThirdPartyClaimNum		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Third Party Contract Number")]element ContractNumber		:LANGUAGEINDEPENDENT_MEDIUM_Name;	
+		[Label("Third Party Authorization")] element ThirdPartyAuthCode		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Coverage Group")]			element CoverageGroup			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Coverage Code")]			element CoverageCode			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Work Description")]			element WorkDescription			:LANGUAGEINDEPENDENT_LONG_Description;
+
+		node TicketItem [0,n]		//Service Request Ticket Additional Details
+		{
+			[Label("ID")]					element	UniqueID				:ID;
+			[Label("Item Type")]			element ItemType				:DataUploadItemTypeCode;		
+			[Label("Claim Number")]			element ClaimNumber				:BusinessTransactionDocumentID;
+			[Label("Claim Item Number")]	element ClaimItemNumber			:NumberValue;
+			[Label("Spare Code")]			element SpareCode				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Spare Quantity")]		element SpareQuantity			:NumberValue;
+			[Label("Claim Amount")]			element ClaimAmount				:Amount;
+			[Label("Processing Type")]		element ItemProcessingType		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		}
+
+		node ProcessLogs [0,n]
+		{
+			[Label("TimeStamp")]			element	TimeStamp				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Processed Object")]		element ProcessedObject			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Object Type")]			element ObjectType				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Error Description")]	element ErrorDescription		:LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+
+
+			[Label("Log Description")]      element LogDescriptions  		:DATAUPLOADTRANSLATIONSCode;
+			[Label("Object Type")]			element Trans_ObjectType      	:DATAUPLOADTRANSLATIONSCode;
+			[Label("Processed Object")]		element Trans_ProcessedObject	:DATAUPLOADTRANSLATIONSCode;
+		}
+
+		node BusinessPartnerDuplicates [0,n]
+		{
+			[Label("Customer ID")]		element CustomerID		: BusinessPartnerInternalID;
+			[Label("Customer UUID")]	element CustomerUUID	: UUID;
+			[Label("Match Percent")]	element MatchPercent	: LANGUAGEINDEPENDENT_MEDIUM_Name;
+		}
+
+		association ToCustomer to Customer;
+		association ToRegisteredProduct to InstallationPoint;
+		association ToTicket to ServiceRequest;
+
+		action ProcessDataUpload;
+		action DeleteProcessedRecords;
+		action ReProcessDataUpload;
+	}
+}

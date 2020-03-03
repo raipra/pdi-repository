@@ -1,0 +1,49 @@
+﻿import AP.Common.GDT as apCommonGDT;
+import AP.CRM.Global;
+import AP.FO.BusinessPartner.Global;
+import AP.FO.IBase.Global;
+import AP.FO.ProductDataMaintenance.Global;
+
+businessobject PBO_MassDataRun {
+
+        // Root node must not be specified, it is created implicitly
+        //
+        // Add elements here. 
+        // 
+        // To declare an element as alternative key, use the [AlternativeKey] annotation.
+        // Please note:
+        // - An alternative key of type UUID exists implicitly for each node, enabling the node
+        //   to be used as an association target.
+        // - The QueryByElements query is created automatically for each node.
+        // - Code completion is available with CTRL + SPACE.
+		
+		element MDRORunID						:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+		element MDRORunName						:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+		element MDRORunObject					:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+		element MDRORunObjectUUID				:UUID;
+		element MDRORunObjectID					:ID;
+		element DataUploadCustomerID			:BusinessPartnerInternalID;
+		element DataUploadCustomerUUID			:UUID;
+		element DataUploadRegProdID				:InstallationPointID_V2;
+		element DataUploadRegProdUUID			:UUID;
+		element DataUploadTicketID				:BusinessTransactionDocumentID;
+		element DataUploadProcessingStatus		:DataUploadProcessingStatusCode;
+		element DataUploadISPID					:LANGUAGEINDEPENDENT_SHORT_Name;
+
+		node ProcessLogs [0,n]
+		{
+			element DataUploadLogDescription		:LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+			element	DataUploadTimeStamp				:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			element DataUploadProcessedObject		:LANGUAGEINDEPENDENT_MEDIUM_Name;
+			element DataUploadObjectType			:LANGUAGEINDEPENDENT_MEDIUM_Name;
+		}
+
+		node BusinessPartnerDuplicates [0,n]
+		{
+			element CustomerID : BusinessPartnerInternalID;
+			element CustomerUUID : UUID;
+			element MatchPercent : LANGUAGEINDEPENDENT_MEDIUM_Name;
+		}
+
+		action RunMDRO;
+}

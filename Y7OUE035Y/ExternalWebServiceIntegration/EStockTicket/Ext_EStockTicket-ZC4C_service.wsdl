@@ -1,0 +1,416 @@
+<wsdl:definitions targetNamespace="urn:sap-com:document:sap:soap:functions:mc-style" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsoap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="urn:sap-com:document:sap:soap:functions:mc-style" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:n1="urn:sap-com:document:sap:rfc:functions">
+	<wsdl:documentation>
+		<sidl:sidl xmlns:sidl="http://www.sap.com/2007/03/sidl"/>
+	</wsdl:documentation>
+	<wsp:UsingPolicy wsdl:required="true"/>
+	<wsp:Policy wsu:Id="BN__ZC4C_I813_TICKET_STATUS_OUT">
+		<wsp:ExactlyOne>
+			<wsp:All>
+				<sapattahnd:Enabled xmlns:sapattahnd="http://www.sap.com/710/features/attachment/">false</sapattahnd:Enabled>
+				<saptrnbnd:OptimizedMimeSerialization wsp:Optional="true" xmlns:saptrnbnd="http://schemas.xmlsoap.org/ws/2004/09/policy/optimizedmimeserialization"/>
+				<wsaw:UsingAddressing wsp:Optional="true" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"/>
+				<wsp:All>
+					<sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
+						<wsp:Policy>
+							<sp:TransportToken>
+								<wsp:Policy>
+									<sp:HttpsToken>
+										<wsp:Policy>
+											<sp:HttpBasicAuthentication/>
+										</wsp:Policy>
+									</sp:HttpsToken>
+								</wsp:Policy>
+							</sp:TransportToken>
+							<sp:AlgorithmSuite>
+								<wsp:Policy>
+									<sp:Basic128Rsa15/>
+								</wsp:Policy>
+							</sp:AlgorithmSuite>
+							<sp:Layout>
+								<wsp:Policy>
+									<sp:Strict/>
+								</wsp:Policy>
+							</sp:Layout>
+						</wsp:Policy>
+					</sp:TransportBinding>
+				</wsp:All>
+			</wsp:All>
+			<wsp:All>
+				<sapattahnd:Enabled xmlns:sapattahnd="http://www.sap.com/710/features/attachment/">false</sapattahnd:Enabled>
+				<saptrnbnd:OptimizedXMLTransfer uri="http://xml.sap.com/2006/11/esi/esp/binxml" wsp:Optional="true" xmlns:saptrnbnd="http://www.sap.com/webas/710/soap/features/transportbinding/"/>
+				<wsaw:UsingAddressing wsp:Optional="true" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"/>
+				<wsp:All>
+					<sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
+						<wsp:Policy>
+							<sp:TransportToken>
+								<wsp:Policy>
+									<sp:HttpsToken>
+										<wsp:Policy>
+											<sp:HttpBasicAuthentication/>
+										</wsp:Policy>
+									</sp:HttpsToken>
+								</wsp:Policy>
+							</sp:TransportToken>
+							<sp:AlgorithmSuite>
+								<wsp:Policy>
+									<sp:Basic128Rsa15/>
+								</wsp:Policy>
+							</sp:AlgorithmSuite>
+							<sp:Layout>
+								<wsp:Policy>
+									<sp:Strict/>
+								</wsp:Policy>
+							</sp:Layout>
+						</wsp:Policy>
+					</sp:TransportBinding>
+				</wsp:All>
+			</wsp:All>
+		</wsp:ExactlyOne>
+	</wsp:Policy>
+	<wsp:Policy wsu:Id="BN__ZC4C_I813_TICKET_STATUS_OUT_soap12">
+		<wsp:ExactlyOne>
+			<wsp:All>
+				<sapattahnd:Enabled xmlns:sapattahnd="http://www.sap.com/710/features/attachment/">false</sapattahnd:Enabled>
+				<saptrnbnd:OptimizedMimeSerialization wsp:Optional="true" xmlns:saptrnbnd="http://schemas.xmlsoap.org/ws/2004/09/policy/optimizedmimeserialization"/>
+				<wsaw:UsingAddressing wsp:Optional="true" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"/>
+				<wsp:All>
+					<sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
+						<wsp:Policy>
+							<sp:TransportToken>
+								<wsp:Policy>
+									<sp:HttpsToken>
+										<wsp:Policy>
+											<sp:HttpBasicAuthentication/>
+										</wsp:Policy>
+									</sp:HttpsToken>
+								</wsp:Policy>
+							</sp:TransportToken>
+							<sp:AlgorithmSuite>
+								<wsp:Policy>
+									<sp:Basic128Rsa15/>
+								</wsp:Policy>
+							</sp:AlgorithmSuite>
+							<sp:Layout>
+								<wsp:Policy>
+									<sp:Strict/>
+								</wsp:Policy>
+							</sp:Layout>
+						</wsp:Policy>
+					</sp:TransportBinding>
+				</wsp:All>
+			</wsp:All>
+			<wsp:All>
+				<sapattahnd:Enabled xmlns:sapattahnd="http://www.sap.com/710/features/attachment/">false</sapattahnd:Enabled>
+				<saptrnbnd:OptimizedXMLTransfer uri="http://xml.sap.com/2006/11/esi/esp/binxml" wsp:Optional="true" xmlns:saptrnbnd="http://www.sap.com/webas/710/soap/features/transportbinding/"/>
+				<wsaw:UsingAddressing wsp:Optional="true" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl"/>
+				<wsp:All>
+					<sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702" xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy" xmlns:wsa="http://www.w3.org/2005/08/addressing" xmlns:wst="http://docs.oasis-open.org/ws-sx/ws-trust/200512" xmlns:wsu="http://schemas.xmlsoap.org/ws/2002/07/utility" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex">
+						<wsp:Policy>
+							<sp:TransportToken>
+								<wsp:Policy>
+									<sp:HttpsToken>
+										<wsp:Policy>
+											<sp:HttpBasicAuthentication/>
+										</wsp:Policy>
+									</sp:HttpsToken>
+								</wsp:Policy>
+							</sp:TransportToken>
+							<sp:AlgorithmSuite>
+								<wsp:Policy>
+									<sp:Basic128Rsa15/>
+								</wsp:Policy>
+							</sp:AlgorithmSuite>
+							<sp:Layout>
+								<wsp:Policy>
+									<sp:Strict/>
+								</wsp:Policy>
+							</sp:Layout>
+						</wsp:Policy>
+					</sp:TransportBinding>
+				</wsp:All>
+			</wsp:All>
+		</wsp:ExactlyOne>
+	</wsp:Policy>
+	<wsp:Policy wsu:Id="IF__ZC4C_C4C_TICKET_STATUS_OUT">
+		<wsp:ExactlyOne>
+			<wsp:All>
+				<sapsession:Session xmlns:sapsession="http://www.sap.com/webas/630/soap/features/session/">
+					<sapsession:enableSession>false</sapsession:enableSession>
+				</sapsession:Session>
+				<sapcentraladmin:CentralAdministration wsp:Optional="true" xmlns:sapcentraladmin="http://www.sap.com/webas/700/soap/features/CentralAdministration/">
+					<sapcentraladmin:BusinessApplicationID>51107E7A8DBC21F0E10080000A052E07</sapcentraladmin:BusinessApplicationID>
+				</sapcentraladmin:CentralAdministration>
+			</wsp:All>
+		</wsp:ExactlyOne>
+	</wsp:Policy>
+	<wsp:Policy wsu:Id="OP__Zc4cC4cTicketStatusOut">
+		<wsp:ExactlyOne>
+			<wsp:All>
+				<saptrhnw05:required xmlns:saptrhnw05="http://www.sap.com/NW05/soap/features/transaction/">no</saptrhnw05:required>
+				<sapcomhnd:enableCommit xmlns:sapcomhnd="http://www.sap.com/NW05/soap/features/commit/">false</sapcomhnd:enableCommit>
+				<sapblock:enableBlocking xmlns:sapblock="http://www.sap.com/NW05/soap/features/blocking/">true</sapblock:enableBlocking>
+				<saprmnw05:enableWSRM xmlns:saprmnw05="http://www.sap.com/NW05/soap/features/wsrm/">false</saprmnw05:enableWSRM>
+			</wsp:All>
+		</wsp:ExactlyOne>
+	</wsp:Policy>
+	<wsdl:types>
+		<xsd:schema attributeFormDefault="qualified" targetNamespace="urn:sap-com:document:sap:rfc:functions">
+			<xsd:simpleType name="char1">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="1"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char12">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="12"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char16">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="16"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char18">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="18"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char2">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="2"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char20">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="20"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char3">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="3"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char35">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="35"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char4">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="4"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char40">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="40"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char6">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="6"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char60">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="60"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="char9">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="9"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="clnt3">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="3"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="date10">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="10"/>
+					<xsd:pattern value="\d\d\d\d-\d\d-\d\d"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="lang">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="1"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="numeric8">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="8"/>
+					<xsd:pattern value="\d*"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="quantum13.3">
+				<xsd:restriction base="xsd:decimal">
+					<xsd:totalDigits value="13"/>
+					<xsd:fractionDigits value="3"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:simpleType name="time">
+				<xsd:restriction base="xsd:time">
+					<xsd:pattern value="[0-9]{2}:[0-9]{2}:[0-9]{2}"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:schema>
+		<xsd:schema attributeFormDefault="qualified" targetNamespace="urn:sap-com:document:sap:soap:functions:mc-style" xmlns:n0="urn:sap-com:document:sap:rfc:functions">
+			<xsd:import namespace="urn:sap-com:document:sap:rfc:functions"/>
+			<xsd:simpleType name="RfcException.Message.Number">
+				<xsd:restriction base="xsd:string">
+					<xsd:maxLength value="3"/>
+					<xsd:pattern value="\d*"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:complexType name="Zc4cC4cstatOut">
+				<xsd:sequence>
+					<xsd:element name="Mandt" type="n0:clnt3"/>
+					<xsd:element name="ServiceOrg" type="n0:char20"/>
+					<xsd:element name="ServiceTeam" type="n0:char20"/>
+					<xsd:element name="ServiceTech" type="n0:numeric8"/>
+					<xsd:element name="Ticket" type="n0:char35"/>
+					<xsd:element name="TicketItm" type="n0:char6"/>
+					<xsd:element name="Matnr" type="n0:char18"/>
+					<xsd:element name="LfdnrItm" type="n0:char3"/>
+					<xsd:element name="Lfdnr" type="n0:char3"/>
+					<xsd:element name="Zc4cStatus" type="n0:char9"/>
+					<xsd:element name="Ddtext" type="n0:char60"/>
+					<xsd:element name="Bismt" type="n0:char18"/>
+					<xsd:element name="Maktx" type="n0:char40"/>
+					<xsd:element name="Plant" type="n0:char4"/>
+					<xsd:element name="Lgort" type="n0:char4"/>
+					<xsd:element name="Lgobe" type="n0:char16"/>
+					<xsd:element name="Menge" type="n0:quantum13.3"/>
+					<xsd:element name="C4cProcType" type="n0:char4"/>
+					<xsd:element name="C4cServeProcType" type="n0:char4"/>
+					<xsd:element name="EccProcType" type="n0:char4"/>
+					<xsd:element name="Edatu" type="n0:date10"/>
+					<xsd:element name="WorkDate" type="n0:date10"/>
+					<xsd:element name="DocDate" type="n0:date10"/>
+					<xsd:element name="Abgru" type="n0:char2"/>
+					<xsd:element name="C4cAtp" type="n0:char1"/>
+					<xsd:element name="Uname" type="n0:char12"/>
+					<xsd:element name="Datum" type="n0:date10"/>
+					<xsd:element name="Uzeit" type="n0:time"/>
+				</xsd:sequence>
+			</xsd:complexType>
+			<xsd:complexType name="RfcException.Message">
+				<xsd:sequence>
+					<xsd:element name="ID" type="xsd:string"/>
+					<xsd:element name="Number" type="tns:RfcException.Message.Number"/>
+				</xsd:sequence>
+			</xsd:complexType>
+			<xsd:complexType name="Zc4cC4cTicketStatusOut.RfcException">
+				<xsd:sequence>
+					<xsd:element name="Name" type="tns:Zc4cC4cTicketStatusOut.RfcExceptions"/>
+					<xsd:element name="Text" type="xsd:string" minOccurs="0"/>
+					<xsd:element name="Message" type="tns:RfcException.Message" minOccurs="0"/>
+				</xsd:sequence>
+			</xsd:complexType>
+			<xsd:complexType name="TableOfZc4cC4cstatOut">
+				<xsd:sequence>
+					<xsd:element name="item" type="tns:Zc4cC4cstatOut" minOccurs="0" maxOccurs="unbounded"/>
+				</xsd:sequence>
+			</xsd:complexType>
+			<xsd:simpleType name="Zc4cC4cTicketStatusOut.RfcExceptions">
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration value="NotEntriesFound"/>
+					<xsd:enumeration value="NotValidOrg"/>
+					<xsd:enumeration value="NotValidPlant"/>
+				</xsd:restriction>
+			</xsd:simpleType>
+			<xsd:element name="Zc4cC4cTicketStatusOut.Exception" type="tns:Zc4cC4cTicketStatusOut.RfcException"/>
+			<xsd:element name="Zc4cC4cTicketStatusOut">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="ExportStatus" type="tns:TableOfZc4cC4cstatOut"/>
+						<xsd:element name="IDays" type="xsd:int" minOccurs="0"/>
+						<xsd:element name="ILangu" type="n0:lang"/>
+						<xsd:element name="ITicket" type="n0:char35" minOccurs="0"/>
+						<xsd:element name="ServiceOrg" type="n0:char20"/>
+						<xsd:element name="ServiceTeam" type="n0:char20" minOccurs="0"/>
+						<xsd:element name="ServiceTech" type="n0:numeric8" minOccurs="0"/>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="Zc4cC4cTicketStatusOutResponse">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="ExportStatus" type="tns:TableOfZc4cC4cstatOut"/>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:schema>
+	</wsdl:types>
+	<wsdl:message name="Zc4cC4cTicketStatusOut">
+		<wsdl:part name="parameters" element="tns:Zc4cC4cTicketStatusOut"/>
+	</wsdl:message>
+	<wsdl:message name="Zc4cC4cTicketStatusOutResponse">
+		<wsdl:part name="parameter" element="tns:Zc4cC4cTicketStatusOutResponse"/>
+	</wsdl:message>
+	<wsdl:message name="Zc4cC4cTicketStatusOut.Exception">
+		<wsdl:part name="Zc4cC4cTicketStatusOut.Exception" element="tns:Zc4cC4cTicketStatusOut.Exception"/>
+	</wsdl:message>
+	<wsdl:portType name="ZC4C_C4C_TICKET_STATUS_OUT">
+		<wsdl:documentation>
+			<sapdoc:sapdoc xmlns:sapdoc="urn:sap:esi:documentation">
+				<sapdoc:docitem applicationComponent="MM-IM-GR"/>
+			</sapdoc:sapdoc>
+		</wsdl:documentation>
+		<wsp:Policy>
+			<wsp:PolicyReference URI="#IF__ZC4C_C4C_TICKET_STATUS_OUT"/>
+		</wsp:Policy>
+		<wsdl:operation name="Zc4cC4cTicketStatusOut">
+			<wsp:Policy>
+				<wsp:PolicyReference URI="#OP__Zc4cC4cTicketStatusOut"/>
+			</wsp:Policy>
+			<wsdl:input message="tns:Zc4cC4cTicketStatusOut"/>
+			<wsdl:output message="tns:Zc4cC4cTicketStatusOutResponse"/>
+			<wsdl:fault name="Zc4cC4cTicketStatusOut.Exception" message="tns:Zc4cC4cTicketStatusOut.Exception"/>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="ZC4C_I813_TICKET_STATUS_OUT" type="tns:ZC4C_C4C_TICKET_STATUS_OUT">
+		<wsp:Policy>
+			<wsp:PolicyReference URI="#BN__ZC4C_I813_TICKET_STATUS_OUT"/>
+		</wsp:Policy>
+		<soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+		<wsdl:operation name="Zc4cC4cTicketStatusOut">
+			<soap:operation soapAction="urn:sap-com:document:sap:soap:functions:mc-style:ZC4C_C4C_TICKET_STATUS_OUT:Zc4cC4cTicketStatusOutRequest" style="document"/>
+			<wsdl:input>
+				<soap:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body use="literal"/>
+			</wsdl:output>
+			<wsdl:fault name="Zc4cC4cTicketStatusOut.Exception">
+				<soap:fault name="Zc4cC4cTicketStatusOut.Exception" use="literal"/>
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:binding name="ZC4C_I813_TICKET_STATUS_OUT_soap12" type="tns:ZC4C_C4C_TICKET_STATUS_OUT">
+		<wsp:Policy>
+			<wsp:PolicyReference URI="#BN__ZC4C_I813_TICKET_STATUS_OUT_soap12"/>
+		</wsp:Policy>
+		<wsoap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+		<wsdl:operation name="Zc4cC4cTicketStatusOut">
+			<wsoap12:operation soapAction="urn:sap-com:document:sap:soap:functions:mc-style:ZC4C_C4C_TICKET_STATUS_OUT:Zc4cC4cTicketStatusOutRequest" style="document"/>
+			<wsdl:input>
+				<wsoap12:body use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<wsoap12:body use="literal"/>
+			</wsdl:output>
+			<wsdl:fault name="Zc4cC4cTicketStatusOut.Exception">
+				<wsoap12:fault name="Zc4cC4cTicketStatusOut.Exception" use="literal"/>
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="ZC4C_I813_TICKET_STATUS_OUT">
+		<wsdl:port name="ZC4C_I813_TICKET_STATUS_OUT" binding="tns:ZC4C_I813_TICKET_STATUS_OUT">
+			<soap:address location="http://d10ci.biz.electrolux.com:8010/sap/bc/srt/rfc/sap/zc4c_c4c_ticket_status_out/100/zc4c_i813_ticket_status_out/zc4c_i813_ticket_status_out"/>
+		</wsdl:port>
+		<wsdl:port name="ZC4C_I813_TICKET_STATUS_OUT_soap12" binding="tns:ZC4C_I813_TICKET_STATUS_OUT_soap12">
+			<wsoap12:address location="http://d10ci.biz.electrolux.com:8010/sap/bc/srt/rfc/sap/zc4c_c4c_ticket_status_out/100/zc4c_i813_ticket_status_out/zc4c_i813_ticket_status_out"/>
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>

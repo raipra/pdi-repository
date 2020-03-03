@@ -1,0 +1,88 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Item
+		Event: BeforeSave 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script when:
+		- the instance of the business object is being saved.
+		- the instance of the business object is created from other sources like web services, preview screen, and so on.
+*/
+
+import ABSL;
+import AP.PC.ActivityManagement.Global;
+import AP.Common.GDT as commongdt;
+
+var AssignmentStartDate		:Date;
+var openAssignmentExists	:Indicator;
+
+foreach(var inst in this)
+{
+	//****************************************************** Populate Promised Start Date in Items Table ***************************************************************
+
+	if(AssignmentStartDate.IsInitial()) //Find Open Assignment Start Date
+	{
+		//Check if Assignment exists
+		var AssignmentInstances = inst.ToParent.BusinessTransactionDocumentReference.Where(n=>n.BusinessTransactionDocumentReference.TypeCode == "2215");
+		foreach(var assignments in AssignmentInstances)
+		{
+			var OpenAssignment = Activity.Retrieve(assignments.BusinessTransactionDocumentReference.UUID.content);
+			if(OpenAssignment.IsSet())
+			{
+				//Check if Assignment is "Open"
+				if(OpenAssignment.LifeCycleStatusCode == "1")
+				{
+					openAssignmentExists	= true;
+					AssignmentStartDate		= OpenAssignment.ScheduledStartDate;
+					break;
+				}
+			}
+		}
+	}
+
+	foreach(var items in inst.ToParent.Item) //Execute the code for all instances in Items
+	{
+		if(!AssignmentStartDate.IsInitial()) //If Assignment Start Date is found then fill the Promised Start Date field in Items
+		{
+			if(items.LX_TKT_PROMD.IsInitial())
+			{
+				items.LX_TKT_PROMD = AssignmentStartDate;
+			}
+		}
+		else //If No Open Assignments exists
+		{
+			if(items.LX_TKT_PROMD.IsInitial())
+			{
+				var AllItemInstances = inst.ToParent.Item;
+
+				//Check if Previous instance have Promised Start Date filled
+				var SortedItems = AllItemInstances.OrderByDescending(n=>n.ID);
+				if(SortedItems.Count() > 0)
+				{
+					var LatestItemPromisedDate = SortedItems.GetFirst().LX_TKT_PROMD;
+					if(!LatestItemPromisedDate.IsInitial())
+					{
+						items.LX_TKT_PROMD = LatestItemPromisedDate; //Copy Promised Start Date from the latest Item
+					}
+				}
+			}
+		}
+	}
+	//*************************************************** End of Populate Promised Start Date in Items Table ***************************************************************
+
+	//**************************************************** Default Call Out Fee to YES for ISP Time Recording Line Item **************************************************************
+	if(inst.UserServiceTransactionProcessingTypeCode == "SRS1")
+	{
+		if(inst.LX_TKT_CCOF.IsInitial())
+		{
+			inst.LX_TKT_CCOF = "101";
+		}
+	}
+	//**************************************************** End of Default Call Out Fee for ISP Time Recording Line Item *******************************************************
+}

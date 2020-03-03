@@ -1,0 +1,704 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: GetAppointment 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SDK31.0
+//Author: Arya Manmadan (SDK3)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+import AP.Common.GDT as CDT;
+import Common.DataTypes;
+import AP.FO.ProductDataMaintenance.Global;
+import CommunicationServicesManagement.Global;
+
+foreach (var Inst in this)
+{
+    var SrvLocationInstance					= Inst.ServicePointLocation;
+	var SrvPartyExeInst						= Inst.ServiceExecutionTeamParty;
+	var SrvLocaUsedAdd;
+	var SrvLocaUsedAdd_DefaultPostalAddRep;
+	if(SrvLocationInstance.IsSet())
+	{
+	  SrvLocaUsedAdd = SrvLocationInstance.UsedAddress;
+	  if(SrvLocaUsedAdd.IsSet())
+	  {
+	    SrvLocaUsedAdd_DefaultPostalAddRep  = SrvLocaUsedAdd.DefaultPostalAddressRepresentation;
+	  }
+	}
+	if (Inst.LX_TKT_SCEN == "101") //Internal
+	{
+			var Request : Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots.Request;		
+			var GetApptQueryRoot : Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots.Request.AppointmentOfferSlotQuery;
+			var Response : Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots.Response;
+
+			var GetDemandApptOfferInfo				= GetApptQueryRoot.DemandApptOfferInfo;
+			var GetRefTktCustInfo					= GetDemandApptOfferInfo.RefTicketCustomerInfo;
+			var GetRefTktInfo						= GetDemandApptOfferInfo.RefTicketInfo;
+			var GetRefTktLocInfo					= GetRefTktInfo.RefTicketLocationInfo;
+			var GetRefTktItems						= GetDemandApptOfferInfo.RefTicketItems;
+			var GetDemandProdInfo					= GetRefTktItems.DemandProductInfo;		
+
+			var BuyerPartyInstance					= Inst.BuyerParty;
+			
+			var SrvTermsInstance					= Inst.ServiceTerms;
+			var StatusInstance						= Inst.Status;
+			var TechSchedulingProcCode				: UserServiceTransactionProcessingTypeCode;
+			var InSchedulingItem					: ServiceRequestExecutionLifeCycleStatusCode;
+			
+			var SalesAndServiceNode                 = Inst.SalesAndServiceBusinessArea;              //added for SDK31.0
+
+			TechSchedulingProcCode					= "ZMR1";										//Technician Scheduling Item Processing Code
+			InSchedulingItem						= "2";											//Line item with work progress as In Scheduling
+
+			var PersonCode							= "1";											//Person 
+			var OrgUnitReceiverID;		
+			var ValidationIssue						: CDT:Indicator;
+			ValidationIssue							= false;
+			var TestRecipientBusinessSystemID		= "D10CLNT100";									//Test ECC Business System ID
+			var QARecipientBusinessSystemID			= "R10CLNT100";									//QA ECC Business System ID
+			var PRDRecipientBusinessSystemID        = "P10CLNT100";									//PRD ECC Business System ID
+
+			var TestSenderBusinessSystemID			= "0M1VT0D";									//Test C4C Business System ID
+			var QASenderBusinessSystemID			= "0M27KB2";									//QA C4C Business System ID 
+			var PRDSenderBusinessSystemID			= "0M29I6U";									//PRD C4C Business System ID
+			var DaySlot								= "DAY";
+			var MorningSlot							= "MORNING";
+			var AfternoonSlot						= "AFTERNOON";
+
+			//added for SDK31.0
+
+			var DisplayName_Node;
+			var DefaultConventPhn_node;
+			var DefaultMobPhn_node;
+			var DefaultEmail_node;
+			var SchdLine_FirstReq_Node;
+			var ReqItem;
+			var SchdLineFirstInst_ItemPdt;
+			var ItemProdInst;
+			var MatInst_Descritption;
+			//added for SDK31.0
+
+
+			//For extracting the company ID of the technician
+			if(SrvPartyExeInst.IsSet())
+			{
+				var TechTeamUUID = SrvPartyExeInst.PartyUUID;
+
+				var queryObj = ObjectIdentifierMapping.QueryByElements;
+				var selectionParams = queryObj.CreateSelectionParams();
+				selectionParams.Add(queryObj.LocalObjectNodeReference.UUID.content, "I", "EQ", TechTeamUUID.content);
+				//var resultData = queryObj.Execute(selectionParams);
+				var resultData = queryObj.ExecuteDataOnly(selectionParams);//commented above and added for SDK31.0
+
+				if(resultData.Count()>0)
+				{
+					OrgUnitReceiverID = resultData.GetFirst().RemoteObjectID.content;
+				}
+				else
+				{
+					ValidationIssue = true;
+					MSG_ReplicationResponse.Create("E","OrgUnit Reciever ID couldnt be determined, for Technician team. Please check with the Administrator");
+				}
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","OrgUnit Reciever ID couldnt be determined, for Technician team. Please check with the Administrator");
+			}
+
+
+			//Start of Filling GetRefTktInfo Internal Table
+
+			GetRefTktInfo.TicketUUID.content			= Inst.UUID.content.ToString();
+			GetRefTktInfo.TicketID.content				= Inst.ID.RemoveLeadingZeros().content;
+			if(!Inst.Name.content.IsInitial())
+			{
+				if(Inst.Name.content.Length() > 40)
+				{
+					GetRefTktInfo.TicketDescription.content		= Inst.Name.content.Substring(0,40);
+				}
+				else
+				{
+					GetRefTktInfo.TicketDescription.content		= Inst.Name.content;	
+				}
+
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Please Maintain the Ticket Description, before calling the interface");
+			}
+			
+
+			if (!StatusInstance.IsInitial())
+			{
+				if(!StatusInstance.ServiceRequestLifeCycleStatusCode.IsInitial())
+				{
+					GetRefTktInfo.TicketSystemStatus	= StatusInstance.ServiceRequestLifeCycleStatusCode.GetDescription();
+				}
+				else
+				{
+					ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Ticket Status missing.");
+				}
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Ticket Status missing.");
+			}
+			if (SrvTermsInstance.IsSet())
+			{
+				if(!SrvTermsInstance.ServicePriorityCode.IsInitial() || !SrvTermsInstance.ServiceRequestUserLifeCycleStatusCode.IsInitial())
+				{
+					GetRefTktInfo.TicketPriority			= SrvTermsInstance.ServicePriorityCode;
+					GetRefTktInfo.TicketUserStatus			= SrvTermsInstance.ServiceRequestUserLifeCycleStatusCode;
+				}
+				else
+				{
+					ValidationIssue = true;
+					MSG_ReplicationResponse.Create("E","Ticket priority/Ticket Userstatus missing.");
+				}
+			}
+			else
+			{
+				ValidationIssue = true;
+			}
+			if(!Inst.ProcessingTypeCode.IsInitial())
+			{
+				GetRefTktInfo.TicketProcessingTypeCode		= Inst.ProcessingTypeCode;
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Ticket Processing missing.");
+			}
+			//if (Inst.SalesAndServiceBusinessArea.IsSet())
+			if(SalesAndServiceNode.IsSet())//commented above and added for SDK31.0
+			{
+				//GetRefTktInfo.OrgUnitInternalID				= Inst.SalesAndServiceBusinessArea.SalesOrganisationID.RemoveLeadingZeros();
+				GetRefTktInfo.OrgUnitInternalID				= SalesAndServiceNode.SalesOrganisationID.RemoveLeadingZeros();//commented above and added for SDK31.0
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Sales area is not maintained in the ticket. Please check with the Administrator");
+			}
+
+			if(!OrgUnitReceiverID.IsInitial())
+			{
+				GetRefTktInfo.OrgUnitReceiverID.content					= OrgUnitReceiverID;
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","OrgUnit Reciever ID couldnt be determined, for Technician team. Please check with the Administrator");
+			}
+			GetRefTktInfo.RequestedStartDateTime.content			= Inst.ZSDK_ApptOfferFromDate.ConvertToGlobalDateTime(); 
+			GetRefTktInfo.RequestedStartDateTime.timeZoneCode		= Context.GetCurrentUserDateTime().timeZoneCode;
+			GetRefTktInfo.RequestedEndDateTime.content				= Inst.ZSDK_ApptOfferToDate.ConvertToGlobalDateTime();
+			GetRefTktInfo.RequestedEndDateTime.timeZoneCode			= Context.GetCurrentUserDateTime().timeZoneCode;
+
+				//Start of Filling GetRefTktLocInfo Internal Table 
+				if (SrvLocationInstance.IsSet())
+				{	
+					//SrvLocaUsedAdd = SrvLocationInstance.UsedAddress;
+					if (SrvLocaUsedAdd.IsSet())
+					{   //SrvLocaUsedAdd_DefaultPostalAddRep = SrvLocaUsedAdd.DefaultPostalAddressRepresentation;//added for SDK31.0
+						//if (SrvLocaUsedAdd.DefaultPostalAddressRepresentation.IsSet())
+						if (SrvLocaUsedAdd_DefaultPostalAddRep.IsSet())//commented above and added for SDK31.0
+						{
+							//var SrvLocPostadd					= SrvLocaUsedAdd.DefaultPostalAddressRepresentation;
+							var SrvLocPostadd					= SrvLocaUsedAdd_DefaultPostalAddRep;//commented above and added for SDK31.0
+							if(!SrvLocPostadd.StreetName.IsInitial() || !SrvLocPostadd.CityName.IsInitial() || !SrvLocPostadd.StreetPostalCode.IsInitial()
+								|| !SrvLocPostadd.CountryCode.IsInitial() || !SrvLocPostadd.RegionCode.content.IsInitial())
+							{
+								GetRefTktLocInfo.StreetName			= SrvLocPostadd.StreetName;
+								GetRefTktLocInfo.City				= SrvLocPostadd.CityName;
+								GetRefTktLocInfo.PostalCode			= SrvLocPostadd.StreetPostalCode;
+								GetRefTktLocInfo.CountryCode		= SrvLocPostadd.CountryCode;
+								GetRefTktLocInfo.RegionCode.content = SrvLocPostadd.RegionCode.content;
+							}
+							else
+							{
+								ValidationIssue = true;
+								MSG_ReplicationResponse.Create("E","Service location address details missing. Please check with the Administrator");
+							}
+						}
+						else
+						{
+							ValidationIssue = true;
+							MSG_ReplicationResponse.Create("E","Service location address details missing. Please check with the Administrator");
+						}
+					}
+				}
+				else
+				{
+					ValidationIssue = true;
+					MSG_ReplicationResponse.Create("E","Service location address details missing. Please check with the Administrator");
+				}
+				//End of Filling GetRefTktLocInfo Internal Table 
+
+			//End of Filling GetRefTktInfo Internal Table
+
+			//Start of Filling GetRefTktCustInfo Internal Table
+			if (BuyerPartyInstance.IsSet())
+			{
+				var BuyerPartyAddSnap						= BuyerPartyInstance.AddressSnapshot;
+
+				GetRefTktCustInfo.CustomerID				= BuyerPartyInstance.PartyKey.PartyID.content.RemoveLeadingZeros();
+				GetRefTktCustInfo.CustomerUUID.content		= BuyerPartyInstance.PartyUUID.content.ToString();
+				if (BuyerPartyAddSnap.IsSet())
+				{
+				    DisplayName_Node    = BuyerPartyAddSnap.DisplayNameSuitableForLogonLanguage;//added for SDK31.0
+					//if (BuyerPartyAddSnap.DisplayNameSuitableForLogonLanguage.IsSet())
+					if (DisplayName_Node.IsSet())//commented above and added for SDK31.0
+					{
+						//GetRefTktCustInfo.CustomerFormattedName				= BuyerPartyAddSnap.DisplayNameSuitableForLogonLanguage.FormattedName.content;
+						GetRefTktCustInfo.CustomerFormattedName				    = DisplayName_Node.FormattedName.content;//commented above and added for SDK31.0
+					}
+					DefaultConventPhn_node = BuyerPartyAddSnap.DefaultConventionalPhone;//added for SDK31.0
+					//if (BuyerPartyAddSnap.DefaultConventionalPhone.IsSet())
+					if (DefaultConventPhn_node.IsSet())//commented above and added for SDK31.0
+					{
+						//GetRefTktCustInfo.FormattedTelephoneNumber			= BuyerPartyAddSnap.DefaultConventionalPhone.FormattedNumberDescription;
+						GetRefTktCustInfo.FormattedTelephoneNumber		    	= DefaultConventPhn_node.FormattedNumberDescription;//commented above and added for SDK31.0
+					}
+					DefaultMobPhn_node = BuyerPartyAddSnap.DefaultMobilePhone;//added for SDK31.0
+					//if (BuyerPartyAddSnap.DefaultMobilePhone.IsSet())
+					if (DefaultMobPhn_node.IsSet())//commented above and added for SDK31.0
+					{
+						//GetRefTktCustInfo.FormattedMobileNumber				= BuyerPartyAddSnap.DefaultMobilePhone.FormattedNumberDescription;
+						GetRefTktCustInfo.FormattedMobileNumber				    = DefaultMobPhn_node.FormattedNumberDescription;//commented above and added for SDK31.0
+					}
+					DefaultEmail_node = BuyerPartyAddSnap.DefaultEMail;//added for SDK31.0
+					//if (BuyerPartyAddSnap.DefaultEMail.IsSet())
+					if (DefaultEmail_node.IsSet())//commented above and added for SDK31.0
+					{
+						//GetRefTktCustInfo.NormalizedEmail.content			= BuyerPartyAddSnap.DefaultEMail.URI.content;
+						GetRefTktCustInfo.NormalizedEmail.content			= DefaultEmail_node.URI.content;//commented above and added for SDK31.0
+					} 
+					GetRefTktCustInfo.BusinessPartnerCategoryCode			= PersonCode;								//Person
+				}			
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Customer details missing in the Ticket. Please check");
+			}
+
+			//End of Filling GetRefTktCustInfo Internal Table
+
+			//Start of Filling GetRefTktItems Internal Table
+
+			var SchdLineInstance = Inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == TechSchedulingProcCode && n.Status.ServiceRequestExecutionLifeCycleStatusCode == InSchedulingItem);
+		
+			if (SchdLineInstance.Count() > 0)
+			{
+				var SchdLineFirstInst										= SchdLineInstance.GetFirst();
+
+				GetRefTktItems.ItemID										= SchdLineFirstInst.ID;
+				GetRefTktItems.ItemUUID.content								= SchdLineFirstInst.UUID.content.ToString();
+				GetRefTktItems.ItemDescription.content						= SchdLineFirstInst.Description.content;
+				GetRefTktItems.ItemProcessingTypeCode						= SchdLineFirstInst.UserServiceTransactionProcessingTypeCode;
+				GetRefTktItems.ItemStatus									= SchdLineFirstInst.Status.ServiceRequestExecutionLifeCycleStatusCode;
+			
+				if(!OrgUnitReceiverID.IsInitial())
+				{
+					GetRefTktItems.ReceiverOrgID.content					= OrgUnitReceiverID;	
+				}
+				else
+				{
+					ValidationIssue = true;
+					MSG_ReplicationResponse.Create("E","OrgUnit Reciever ID couldnt be determined, for Technician team. Please check with the Administrator");
+				}
+				SchdLine_FirstReq_Node = SchdLineFirstInst.FirstRequestedItemScheduleLine;//added for SDK31.0
+				//if (SchdLineFirstInst.FirstRequestedItemScheduleLine.IsSet())
+				if (SchdLine_FirstReq_Node.IsSet())//commented above and added for SDK31.0
+				{
+					//var ReqItem = SchdLineFirstInst.FirstRequestedItemScheduleLine;
+					ReqItem = SchdLine_FirstReq_Node;//commented above and added for SDK31.0
+					if (!ReqItem.Quantity.IsInitial())		
+					{
+						GetRefTktItems.ItemDuration.content					= ReqItem.Quantity.content;//quantity
+						GetRefTktItems.ItemDuration.unitCode				= ReqItem.Quantity.unitCode;//quantity
+					}
+					else
+					{
+						ValidationIssue = true;
+						MSG_ReplicationResponse.Create("E","Duration Missing in the Item. Please Maintain the Missing details");
+					}
+				}
+				GetRefTktItems.RequestedStartDateTime.StartDateTime.content			= Context.GetCurrentGlobalDateTime();
+				GetRefTktItems.RequestedStartDateTime.StartDateTime.timeZoneCode	= Context.GetCurrentUserDateTime().timeZoneCode;
+				GetRefTktItems.RequestedStartDateTime.EndDateTime.content			= Context.GetCurrentGlobalDateTime();
+				GetRefTktItems.RequestedStartDateTime.EndDateTime.timeZoneCode		= Context.GetCurrentUserDateTime().timeZoneCode;
+		
+			
+				//Start of Filling GetDemandProdInfo Internal Table 	
+				SchdLineFirstInst_ItemPdt  = SchdLineFirstInst.ItemProduct; 				
+				//if (SchdLineFirstInst.ItemProduct.IsSet())
+				if (SchdLineFirstInst_ItemPdt.IsSet())//commented above and added for SDK31.0
+				{		
+					//var ItemProdInst												= SchdLineFirstInst.ItemProduct; 
+					ItemProdInst												= SchdLineFirstInst_ItemPdt; //commented above and added for SDK31.0
+
+					GetDemandProdInfo.ProductID.content								= ItemProdInst.ProductInternalID.RemoveLeadingZeros().content;
+
+					var query = Material.QueryByDescription;
+					var selectionParams = query.CreateSelectionParams();
+					selectionParams.Add(query.ProductID.content, "I", "EQ", GetDemandProdInfo.ProductID.content);
+					var MatInst = query.Execute(selectionParams);
+
+					if (MatInst.Count() > 0)
+					{
+						GetDemandProdInfo.ProductUUID.content						= MatInst.GetFirst().UUID.content.ToString();
+						MatInst_Descritption = MatInst.GetFirst().Description;//added for SDK31.0
+						//if(MatInst.GetFirst().Description.Count()>0)
+						if(MatInst_Descritption.Count()>0)//commented above and added for SDK31.0
+						{
+							//GetDemandProdInfo.ProductDescription.content			= MatInst.GetFirst().Description.GetFirst().Description.content;				
+							GetDemandProdInfo.ProductDescription.content			= MatInst_Descritption.GetFirst().Description.content;	//commented above and added for SDK31.0	
+						}
+						else
+						{
+							ValidationIssue = true;
+							MSG_ReplicationResponse.Create("E","Product Description missing in the master data");
+						}	
+					}	
+					else
+					{
+						ValidationIssue = true;
+						MSG_ReplicationResponse.Create("E","Product details missing");
+					}			
+				}
+				//End of Filling GetDemandProdInfo Internal Table
+			}
+			else
+			{
+				ValidationIssue = true;
+				MSG_ReplicationResponse.Create("E","Technician Scheduling Item missing or Item is not in scheduling. Please check Items table entries");
+			}
+			//End of Filling GetRefTktItems Internal Table
+		
+
+			GetApptQueryRoot.ApptOfferFromDate.content								= Inst.ZSDK_ApptOfferFromDate.ConvertToGlobalDateTime();
+			GetApptQueryRoot.ApptOfferFromDate.timeZoneCode							= Context.GetCurrentUserDateTime().timeZoneCode;		//user tZ
+			GetApptQueryRoot.ApptOfferToDate.content								= Inst.ZSDK_ApptOfferToDate.ConvertToGlobalDateTime();
+			GetApptQueryRoot.ApptOfferToDate.timeZoneCode							= Context.GetCurrentUserDateTime().timeZoneCode;//user tZ
+			
+			if(!Inst.ZSDK_ApptOfferSlotType.IsInitial())
+			{
+				switch (Inst.ZSDK_ApptOfferSlotType)
+				{
+					case "DAY"			//Day Slot
+					{
+						GetApptQueryRoot.ApptOfferSlotType = DaySlot;
+					}
+					case "Z001"			//Morning Slot
+					{
+						GetApptQueryRoot.ApptOfferSlotType = MorningSlot;
+					}
+					case "Z002"			//AfterNoon Slot
+					{
+						GetApptQueryRoot.ApptOfferSlotType = AfternoonSlot;
+					}
+					case "Z003"			//Day Slot
+					{
+						GetApptQueryRoot.ApptOfferSlotType = DaySlot;
+					}
+				}
+			}
+			
+			//GetApptQueryRoot.ApptOfferSlotType										= Inst.ZSDK_ApptOfferSlotType;
+
+			GetApptQueryRoot.MessageHeader.ID.content								= Library::UUID.Generate().ToString();
+			GetApptQueryRoot.MessageHeader.CreationDateTime							= Context.GetCurrentGlobalDateTime();
+		
+			//Start of filling Message Header Table
+			if (Context.GetSystemURL().ToLowerCase().Contains("my324697"))		//Test system
+			{
+				GetApptQueryRoot.MessageHeader.RecipientBusinessSystemID			= TestRecipientBusinessSystemID;
+				GetApptQueryRoot.MessageHeader.SenderBusinessSystemID				= TestSenderBusinessSystemID;
+			}
+			else if (Context.GetSystemURL().ToLowerCase().Contains("my338453")) //QA System
+			{
+				GetApptQueryRoot.MessageHeader.RecipientBusinessSystemID			= QARecipientBusinessSystemID; 
+				GetApptQueryRoot.MessageHeader.SenderBusinessSystemID				= QASenderBusinessSystemID;
+			}
+			else if (Context.GetSystemURL().ToLowerCase().Contains("my339657"))	//Production System
+			{
+				GetApptQueryRoot.MessageHeader.RecipientBusinessSystemID			= PRDRecipientBusinessSystemID;
+				GetApptQueryRoot.MessageHeader.SenderBusinessSystemID				= PRDSenderBusinessSystemID;
+			}
+			//End of filling Message Header Table
+
+			if (!GetRefTktInfo.IsInitial() && !GetApptQueryRoot.IsInitial() && ValidationIssue == false)
+			{
+				Request.AppointmentOfferSlotQuery														= GetApptQueryRoot;
+				Request.AppointmentOfferSlotQuery.DemandApptOfferInfo.RefTicketInfo						= GetRefTktInfo;
+				Request.AppointmentOfferSlotQuery.DemandApptOfferInfo.RefTicketCustomerInfo				= GetRefTktCustInfo;
+				Request.AppointmentOfferSlotQuery.DemandApptOfferInfo.RefTicketItems					= GetRefTktItems;
+				Request.AppointmentOfferSlotQuery.DemandApptOfferInfo.RefTicketItems.DemandProductInfo  = GetDemandProdInfo;
+
+				Response = Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots(Request, "", "ReqAppSlotExtSys"); //MRS system
+
+				if (!Response.IsInitial())
+				{
+					if (!Response.CommunicationFault.IsInitial())
+					{
+						if (Response.CommunicationFault.Item.Count() > 0) 
+						{
+							var IntegrationError = Response.CommunicationFault.Item.GetFirst();
+							if (!IntegrationError.Note.IsInitial())
+							{
+								if (IntegrationError.SeverityCode == "3")	
+								{
+									raise MSG_ReplicationResponse.Create("E", IntegrationError.Note);							//Capturing the Intergration Error 
+								} 
+							} 
+						}
+					}
+					if (!Response.AppointmentOfferResponseData.IsInitial())
+					{
+						if (Response.AppointmentOfferResponseData.ApptOfferSlotData.Count() > 0)
+						{
+							var AppSlots : elementsof ServiceRequest.AppointmentSlots;
+							var AppSlotsInst;
+							Inst.AppointmentSlots.Delete();
+							foreach (var Resp in Response.AppointmentOfferResponseData.ApptOfferSlotData)
+							{						
+								AppSlots.ZSDK_AppointmentDate		= Resp.ApptOfferSlotFromDateTime.content.GetDate();			//Capturing the Appointment Slot Data
+								AppSlots.ZSDK_StartTime				= Resp.ApptOfferSlotFromDateTime.content.GetTime();
+								AppSlots.ZSDK_EndTime				= Resp.ApptOfferSlotToDateTime.content.GetTime();
+								AppSlotsInst						= Inst.AppointmentSlots.Create(AppSlots);						
+							}
+						var ResLog = Response.AppointmentOfferResponseData.Log;
+						if (!ResLog.IsInitial())
+						{
+							if (ResLog.Item.Count() > 0)
+							{
+								var ResItem = ResLog.Item.GetFirst();
+								if (ResItem.TypeID == "false")
+								{
+									raise MSG_ReplicationResponse.Create("E", "Error:".Concatenate(" ").Concatenate(ResItem.Note));//Capturing the Intergration Error 
+								} 
+								else if (ResItem.TypeID == "true")
+								{
+									raise MSG_ReplicationResponse.Create("S", "Success:".Concatenate(" ").Concatenate("Please choose from Appointments slots shared"));
+								}
+							}
+						}
+					}
+				}
+				else
+				{
+					raise MSG_ReplicationResponse.Create("W", "No Slots available for selected criteria, please choose different dates and slot type");
+					Inst.AppointmentSlots.Delete();			//clearing the slots node
+					Inst.ZSDK_ApptOfferFromDate.Clear();	//clearing the Appt From Date
+					Inst.ZSDK_ApptOfferSlotType.Clear();	//Clearing the Appt Slot Type
+					Inst.ZSDK_ApptOfferToDate.Clear();		//Clearing the Appt To Date
+					
+					Inst.CalcOfferApptDates();				//Recalculating the Appt Dates and Slot
+				}
+			}
+		}
+	}
+	else if (Inst.LX_TKT_SCEN == "102")//External
+	{
+		//**********************************Code for setting the Request structure************************************//
+		//var ServLocationInstance					= Inst.ServicePointLocation;												// Service Point Location Instance
+		//var SrvLocaUsedAdd    = ;
+		//var SrvLocaUsedAdd_DefaultPostalAddRep = Inst.;
+		//added for SDK31.0	
+		var ServiceRefObject = Inst.MainServiceReferenceObject;             											// Service Point Location Instance ;
+		//var ServiceExeTeamParty =Inst.ServiceExecutionTeamParty;
+		var MatInst_Common_Node;
+		var MatInst;
+		
+
+		//added for SDK31.0	
+		var FieldValidation							: CDT:Indicator;
+		FieldValidation = true;
+
+		var Pacifica425								= "GBXISP2425";																//PACIFICA APPLIANCE SERVICES
+		var Pacifica427								= "GBXISP2427";																//PACIFICA APPLIANCE SERVICES
+
+		var Request									: Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots.Request;
+		
+		var GetApptQueryRoot_FZ						: Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots.Request.AppointmentOfferSlotQuery;
+		var GetDemandApptOfferInfo_FZ				= GetApptQueryRoot_FZ.DemandApptOfferInfo;
+		var GetRefTktInfo_FZ						= GetDemandApptOfferInfo_FZ.RefTicketInfo;
+		var GetRefTktItems_FZ						= GetDemandApptOfferInfo_FZ.RefTicketItems;
+
+		var Response								: Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots.Response;
+
+		GetRefTktInfo_FZ.TicketUUID.content			= Inst.UUID.content.ToString();								//Ticket UUID
+		GetRefTktInfo_FZ.TicketID.content			= Inst.ID.RemoveLeadingZeros().content;						//Ticket ID
+		GetRefTktInfo_FZ.TicketDescription.content  = Inst.Name.content;										//Ticket Description
+		GetRefTktInfo_FZ.TicketProcessingTypeCode	= Inst.ProcessingTypeCode;									//Ticket Processing code
+		
+		//if (Inst.MainServiceReferenceObject.IsSet())
+		if(ServiceRefObject.IsSet())//commented above and added for SDK31.0
+		{
+			//var MatInst								= Inst.MainServiceReferenceObject.Material_V1;
+			MatInst								    = ServiceRefObject.Material_V1;//commented above and added for SDK31.0
+			if (MatInst.IsSet())
+			{
+			    MatInst_Common_Node = MatInst.Common;//added for SDK31.0
+				//if (MatInst.Common.IsSet())
+				if (MatInst_Common_Node.IsSet())//commented above and added for SDK31.0
+				{
+					//GetRefTktInfo_FZ.ApplianceCode  = MatInst.Common.LX_PRD_PG;										//sending the Product grp value in Appliance code
+					GetRefTktInfo_FZ.ApplianceCode  = MatInst_Common_Node.LX_PRD_PG;//commented above and added for SDK31.0										//sending the Product grp value in Appliance code
+					//GetRefTktInfo_FZ.ApplianceCode  = MatInst_Common_Node.LX_PRD_SG; // Change executed by SDK_SINGHJUG for the Incident INC4715337
+				}
+			}
+		}
+		   GetRefTktInfo_FZ.TicketClassificationCode   = Inst.LX_PRD_PG.GetDescription();							//Mapped Application code/Product Group in  TicketClassificationCode field
+		 //GetRefTktInfo_FZ.TicketClassificationCode   = Inst.LX_PRD_SG; // Change executed by SDK_SINGHJUG for the Incident INC4715337 
+
+		if (!Inst.ZSDK_ApptOfferFromDate.IsInitial())
+		{
+			GetRefTktInfo_FZ.RequestedStartDateTime.content = Inst.ZSDK_ApptOfferFromDate.ConvertToGlobalDateTime();	//Appt Offer From Date
+			GetApptQueryRoot_FZ.ApptOfferFromDate.content   = Inst.ZSDK_ApptOfferFromDate.ConvertToGlobalDateTime();	//Appt Offer From Date
+		}
+		else
+		{
+			FieldValidation = false;
+			raise MSG_ReplicationResponse.Create("E", "Appointment Start date is mandatory to select");
+		}
+
+		if (!Inst.ZSDK_ApptOfferToDate.IsInitial())
+		{
+			GetRefTktInfo_FZ.RequestedEndDateTime.content = Inst.ZSDK_ApptOfferToDate.ConvertToGlobalDateTime();		//Appt Offer to Date
+			GetApptQueryRoot_FZ.ApptOfferToDate.content   = Inst.ZSDK_ApptOfferToDate.ConvertToGlobalDateTime();		//Appt Offer to Date
+		}
+
+		//if (ServLocationInstance.IsSet())
+		if(SrvLocationInstance.IsSet())
+		{
+			//var SPLocAdd = ServLocationInstance.UsedAddress;
+			if (SrvLocaUsedAdd.IsSet())
+			{
+				//var DfltPost = SPLocAdd.DefaultPostalAddressRepresentation;
+				if (SrvLocaUsedAdd_DefaultPostalAddRep.IsSet())
+				{
+					//GetRefTktInfo_FZ.RefTicketLocationInfo.PostalCode = DfltPost.StreetPostalCode;					//Postal code of service Location
+					GetRefTktInfo_FZ.RefTicketLocationInfo.PostalCode = SrvLocaUsedAdd_DefaultPostalAddRep.StreetPostalCode;					//Postal code of service Location
+				}	
+			}
+		}
+		else
+		{
+			raise MSG_ReplicationResponse.Create("E", "Postal code is Missing for service Location, service cannot be called");
+			FieldValidation = false;
+		}
+
+		//**********************************Code for calling the Response using the request structure******************************//
+
+		if (!GetRefTktInfo_FZ.IsInitial() && !GetApptQueryRoot_FZ.IsInitial() && FieldValidation == true)
+		{	
+			Request.AppointmentOfferSlotQuery									= GetApptQueryRoot_FZ;														//Request structure
+			Request.AppointmentOfferSlotQuery.DemandApptOfferInfo.RefTicketInfo = GetRefTktInfo_FZ;							//Request structure
+			Response = Library::RequestAppointmentOfferSlotsfromExtSys.GetApptOfferSlots(Request, "", "ReqAppSlotFixZone"); //FixZone system
+	
+			if (!Response.IsInitial())
+			{
+				if (!Response.CommunicationFault.IsInitial())
+				{
+					if (Response.CommunicationFault.Item.Count() > 0) 
+					{
+						var IntegrationError = Response.CommunicationFault.Item.GetFirst();
+						if (!IntegrationError.Note.IsInitial())
+						{
+							if (IntegrationError.SeverityCode == "3")	
+							{
+								raise MSG_ReplicationResponse.Create("E", IntegrationError.Note);							//Capturing the Intergration Error 
+							} 
+						} 
+					}
+				}
+				if (!Response.AppointmentOfferResponseData.IsInitial())
+				{
+					if (Response.AppointmentOfferResponseData.ApptOfferSlotData.Count() > 0)
+					{
+						var AppSlots : elementsof ServiceRequest.AppointmentSlots;
+						Inst.AppointmentSlots.Delete();
+						if(!Response.AppointmentOfferResponseData.ApptOfferSlotData.GetFirst().AllocatedCentreCode.IsInitial())
+						{
+							var AllocCntrCode = Response.AppointmentOfferResponseData.ApptOfferSlotData.GetFirst().AllocatedCentreCode;			
+							//if(Inst.ServiceExecutionTeamParty.IsSet())
+							if(SrvPartyExeInst.IsSet())
+							{
+								if(AllocCntrCode == Pacifica425 || AllocCntrCode == Pacifica427)
+								{
+									//Inst.ServiceExecutionTeamParty.PartyKey.PartyID.content = Pacifica425;
+									SrvPartyExeInst.PartyKey.PartyID.content = Pacifica425;
+								}
+								else
+								{
+									//Inst.ServiceExecutionTeamParty.PartyKey.PartyID.content = AllocCntrCode;
+									SrvPartyExeInst.PartyKey.PartyID.content = AllocCntrCode;
+								}
+							}
+							else
+							{
+								var SrvExeInst						=	Inst.ServiceExecutionTeamParty.Create();								
+								if(AllocCntrCode == Pacifica425 || AllocCntrCode == Pacifica427)
+								{
+									SrvExeInst.PartyKey.PartyID.content	= Pacifica425;
+								}
+								else
+								{
+									SrvExeInst.PartyKey.PartyID.content	= AllocCntrCode;
+								}						
+							
+							}							
+						}
+						foreach (var Resp in Response.AppointmentOfferResponseData.ApptOfferSlotData)
+						{							
+							AppSlots.ZSDK_AppointmentDate		= Resp.ApptOfferSlotFromDateTime.content.ConvertToDate();			//Capturing the Appointment Slot Data
+							AppSlots.ZSDK_StartTime				= Library::Time.ParseFromString("080000");							//Capturing the Appointment Slot Data
+							AppSlots.ZSDK_EndTime				= Library::Time.ParseFromString("160000");							//Capturing the Appointment Slot Data
+							AppSlots.ZSDK_AllocCntrCode			= Resp.AllocatedCentreCode;											//Capturing Allocated Centre code sent from FixZone
+							AppSlots.ZSDK_AllocEngID			= Resp.AllocatedEngineerID;											//Capturing Engineer ID sent from FixZone
+
+							Inst.AppointmentSlots.Create(AppSlots);						
+						}
+					}
+					var ResLog = Response.AppointmentOfferResponseData.Log;
+					if (!ResLog.IsInitial())
+					{
+						if (ResLog.Item.Count() > 0)
+						{
+							var ResItem = ResLog.Item.GetFirst();
+							if (ResItem.TypeID == "false")
+							{
+								raise MSG_ReplicationResponse.Create("E", "Error:".Concatenate(" ").Concatenate(ResItem.Note));//Capturing the Intergration Error 
+							} 
+							else if (ResItem.TypeID == "true")
+							{
+								raise MSG_ReplicationResponse.Create("S", "Success:".Concatenate(" ").Concatenate("Please choose from Appointments slots shared"));
+							}
+						}
+					}
+				}
+			}
+		}
+	}	
+}

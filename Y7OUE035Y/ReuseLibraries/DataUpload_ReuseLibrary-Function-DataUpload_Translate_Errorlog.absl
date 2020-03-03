@@ -1,0 +1,8 @@
+﻿import ABSL;
+import Common.DataTypes;
+
+var result : DataType::LANGUAGEINDEPENDENT_LONG_Description;
+var msg : DATAUPLOADTRANSLATIONSCode;
+msg.content = MsgID;
+result = msg.GetDescription();
+return result;

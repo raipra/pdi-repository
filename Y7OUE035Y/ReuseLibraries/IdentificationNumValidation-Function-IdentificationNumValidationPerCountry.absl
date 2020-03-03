@@ -1,0 +1,54 @@
+﻿import ABSL;
+import AP.Common.GDT;
+
+var result : DataType:: LANGUAGEINDEPENDENT_MEDIUM_Name;
+
+if(!Lv_Country.IsInitial() && !Lv_IdentificationKUT.IsInitial())
+{
+	switch (Lv_Country)
+	{
+		case "IT" //Italy
+		{
+			var FieldrefUppCase						= Lv_IdentificationKUT.ToUpperCase();
+			var FieldLength							= FieldrefUppCase.Length();
+			if(	FieldLength	== 16 )
+			{
+				var i =	0;
+				var FieldPattern =	"";
+				while	( i < FieldLength )
+				{
+					var FieldSubString				= FieldrefUppCase.Substring(i,1);
+					if(	FieldSubString >= "A" && FieldSubString <= "Z")
+					{
+						FieldPattern				= FieldPattern + "C";
+					}
+					else if( Numeric.IsNumeric(FieldSubString) )
+					{
+						FieldPattern				= FieldPattern + "N";
+					}
+					else
+					{
+						FieldPattern				= FieldPattern + "S";
+					}
+
+					i = i + 1;
+				}
+
+				if(	FieldPattern == "CCCCCCNNCNNCNNNC")
+				{
+					result = "PatternCorrect";
+				}
+				else
+				{
+					result = "PatternInCorrect";
+				}
+			}
+			else
+			{
+				result = "FieldLengthIssue";
+			}	
+		}
+	}			
+}
+
+return result;

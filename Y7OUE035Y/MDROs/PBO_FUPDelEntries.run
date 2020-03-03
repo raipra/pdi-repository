@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MassDataRunObject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://sap.com/ByD/PDI/MassDataRunObjectDefinition">
+  <MdroEsrNameSpace xmlns="">http://0003581030-one-off.sap.com/Y7OUE035Y_</MdroEsrNameSpace>
+  <MdroEsrName xmlns="">PBO_FUPDelEntries</MdroEsrName>
+  <MdroPrxName xmlns="">Y7OUE035Y_PBES71492CE24B23B468</MdroPrxName>
+  <ParallelProcessing xmlns="">X</ParallelProcessing>
+  <ApplicationLogDetailLevelCode xmlns="">5</ApplicationLogDetailLevelCode>
+  <ApplicationLogRetentionTimeCode xmlns="">P1D</ApplicationLogRetentionTimeCode>
+  <AccessControlledBoList xmlns="">
+    <AccessControlledBo>
+      <ActionEntity>
+        <BoEsrNameSpace>http://0003581030-one-off.sap.com/Y7OUE035Y_</BoEsrNameSpace>
+        <BoEsrName>PBO_DataUpload</BoEsrName>
+        <BoPrxName>Y7OUE035Y_PBADA72E8F2EEBB88F4E</BoPrxName>
+        <BoEsrNodeName>Root</BoEsrNodeName>
+        <BoPrxNodeName>ROOT4F903855210031B0</BoPrxNodeName>
+        <BoEsrEntityName>DeleteProcessedRecords</BoEsrEntityName>
+        <BoPrxEntityName>DELETECORDS279645EFB1FF9137</BoPrxEntityName>
+      </ActionEntity>
+      <ActionPath>\TO_PARENT</ActionPath>
+      <QueryEntity>
+        <BoEsrNameSpace>http://0003581030-one-off.sap.com/Y7OUE035Y_</BoEsrNameSpace>
+        <BoEsrName>PBO_DataUpload</BoEsrName>
+        <BoPrxName>Y7OUE035Y_PBADA72E8F2EEBB88F4E</BoPrxName>
+        <BoEsrNodeName>RootLevelQry</BoEsrNodeName>
+        <BoPrxNodeName>ROOTLEELQRYCCD9AB2C8FAA052F</BoPrxNodeName>
+        <BoEsrEntityName>QueryByElements</BoEsrEntityName>
+        <BoPrxEntityName>QUERY_BY_ELEMENTS</BoPrxEntityName>
+      </QueryEntity>
+      <QueryParameterList>
+        <QueryParameter>
+          <QueryEsrParameterName>FileInstance_ProcessingStatus</QueryEsrParameterName>
+          <QueryPrxParameterName>PROCESROOTFF8298F113273334</QueryPrxParameterName>
+          <QueryPrxParameterDataType>Y7OUE035Y_3779AC6EC12F69F5</QueryPrxParameterDataType>
+          <MdroEsrNodeName>SelectByFileInstance_ProcessingStatus</MdroEsrNodeName>
+          <MdroPrxNodeName>SEL_BY_FIUSE551D1BDF7453AD5</MdroPrxNodeName>
+        </QueryParameter>
+      </QueryParameterList>
+    </AccessControlledBo>
+  </AccessControlledBoList>
+</MassDataRunObject>

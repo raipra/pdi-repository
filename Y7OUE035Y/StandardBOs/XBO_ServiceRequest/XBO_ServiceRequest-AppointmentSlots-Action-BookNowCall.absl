@@ -1,0 +1,234 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: AppointmentSlots
+		Action: BookNowCall 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SDK31.0
+//Author: Arya Manmadan (SDK3)
+//Description: Code clearance to improve system performance
+//Change Date: 02 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+import AP.Common.GDT as CDT;
+import Common.DataTypes;
+import AP.FO.MOM.Global;
+import AP.FO.ProductDataMaintenance.Global;
+
+foreach (var inst in this)
+{
+	//************************************************Code for setting up the Request structure************************************//
+	var Parent = inst.ToParent;								//Parent Instance
+	
+	
+	var FieldValidation : CDT:Indicator;
+	FieldValidation = false;
+
+	var TechSchedulingProcCode : UserServiceTransactionProcessingTypeCode;
+	var InSchedulingItem : ServiceRequestExecutionLifeCycleStatusCode;
+
+	TechSchedulingProcCode = "ZMR1";										//Technician Scheduling Item Processing Code
+	InSchedulingItem = "2";											//Line item with work progress as In Scheduling
+	
+	
+	
+	if (Parent.IsSet())
+	{
+		var RegisteredProdInstance = Parent.MainServiceReferenceObject; 		//RegisteredProduct Instance
+		var BuyerPartyInstance = Parent.BuyerParty; 					//Customer Instance
+		//added for SDK31.0
+		var ServiceExcecutionTeam = Parent.ServiceExecutionTeamParty;           
+		var ServicePointLocation = Parent.ServicePointLocation; 
+		var AppoinmentSlot = Parent.AppointmentSlots;	                
+		//added for SDK31.0 
+		if (Parent.LX_TKT_SCEN == "102") //External for FixZone
+		{
+			var Request : Library::BookNowCallAppointment_FZ.SI_Book_Submission_Sync.Request;	
+			var BookNowRoot : Library::BookNowCallAppointment_FZ.SI_Book_Submission_Sync.Request.MT_TOnlineBookRequestDetails_REQ;
+			var Response : Library::BookNowCallAppointment_FZ.SI_Book_Submission_Sync.Response;
+	
+		
+			if (BuyerPartyInstance.IsSet()) //checking for Customer Details
+			{
+				if (BuyerPartyInstance.RoleCode == "1001") 
+				{
+					var BuyerPartyInstanceParty = BuyerPartyInstance.Party;//added for SDK31.0
+					if (BuyerPartyInstanceParty.IsSet())
+					{
+						BookNowRoot.ClientCustomerRef = BuyerPartyInstanceParty.BusinessPartnerInternalID;//added for SDK31.0
+						var CurrentName = BuyerPartyInstanceParty.CurrentName;
+						//if (BuyerPartyInstance.Party.CurrentName.IsSet())
+						if (CurrentName.IsSet())//commented above and added for SDK31.0
+						{
+							//BookNowRoot.FirstName = BuyerPartyInstance.Party.CurrentName.PartyFormattedName.content; //checking and passing for Customer name
+							BookNowRoot.FirstName = CurrentName.PartyFormattedName.content; //checking and passing for Customer name////commented above and added for SDK31.0
+						}
+					}
+				}
+			}
+			else
+			{
+				raise BookNowError.Create("E", "Customer details are missing");	
+				FieldValidation = true;	
+			}
+		
+			//if (Parent.ServicePointLocation.IsSet()) //checking for ServicePoint Location Details
+			if (ServicePointLocation.IsSet())//commented above and added for SDK31.0
+			{
+				//var SPLocAdd = Parent.ServicePointLocation.UsedAddress;
+				var SPLocAdd = ServicePointLocation.UsedAddress;//commented above and added for SDK31.0
+				if (SPLocAdd.IsSet())
+				{
+					var DfltPost = SPLocAdd.DefaultPostalAddressRepresentation;
+					if (DfltPost.IsSet())
+					{
+						BookNowRoot.Postcode = DfltPost.StreetPostalCode; //Passing postal code details for service location
+					}
+					else
+					{
+						raise BookNowError.Create("E", "Postal code is Missing for service Location, service cannot be called");
+						FieldValidation = true;
+					}	
+				}
+			}
+			BookNowRoot.ClientRef = Parent.ID.RemoveLeadingZeros().content;	//Passing the Ticket ID
+			BookNowRoot.SlotID = Parent.UUID.content.ToString();			//Passing the Ticket UUID
+			if (!inst.ZSDK_AllocEngID.IsInitial())
+			{
+				BookNowRoot.EngineerID = inst.ZSDK_AllocEngID;						//Passing the Engineer ID
+			}
+			else
+			{
+				BookNowError.Create("E", "Engineer ID is not sent from Fixzone in appointment slots, cannot call the Book Reservation");
+			}
+			//if (Parent.ServiceExecutionTeamParty.IsSet())
+			if (ServiceExcecutionTeam.IsSet())//commented above and added for SDK31.0
+			{
+				//BookNowRoot.AllocatedCentreCode = Parent.ServiceExecutionTeamParty.PartyKey.PartyID.content;
+				BookNowRoot.AllocatedCentreCode = ServiceExcecutionTeam.PartyKey.PartyID.content;//added for SDK31.0
+			}
+			else
+			{
+				BookNowError.Create("E", "Please Check the Service Technician Team before calling the book reservation interface"); 
+				FieldValidation = true;
+			}
+
+			if (RegisteredProdInstance.IsSet()) 
+			{
+				if (!RegisteredProdInstance.MaterialKey.IsInitial())
+				{
+					BookNowRoot.PNC = RegisteredProdInstance.MaterialKey.ProductID.content.RemoveLeadingZeros();	//Passing the PNC ID Details
+				}
+			}
+			BookNowRoot.VisitDate = inst.ZSDK_AppointmentDate.ConvertToGlobalDateTime();															//Passing the Selected slot details to Fixzone
+		
+			var UsrTZ = Context.GetCurrentUserDateTime().timeZoneCode;
+		
+			//inst.ToParent.LX_TXT_PROM_START_Date = inst.ZSDK_AppointmentDate.ConvertToGlobalDateTime().AddDuration(Library::Duration.ParseFromString("PT8H"));		//KUT to populate Promise Start date
+			Parent.LX_TXT_PROM_START_Date = inst.ZSDK_AppointmentDate.ConvertToGlobalDateTime().AddDuration(Library::Duration.ParseFromString("PT8H"));		//KUT to populate Promise Start date//commented above and added for SDK31.0
+			//inst.ToParent.LX_TXT_PROMEND_Date = inst.ZSDK_AppointmentDate.ConvertToGlobalDateTime().AddDuration(Library::Duration.ParseFromString("PT16H"));		//KUT to populate Promise End Date
+			Parent.LX_TXT_PROMEND_Date = inst.ZSDK_AppointmentDate.ConvertToGlobalDateTime().AddDuration(Library::Duration.ParseFromString("PT16H"));		//KUT to populate Promise End Date//commented above and added for SDK31.0
+
+
+			//**********************************Code for calling the Response using the request structure******************************//
+			if (!BookNowRoot.IsInitial() && FieldValidation == false)
+			{
+				Request.MT_TOnlineBookRequestDetails_REQ = BookNowRoot;
+				Response = Library::BookNowCallAppointment_FZ.SI_Book_Submission_Sync(Request, "", "ReqAppSlotFixZone");
+
+				if (!Response.IsInitial())
+				{
+					if (!Response.CommunicationFault.IsInitial())
+					{
+						if (Response.CommunicationFault.Item.Count() > 0) 
+						{
+							var IntegrationError = Response.CommunicationFault.Item.GetFirst();
+							if (!IntegrationError.Note.IsInitial())
+							{
+								if (IntegrationError.SeverityCode == "3")	
+								{
+									raise BookNowError.Create("E", IntegrationError.Note);
+								} 
+							} 
+						}
+					}
+					if (!Response.MT_TOnlineBookResponseDetails.IsInitial())
+					{
+						var ResTab = Response.MT_TOnlineBookResponseDetails;
+						var BookRef = ResTab.BookSuccessfully.ToString();
+						if (BookRef == "X")
+						{
+							raise BookNowError.Create("S", "Book Reservation is Successfully Synced");					
+						}
+						else 
+						{
+							raise BookNowError.Create("E", "Error:".Concatenate(" ").Concatenate(ResTab.ErrorMsg));
+						}				
+					}
+				}
+			}	
+		}
+		else if (Parent.LX_TKT_SCEN == "101") //Internal for MRS
+		{	
+		   
+			//if (Parent.AppointmentSlots.Count() > 0)
+			if (AppoinmentSlot.Count() > 0)
+			{
+				var SchdLineInstance = Parent.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == TechSchedulingProcCode 
+																					&& n.Status.ServiceRequestExecutionLifeCycleStatusCode == InSchedulingItem);		
+				if (SchdLineInstance.Count() > 0)
+				{
+					var ItemTansDocRef = SchdLineInstance.ItemBusinessTransactionDocumentReference;						
+					if (ItemTansDocRef.Count() > 0)
+					{
+						var ItemTransDocRefInst = ItemTansDocRef.Where(n => n.BusinessTransactionDocumentReference.TypeCode == "2138"); //Demand Reference
+						if (ItemTransDocRefInst.Count() > 0)
+						{
+							var DemandID = ItemTransDocRefInst.GetFirst().BusinessTransactionDocumentReference.ID;						
+							var DemandInst = Demand.Retrieve(DemandID);
+							if (DemandInst.IsSet())
+							{
+								foreach (var DemItem in DemandInst.Item)		
+								{
+									var Apptdate = inst.ZSDK_AppointmentDate.ToString().Replace("-", "");
+									var StartTime = inst.ZSDK_StartTime.ToString().Replace(":", "");
+									var EndTime = inst.ZSDK_EndTime.ToString().Replace(":", "");
+
+									var StartDateTime = Apptdate.Concatenate(StartTime);
+									var EndDateTime = Apptdate.Concatenate(EndTime);
+
+								
+									//*********Start of Fix for Belgium issue for AM/PM slots 8-16 issue on UI******
+
+									//DemItem.PromisedPeriod.StartDateTime.content			= GlobalDateTime.ParseFromString(StartDateTime);
+									//DemItem.PromisedPeriod.EndDateTime.content				= GlobalDateTime.ParseFromString(EndDateTime);
+
+									var LocalStartDate = LocalDateTime.ParseFromString(StartDateTime);
+									var GlobalStartDate = LocalStartDate.ConvertTimeZone("UTC");
+									DemItem.PromisedPeriod.StartDateTime.content = GlobalStartDate.ConvertToGlobalDateTime();
+
+									var LocalEndDate = LocalDateTime.ParseFromString(EndDateTime);
+									var GlobalEndDate = LocalEndDate.ConvertTimeZone("UTC");
+									DemItem.PromisedPeriod.EndDateTime.content = GlobalEndDate.ConvertToGlobalDateTime();
+
+									//*********End of Fix for Belgium issue for AM/PM slots 8-16 issue on UI******
+
+								}					
+							}	
+						}						
+					}					
+				}
+			}	
+		}
+	}
+}

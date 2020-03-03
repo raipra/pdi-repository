@@ -1,0 +1,34 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: PBO_AssignmentReserveParts
+		Node: Root
+		Action: RetrieveTicket 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+import AP.PC.ActivityManagement.Global;
+
+foreach(var inst in this)
+{
+	if(!inst.AssignmentUUID.IsInitial())
+	{
+		var AssignmentInstance = Activity.Retrieve(inst.AssignmentUUID.content);
+		if(AssignmentInstance.IsSet())
+		{
+			//Retrieve Ticket ID from Assignment UUID
+			var TicketInstance = AssignmentInstance.BusinessTransactionDocumentReference.Where(n=>n.BusinessTransactionDocumentReference.TypeCode == "118").GetFirst(); //TypeCode = 118 - Ticket Business Transaction Reference
+			if(TicketInstance.IsSet())
+			{
+				inst.TicketID.content = TicketInstance.BusinessTransactionDocumentReference.ID.RemoveLeadingZeros();
+			}
+		}
+	}
+}

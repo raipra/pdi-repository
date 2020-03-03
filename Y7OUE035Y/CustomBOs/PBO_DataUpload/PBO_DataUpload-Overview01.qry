@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<QueryDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://sap.com/xi/BASIS/Global">
+  <ProxyName xmlns="">Y7OUE035Y_MA0LRTQNXFOQY8</ProxyName>
+  <QueryDefintionXrepPath xmlns="">/Y7OUE035Y_MAIN/SRC/CustomBOs/PBO_DataUpload/PBO_DataUpload-Overview01.sadl</QueryDefintionXrepPath>
+  <Description xmlns="">FileInstance Query</Description>
+  <AnalyticalQueryIndicator xmlns="">false</AnalyticalQueryIndicator>
+  <SensitiveQueryIndicator xmlns="">false</SensitiveQueryIndicator>
+  <LanguageCode xmlns="">EN</LanguageCode>
+  <ParentNodeProxyName xmlns="">FILEINTANCE7784AA4E5DC34109</ParentNodeProxyName>
+  <BOProxyName xmlns="">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+  <LogReferenceFields xmlns="">false</LogReferenceFields>
+  <QueryAnnotationElements xmlns="">
+    <QueryInputParameters>
+      <ProxyName>UNIQUETANCE9EE8DCC1AD81EA93</ProxyName>
+      <Name>UniqueID</Name>
+      <Type>PDI_ABSL_IDENTIFIER</Type>
+      <uiTextProxyName>Y7OUE035Y_1F1788C2597BAF2A</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">UNIQUEIDEE623BCD2261352E</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>ISPIDTANCE76978D215A0BD804</ProxyName>
+      <Name>ISPID</Name>
+      <Type>APC_V_LANGUAGEINDEP_SHORT_NAME</Type>
+      <uiTextProxyName>Y7OUE035Y_BB0135C4C58B9CAB</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">ISPIDAFAF4295C545F7F0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>ITEMTYTANCEE1EE624E91527AA1</ProxyName>
+      <Name>ItemType</Name>
+      <Type>Y7OUE035Y_92EF8D65075E2975</Type>
+      <uiTextProxyName>Y7OUE035Y_4EF501049FEDE0D4</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">ITEMTYPEF6573DDCEE4AA454</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>PROCESTANCE530F003884C820AA</ProxyName>
+      <Name>ProcessingStatus</Name>
+      <Type>Y7OUE035Y_3779AC6EC12F69F5</Type>
+      <uiTextProxyName>Y7OUE035Y_CB27E373BC927430</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">PROCESTATUS2AC0963E9C4702B0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryInputParameters>
+      <ProxyName>FILEINTANCE308C907247A522C2</ProxyName>
+      <Name>FileInstanceID</Name>
+      <Type>PDI_ABSL_IDENTIFIER</Type>
+      <uiTextProxyName>Y7OUE035Y_7C9CF14C955E4F20</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINNCEID38210B55DB35A899</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryInputParameters>
+    <QueryQRTNElements>
+      <ProxyName>UNIQUETANCE9EE8DCC1AD81EA93</ProxyName>
+      <Name>UniqueID</Name>
+      <Type>PDI_ABSL_IDENTIFIER</Type>
+      <uiTextProxyName>Y7OUE035Y_1F1788C2597BAF2A</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">UNIQUEIDEE623BCD2261352E</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>ISPIDTANCE76978D215A0BD804</ProxyName>
+      <Name>ISPID</Name>
+      <Type>APC_V_LANGUAGEINDEP_SHORT_NAME</Type>
+      <uiTextProxyName>Y7OUE035Y_BB0135C4C58B9CAB</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">ISPIDAFAF4295C545F7F0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>ITEMTYTANCEE1EE624E91527AA1</ProxyName>
+      <Name>ItemType</Name>
+      <Type>Y7OUE035Y_92EF8D65075E2975</Type>
+      <uiTextProxyName>Y7OUE035Y_4EF501049FEDE0D4</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">ITEMTYPEF6573DDCEE4AA454</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>PROCESTANCE530F003884C820AA</ProxyName>
+      <Name>ProcessingStatus</Name>
+      <Type>Y7OUE035Y_3779AC6EC12F69F5</Type>
+      <uiTextProxyName>Y7OUE035Y_CB27E373BC927430</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">PROCESTATUS2AC0963E9C4702B0</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <QueryQRTNElements>
+      <ProxyName>FILEINTANCE308C907247A522C2</ProxyName>
+      <Name>FileInstanceID</Name>
+      <Type>PDI_ABSL_IDENTIFIER</Type>
+      <uiTextProxyName>Y7OUE035Y_7C9CF14C955E4F20</uiTextProxyName>
+      <BindingInformation>
+        <BOProxyName xmlns="http://sap.com/xi/BASIS/Global">Y7OUE035Y_PBADA72E8F2EEBB88F4E</BOProxyName>
+        <BONodeProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINTANCE7784AA4E5DC34109</BONodeProxyName>
+        <BONodeElementProxyName xmlns="http://sap.com/xi/BASIS/Global">FILEINNCEID38210B55DB35A899</BONodeElementProxyName>
+      </BindingInformation>
+    </QueryQRTNElements>
+    <ParentNodeProxyName>FILEINTANCE7784AA4E5DC34109</ParentNodeProxyName>
+    <UseForFeedsIndicator>false</UseForFeedsIndicator>
+    <UseForEnterpriseSearchIndicator>false</UseForEnterpriseSearchIndicator>
+  </QueryAnnotationElements>
+</QueryDefinition>

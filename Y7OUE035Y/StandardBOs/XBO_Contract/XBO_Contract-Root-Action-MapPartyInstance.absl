@@ -1,0 +1,152 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: Contract
+		Node: Root
+		Action: MapPartyInstance 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+import AP.FO.BusinessPartner.Global;
+import AP.FO.IBase.Global;
+import BASIS.Global;
+import AP.Common.GDT;
+
+
+//Workaround solution to Map New Customer & Registered Product Instance for File Uploaded Entries - Customer & Registered Product Internal IDs are not generated on creation
+foreach (var inst in this)
+{
+	//Link New Consumer created via PBO_DataUpload BO
+	var BuyerParty = inst.Party.Where(n => n.RoleCode == "1001");
+
+	if (BuyerParty.Count() == 0 && !inst.LX_CON_DATAUPLOAD_CUUID.IsInitial())
+	{
+		var CustUUID : DataType::UUID;
+		CustUUID.content = Library::UUID.ParseFromString(inst.LX_CON_DATAUPLOAD_CUUID);
+
+		var CustInstance = Customer.Retrieve(CustUUID); //Retrieve Customer ID using UUID
+		if (CustInstance.IsSet())
+		{
+			var AccountParty : elementsof Contract.Party;
+			AccountParty.PartyKey.PartyID.content = CustInstance.InternalID;
+			AccountParty.RoleCode = "1001";
+			inst.Party.Create(AccountParty);
+		}
+	}
+
+	//Link New Registered Product created via PBO_DataUpload BO
+	if (!inst.LX_CON_DATAUPLOAD_RPUUID.IsInitial())
+	{
+		var RegPdtUUID : DataType::UUID;
+		RegPdtUUID.content = Library::UUID.ParseFromString(inst.LX_CON_DATAUPLOAD_RPUUID);
+
+		var RPInstance = InstallationPoint.Retrieve(RegPdtUUID); 
+		
+		if (RPInstance.IsSet())
+		{
+			var Installed_Obj = RPInstance.PrimaryInstalledObject;
+			if(Installed_Obj.IsSet())
+			{
+				var InstalledIndvProduct = Installed_Obj.InstalledObjectIndividualProduct;
+				if(InstalledIndvProduct.IsSet())
+				{
+					var IndividualProd = InstalledIndvProduct.IndividualProduct;
+					if(IndividualProd.IsSet())
+					{
+						var ServiceProcessInfo = IndividualProd.ServiceProcessInformation;
+						if(ServiceProcessInfo.IsSet())
+						{
+							if (inst.CoveredObject.Count() > 0)
+							{
+								var ExistingCoveredObject = inst.CoveredObject.Where(n => n.InstallationPointID.content == RPInstance.ID.content);
+								if (ExistingCoveredObject.Count() == 0)
+								{
+									var Contract_CoveredObj : elementsof Contract.CoveredObject;
+									Contract_CoveredObj.IndividualProductSerialIDKey.SerialID = ServiceProcessInfo.SerialID;
+									inst.CoveredObject.Create(Contract_CoveredObj);
+								}
+								else
+								{
+									ExistingCoveredObject.GetFirst().IndividualProductSerialIDKey.SerialID = ServiceProcessInfo.SerialID;
+								}
+							}
+							else
+							{
+								var Contract_CoveredObj : elementsof Contract.CoveredObject;
+								Contract_CoveredObj.InstallationPointID.content = RPInstance.ID.content;
+								inst.CoveredObject.Create(Contract_CoveredObj);
+							}
+						}
+					}
+				}
+			}
+
+			//{
+			//var PrimaryInstObj = RPInstance.PrimaryInstalledObject;
+			//
+			//if(PrimaryInstObj.InstalledObjectIndividualProduct.IsSet())
+			//{
+			//var InstalIndvObj	= PrimaryInstObj.InstalledObjectIndividualProduct;
+			//
+			//if(InstalIndvObj.IndividualProduct.IsSet())
+			//{
+			//var IndvProduct = InstalIndvObj.IndividualProduct;
+			//
+			//if(IndvProduct.ServiceProcessInformation.IsSet())
+			//{
+			//if(!IndvProduct.ServiceProcessInformation.SerialID.IsInitial())
+			//{
+			//var SerialID = IndvProduct.ServiceProcessInformation.SerialID;
+			//if(inst.CoveredObject.Count() > 0)
+			//{
+			//var ExistingCoveredObject = inst.CoveredObject.Where(n=>n.IndividualProductSerialIDKey.SerialID != SerialID);
+			//if(ExistingCoveredObject.Count() == 0)
+			//{
+			//var Contract_CoveredObj	:elementsof Contract.CoveredObject;
+			//
+			//Contract_CoveredObj.IndividualProductSerialIDKey.SerialID = SerialID;
+			//inst.CoveredObject.Create(Contract_CoveredObj);
+			//}
+			//}
+			//else
+			//{
+			//var Contract_CoveredObj		:elementsof Contract.CoveredObject;
+			//
+			//Contract_CoveredObj.IndividualProductSerialIDKey.SerialID = SerialID;
+			//inst.CoveredObject.Create(Contract_CoveredObj);
+			//}
+			//}
+			//}
+			//}
+			//}
+			//}
+		}
+	}
+
+	if (inst.BillToParty.IsSet()) //Contract status can be set only if data is consistent
+	{
+		if (!inst.ValidityStartDate.IsInitial() && !inst.ValidityEndDate.IsInitial()) //Contract Status is determined based on validity dates
+		{
+			if(Context.GetCurrentSystemDate().LessThan(inst.ValidityEndDate))
+			{
+				inst.ReleaseToActivate();	//Set Contract to Active
+			}
+			else
+			{
+				inst.FlagAsObsolete();		//Set Contract to Obsolete
+			}
+		}
+		else
+		{
+			inst.SetBackInPreparation();		// Set Contract to In Preparation
+		}
+	}
+}
+

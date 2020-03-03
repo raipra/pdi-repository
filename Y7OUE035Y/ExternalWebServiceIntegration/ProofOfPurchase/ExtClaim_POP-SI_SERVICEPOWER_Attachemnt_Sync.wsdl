@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:p1="urn:electrolux.com" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="SIOS_SERVICEPOWER" targetNamespace="urn:electrolux.com">
+<wsdl:documentation/>
+<wsp:UsingPolicy wsdl:required="true"/>
+<wsp:Policy wsu:Id="OP_SIOS_SERVICEPOWER"/>
+<wsdl:types>
+    <xsd:schema xmlns="urn:electrolux.com" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:electrolux.com">
+    <xsd:element name="MT_SERVICEPOWER_RES" type="DT_SERVICEPOWER_RES"/>
+    <xsd:element name="MT_SERVICEPOWER_REQ" type="DT_SERVICEPOWER_REQ"/>
+    <xsd:complexType name="DT_SERVICEPOWER_REQ">
+        <xsd:sequence>
+            <xsd:element name="authentication" maxOccurs="unbounded">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="userId" type="xsd:string"/>
+                        <xsd:element name="password" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="claim" minOccurs="0" maxOccurs="unbounded">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="manufacturerName" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="claimBatchNumber" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="claimSequenceNumber" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="claimNumber" type="xsd:string" minOccurs="0" />
+						<xsd:element name="country" type="xsd:string" minOccurs="0" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="document" minOccurs="0" maxOccurs="unbounded">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="category" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="description" type="xsd:string" minOccurs="0" /> 
+                        <xsd:element name="filename" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="existingDocumentId" type="xsd:string" minOccurs="0" />
+                        <xsd:element name="file" type="xsd:string" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="DT_SERVICEPOWER_RES">
+        <xsd:sequence>
+            <xsd:element name="responseCode" type="xsd:string" minOccurs="0" />
+            <xsd:element name="transactionId" type="xsd:string" minOccurs="0" />
+            <xsd:element name="documentId" type="xsd:string" minOccurs="0" />
+            <xsd:element name="messages" minOccurs="0" maxOccurs="unbounded">
+			<xsd:complexType>
+				<xsd:sequence>
+					<xsd:element name="message" type="xsd:string" minOccurs="0" maxOccurs="1" />
+				</xsd:sequence>
+			</xsd:complexType>
+   		</xsd:element>
+        </xsd:sequence>      
+    </xsd:complexType>
+</xsd:schema>
+</wsdl:types>
+<wsdl:message name="MT_SERVICEPOWER_REQ">
+    <wsdl:documentation/>
+    <wsdl:part name="MT_SERVICEPOWER_REQ" element="p1:MT_SERVICEPOWER_REQ"/>
+</wsdl:message>
+<wsdl:message name="MT_SERVICEPOWER_RES">
+    <wsdl:documentation/>
+    <wsdl:part name="MT_SERVICEPOWER_RES" element="p1:MT_SERVICEPOWER_RES"/>
+</wsdl:message>
+<wsdl:portType name="SIOS_SERVICEPOWER">
+    <wsdl:documentation/>
+    <wsdl:operation name="SIOS_SERVICEPOWER">
+        <wsdl:documentation/>
+        <wsp:Policy>
+            <wsp:PolicyReference URI="#OP_SIOS_SERVICEPOWER"/>
+        </wsp:Policy>
+        <wsdl:input message="p1:MT_SERVICEPOWER_REQ"/>
+        <wsdl:output message="p1:MT_SERVICEPOWER_RES"/>
+    </wsdl:operation>
+</wsdl:portType>
+<wsdl:binding name="SIOS_SERVICEPOWERBinding" type="p1:SIOS_SERVICEPOWER">
+    <soap:binding xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="SIOS_SERVICEPOWER">
+        <soap:operation xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" soapAction="http://sap.com/xi/WebService/soap1.1"/>
+        <wsdl:input>
+            <soap:body xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" use="literal"/>
+        </wsdl:input>
+        <wsdl:output>
+            <soap:body xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" use="literal"/>
+        </wsdl:output>
+    </wsdl:operation>
+</wsdl:binding>
+</wsdl:definitions>

@@ -1,0 +1,127 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Event: AfterModify 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script if:
+		- the value of any field in the node in which this script is contained is modified.
+		- the node itself is modified by another business object within the same solution.
+*/
+
+//****************************************************************************************************************************//
+//Change Request ID: SAGARAKA_PI1.0
+//Author: Akanksha Sagar (SAGARAKA)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+import AP.FO.ProductDataMaintenance.Global;
+import AP.Common.GDT;
+import Common.DataTypes;
+
+var POPDocTypeCode : DocumentTypeCode;
+var TechSchedulingProcessingCode : UserServiceTransactionProcessingTypeCode;
+var OpenItem : ServiceRequestExecutionLifeCycleStatusCode;
+var InSchedulingItem : ServiceRequestExecutionLifeCycleStatusCode;
+var FinishedItem : ServiceRequestExecutionLifeCycleStatusCode;
+var InvoicingNotRelevant : InvoicingMethodCode;
+var ItemInstance;
+
+
+
+
+POPDocTypeCode.content = "ZPOP";	//Proof of Purchase Document Type
+TechSchedulingProcessingCode = "ZMR1";  //Technician Scheduling Item Processing Code
+OpenItem = "1";     //Line item with work progress as Open
+InSchedulingItem = "2";     //Line item with work progress as In Scheduling
+FinishedItem = "6";		//Line item with work progress as Finished
+InvoicingNotRelevant.content = "4";		//Line item with Invoicing Method as Not Relevant
+
+foreach (var inst in this)
+{
+	if (inst.IsSet())
+	{
+
+		//Start of Global variable declaration for SAGARAKA_PI1.0	
+		var lv_AttachDoc;
+		var POPAttachment;
+		
+		//End of Global variable declaration for SAGARAKA_PI1.0		
+		
+		//****************************** Proof of Purchase Details from Ticket to Registered Product ***************************************
+
+		//Enable POPAttachmentExists Flag once POP Attachment is added, enabling the Purchase Validated Flag
+		var lv_AttachFolder = inst.AttachmentFolder;
+		if (lv_AttachFolder.IsSet())
+		{
+			//var POPAttachment = inst.AttachmentFolder.Document.Where(n => n.TypeCode.content == POPDocTypeCode.content);
+			lv_AttachDoc = lv_AttachFolder.Document; //add for SAGARAKA_PI1.0
+			if (lv_AttachDoc.Count() > 0) //add for SAGARAKA_PI1.0
+			{
+				POPAttachment = lv_AttachDoc.Where(n => n.TypeCode.content == POPDocTypeCode.content); //add for SAGARAKA_PI1.0
+				//var POPAttachment = lv_AttachFolder.Document.Where(n => n.TypeCode.content == POPDocTypeCode.content); //comment for SAGARAKA_PI1.0
+				if (POPAttachment.Count() > 0)
+				{
+					inst.LX_TKT_ATT_POP = true; //Purchase Validated Flag is write-enabled
+
+				}
+				else
+				{
+					if (inst.LX_PRD_PD1 == true)
+					{
+						inst.LX_TKT_ATT_POP = false; //Purchase Validated Flag is read-only
+						inst.LX_PRD_PD1 = false; //Purchase Validation Flag is removed
+						raise PurchaseValidatedFlag.Create("W", "Please attach Proof of Purchase before validating");
+					}
+				}
+			}
+		}
+		else
+		{
+			if (inst.LX_PRD_PD1 == true)
+			{
+				inst.LX_TKT_ATT_POP = false; //Purchase Validated Flag is read-only
+				inst.LX_PRD_PD1 = false; //Purchase Validation Flag is removed
+				raise PurchaseValidatedFlag.Create("W", "Please attach Proof of Purchase before validating");
+			}
+		}
+
+		//********************************** End of Proof of Purchase Details from Ticket to Registered Product *************************************
+
+		//********************************************* Revisit Scenario ***************************************************************
+		//if (inst.Item.Count() > 0) //comment for SAGARAKA_PI1.0
+		//{
+		ItemInstance = inst.Item;
+		//}
+
+		if (ItemInstance.Count() > 0)
+		{
+			var RevisitItemExists;
+
+			foreach (var items in ItemInstance)
+			{	
+				//Check if line item with Processing Type as "Technician Scheduling" & Work Progress as Status "Finished" doesnt exists, if not create a new line item
+				if (items.UserServiceTransactionProcessingTypeCode == TechSchedulingProcessingCode && items.Status.ServiceRequestExecutionLifeCycleStatusCode != FinishedItem)
+				{
+					RevisitItemExists = 1;
+				}
+			}
+				
+			if (RevisitItemExists != 1)
+			{
+				//Second Visit scenario where button visibility is controlled on UI
+				inst.LX_TKT_SEC_VISIT = true;
+			}
+		}
+
+		//****************************************************** End of Revisit Scenario ***************************************************************
+	}
+}

@@ -1,0 +1,128 @@
+﻿import ABSL;
+import AP.Common.GDT;
+import AP.FO.BusinessPartner.Global;
+
+var BusPartNodeInfo : elementsof PBO_DataUpload.BusinessPartnerDuplicate;
+var result : collectionof elementsof PBO_DataUpload.BusinessPartnerDuplicate;
+var matchpercent;
+
+var cust_qry = Customer.QueryByCommunicationData;
+var selec_param = cust_qry.CreateSelectionParams();
+
+if(!Cust_Email.content.IsInitial())	//If Email and country matches, log as duplicate
+{
+	selec_param.Add(cust_qry.EMailURI.content,"I","EQ",Cust_Email.content);
+	matchpercent = "100";
+}
+else if(Cust_Email.content.IsInitial() && !Cust_Lname.IsInitial() && !Cust_TelNo.IsInitial())	//condition 3
+{
+	selec_param.Add(cust_qry.BusinessPartnerName,"I","EQ",Cust_Lname);
+	selec_param.Add(cust_qry.NormalisedPhoneNumberDescription,"I","EQ",Cust_TelNo);
+	matchpercent = "100";
+}
+
+var result_set = cust_qry.Execute(selec_param);
+if(result_set.Count() > 0) //If(1)
+{
+	foreach (var customer in result_set) //Foreach
+	{
+		if (customer.AddressInformation.Count() > 0) //If(2)
+		{
+			var addressinfo = customer.AddressInformation;
+			if (addressinfo.Address.Count() > 0) //If(3)
+			{
+				var addressinfonode = addressinfo.Address;
+				if(addressinfonode.DefaultPostalAddressRepresentation.Count() > 0) //If(4)
+				{ 
+					var defaultaddress = addressinfonode.DefaultPostalAddressRepresentation;
+					if (defaultaddress.GetFirst().CountryCode == Cust_CountryCode) //If(5)
+					{
+						BusPartNodeInfo.CustomerID		= customer.InternalID;
+						BusPartNodeInfo.CustomerUUID	= customer.UUID;
+						BusPartNodeInfo.MatchPercent	= matchpercent;
+
+						if(!customer.PartialSystemAdministrativeData.IsInitial())
+						{
+							var SystemAdminData = customer.PartialSystemAdministrativeData;
+			
+							BusPartNodeInfo.CustomerLastChangedDateTime = SystemAdminData.LastChangeDateTime.ConvertToDateTime();
+							BusPartNodeInfo.CustomerCreatedOnDateTime	= SystemAdminData.CreationDateTime.ConvertToDateTime() ;
+						}
+						result.Add(BusPartNodeInfo);
+					} //If(5)
+				} //If(4)
+			} //If(3)
+		} //If(2)
+	} //Foreach
+} //If(1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//var cust_selparam = cust_qry.CreateSelectionParams();
+//if (!Cust_Email.content.IsInitial() && !Cust_Lname.IsInitial() && !Cust_TelNo.IsInitial() && !Cust_CountryCode.IsInitial()) //Priority 1
+//{
+	//cust_selparam.Add(cust_qry.EMailURI.content, "I", "EQ", Cust_Email.content);
+	//cust_selparam.Add(cust_qry.BusinessPartnerName, "I", "EQ", Cust_Lname);
+	//cust_selparam.Add(cust_qry.NormalisedPhoneNumberDescription, "I", "EQ", Cust_TelNo);
+	//matchpercent ="100";
+//}
+//else if (!Cust_Email.content.IsInitial() && !Cust_Lname.IsInitial() && Cust_TelNo.IsInitial()  && !Cust_CountryCode.IsInitial()) //Priority 2
+//{
+	//cust_selparam.Add(cust_qry.EMailURI.content, "I", "EQ", Cust_Email.content);
+	//cust_selparam.Add(cust_qry.BusinessPartnerName, "I", "EQ", Cust_Lname);
+	//matchpercent ="75";
+//}
+//else if (Cust_Email.content.IsInitial() && !Cust_Lname.IsInitial() && !Cust_TelNo.IsInitial() && !Cust_CountryCode.IsInitial())	//Priority 3
+//{
+	//cust_selparam.Add(cust_qry.BusinessPartnerName, "I", "EQ", Cust_Lname);
+	//cust_selparam.Add(cust_qry.NormalisedPhoneNumberDescription, "I", "EQ", Cust_TelNo);
+	//matchpercent ="50";
+//}
+//else if (Cust_Email.content.IsInitial()  && !Cust_Lname.IsInitial() && Cust_TelNo.IsInitial()  && !Cust_CountryCode.IsInitial()) //Priority 4 - Consumer should always be validated based on phone number
+//{
+	//cust_selparam.Add(cust_qry.BusinessPartnerName, "I", "EQ", Cust_Lname);
+	//matchpercent ="25";
+//}
+//var Cust_Qry_Res = cust_qry.Execute(cust_selparam);
+//if (Cust_Qry_Res.Count() > 0)
+//{
+	//foreach (var customer in Cust_Qry_Res)
+	//{
+		//if (customer.AddressInformation.Count() > 0)
+		//{
+			//if (customer.AddressInformation.Address.Count() > 0)
+			//{
+				//if(customer.AddressInformation.Address.DefaultPostalAddressRepresentation.Count() > 0)
+				//{
+					//if (customer.AddressInformation.Address.DefaultPostalAddressRepresentation.GetFirst().StreetPostalCode == Cust_PostalCode)
+					//{
+						//BusPartNodeInfo.CustomerID = customer.InternalID;
+						//BusPartNodeInfo.CustomerUUID = customer.UUID;
+						//BusPartNodeInfo.MatchPercent = matchpercent;
+						//result.Add(BusPartNodeInfo);
+					//}
+				//}
+			//}
+		//}
+	//}
+//}
+
+return result;

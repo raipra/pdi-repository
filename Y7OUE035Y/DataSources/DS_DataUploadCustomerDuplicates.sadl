@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sadl:definition xmlns:ass="http://sap.com/sap.nw.f.sadl/association" date="20200117" time="115939" uuid="B8996AC8F3BD43F4B430B623FFC7CF44" xmlns:sadl="http://sap.com/sap.nw.f.sadl">
+  <sadl:conversions>
+    <sadl:conversion type="ALPHA" />
+  </sadl:conversions>
+  <sadl:modes>
+    <sadl:mode type="FSI" />
+  </sadl:modes>
+  <sadl:dataSource name="DS" binding="Y7OUE035Y_PBADA72E8F2EEBB88F4E/ass:BUSINEICATEC89F71F13C6232C7" type="BusinessObjectNode" d2p1:mdrsBinding="PBO_DataUpload.BusinessPartnerDuplicate" xmlns:d2p1="http://sap.com/xi/AP/PDI" />
+  <sadl:resultSet>
+    <sadl:structure name="Y7OUE035Y_PBADA72E8F2EEBB88F4E" dataSource="DS" d3p1:mdrsName="PBO_DataUpload.BusinessPartnerDuplicate" xmlns:d3p1="http://sap.com/xi/AP/PDI">
+      <sadl:attribute name="CUSTOMLICATE1BF8D96A0148D606" binding="CUSTOMERIDAABBFA1D1639E593" d3p1:mdrsName="CustomerID" />
+      <sadl:attribute name="CUSTOMLICATE9A0EFCE4F5FA4121" binding="CUSTOMRUUID2DC1F29B48B56425-CONTENT" d3p1:mdrsName="CustomerUUID/content" />
+      <sadl:attribute name="MATCHPLICATE42EF2B6EA35BEA81" binding="MATCHPRCENTC89DCB6ED1A8ABA3" d3p1:mdrsName="MatchPercent" />
+      <sadl:structure name="TOPARELICATE51AB32D94CD7A9CD" binding="ass:TO_PARENT" d3p1:mdrsName="ToParent">
+        <sadl:attribute name="UNIQUELICATE4BF2DE95CB38E31A" binding="UNIQUEIDEE623BCD2261352E" d3p1:mdrsName="UniqueID" />
+        <sadl:attribute name="RECORDLICATE5F66F4BFF7770634" binding="RECORDID536669C7452A03AD" d3p1:mdrsName="RecordID" />
+        <sadl:attribute name="ISPIDTLICATE88D18F42F7200085" binding="ISPIDAFAF4295C545F7F0" d3p1:mdrsName="ISPID" />
+        <sadl:attribute name="FILENALICATE43A1C535853DBB60" binding="FILENAMEA21FAA4882645337" d3p1:mdrsName="FileName" />
+        <sadl:attribute name="ITEMTYLICATEF13F4C28B9A6EB76" binding="ITEMTYPEF6573DDCEE4AA454" d3p1:mdrsName="ItemType" />
+        <sadl:attribute name="FILETILICATEC4EE60DDEC7C8799" binding="FILETISTAMP0F91E21FDE9BE6DB" d3p1:mdrsName="FileTimestamp" />
+        <sadl:attribute name="PROCESLICATE907CD169949F94F3" binding="PROCESSTAMP27E08AAFEDDF2B7E" d3p1:mdrsName="ProcessedTimestamp" />
+        <sadl:attribute name="CREATELICATE052FA2A891212670" binding="CREATEDON3AA8885761080E3D" d3p1:mdrsName="CreatedOn" />
+        <sadl:attribute name="PROCESLICATE48EA69AA1BFDE531" binding="PROCESTATUS2AC0963E9C4702B0" d3p1:mdrsName="ProcessingStatus" />
+        <sadl:attribute name="CUSTOMLICATE062265DF245E752F" binding="CUSTOMRUUID2DC1F29B48B56425-CONTENT" d3p1:mdrsName="CustomerUUID/content" />
+        <sadl:attribute name="CUSTOMLICATE12971615D458E6BB" binding="CUSTOMTNAME71F6DAD102AA5DC3" d3p1:mdrsName="CustomerFirstName" />
+        <sadl:attribute name="CUSTOMLICATE145589F49BFB2972" binding="CUSTOMTNAME91AAE64FA79A0A0E" d3p1:mdrsName="CustomerLastName" />
+        <sadl:attribute name="CUSTOMLICATED95EF1B021A45A99" binding="CUSTOMGUAGE568C13391C84783C" d3p1:mdrsName="CustomerLanguage" />
+        <sadl:attribute name="CUSTOMLICATE096210604D6F3FF8" binding="CUSTOMLINE12B145BC8AAABE720" d3p1:mdrsName="CustomerAddressLine1" />
+        <sadl:attribute name="CUSTOMLICATE90A21E975E3098CF" binding="CUSTOMLINE2B22BC92230E77BC2" d3p1:mdrsName="CustomerAddressLine2" />
+        <sadl:attribute name="CUSTOMLICATE13A2E23A992589EB" binding="CUSTOMRCITY5CC47CC1E8A33E78" d3p1:mdrsName="CustomerCity" />
+        <sadl:attribute name="CUSTOMLICATED391CEA5100E63B7" binding="CUSTOMSTATE5054BA25C7EE2976" d3p1:mdrsName="CustomerState" />
+        <sadl:attribute name="CUSTOMLICATE02F701A6444D51CE" binding="CUSTOMUNTRYE0804C99880E8556" d3p1:mdrsName="CustomerCountry" />
+        <sadl:attribute name="CUSTOMLICATE5CE93130468A4EF4" binding="CUSTOMTCODE68BF497D7F2B1D22" d3p1:mdrsName="CustomerPostCode" />
+        <sadl:attribute name="TELEPHLICATED828E023CEEA5DC1" binding="TELEPHREFIXA986C62292C44A2B" d3p1:mdrsName="TelephonePrefix" />
+        <sadl:attribute name="PHONENLICATE5E369C4837B63214" binding="PHONENUMBER09D4888DE2F538DD" d3p1:mdrsName="PhoneNumber" />
+        <sadl:attribute name="MOBILELICATED988632CCF16D82A" binding="MOBILEUMBER8F74E69264A439AC" d3p1:mdrsName="MobileNumber" />
+        <sadl:attribute name="CUSTOMLICATEE623CDB0FF1BAD11" binding="CUSTOMEMAIL48B4360AA23EB2FF-CONTENT" d3p1:mdrsName="CustomerEmail/content" />
+        <sadl:attribute name="REGISTLICATE92407A6F88FAEA4D" binding="REGISTDUUID551D68BECB3538CF-CONTENT" d3p1:mdrsName="RegisteredProdUUID/content" />
+        <sadl:attribute name="MODELPLICATEFB220189DF78A9D2" binding="MODELPRTNUM7982E0A6BFBFA512" d3p1:mdrsName="ModelPartNum" />
+        <sadl:attribute name="SERIALLICATE18943533A1EB7539" binding="SERIALUMBER26008EBA13F5AC2E" d3p1:mdrsName="SerialNumber" />
+        <sadl:attribute name="PURCHALICATEBEA5F8A3863B9B39" binding="PURCHAEDATEF5E8470B5A2AEB46" d3p1:mdrsName="PurchaseDate" />
+        <sadl:attribute name="PRODUCLICATE653954984BD65646" binding="PRODUCTPNCC98CA0A5E07172F3-CONTENT" d3p1:mdrsName="ProductPNC/content" />
+        <sadl:attribute name="PROOFOLICATE3172AD6E619A2023" binding="PROOFOCHASE66A019A5C211B5AB" d3p1:mdrsName="ProofOfPurchase" />
+        <sadl:attribute name="RETAILLICATE09EEA91FAE57E111" binding="RETAILER9CC3F22FB364D685" d3p1:mdrsName="Retailer" />
+        <sadl:attribute name="WARRANLICATE24A44E3FAC1211EE" binding="WARRANYTYPE764DD35FA0188E27" d3p1:mdrsName="WarrantyType" />
+        <sadl:attribute name="EXTERNLICATE5A6EA15C28AF45AE" binding="EXTERNRANTY421A331B9EDF0F8D" d3p1:mdrsName="ExternalWarranty" />
+        <sadl:attribute name="WARRANLICATE4AF3492AE5146D3B" binding="WARRANTDATED5A2506F82FCE535" d3p1:mdrsName="WarrantyStartDate" />
+        <sadl:attribute name="WARRANLICATEC7DE8D2B6D4308E8" binding="WARRANDDATE86A59CC96E91B58C" d3p1:mdrsName="WarrantyEndDate" />
+        <sadl:attribute name="CONTRALICATE18AC4AFDAD5BE778" binding="CONTRACTIDADEB03DE4BEB242C-CONTENT" d3p1:mdrsName="ContractID/content" />
+        <sadl:attribute name="CONTRALICATEC3351AC4091EB000" binding="CONTRATTYPEA4D5763868C5EA34" d3p1:mdrsName="ContractType" />
+        <sadl:attribute name="THIRDPLICATEA2B5C5DF5D144121" binding="THIRDPACTIDE4FFD99127D0A5A6" d3p1:mdrsName="ThirdPartyContractID" />
+        <sadl:attribute name="CONTRALICATEE21AF3AB8F6FCA79" binding="CONTRATDATED343927171B4C326" d3p1:mdrsName="ContractStartDate" />
+        <sadl:attribute name="CONTRALICATEF051F23E83B1CCD2" binding="CONTRADDATE989463400C516C48" d3p1:mdrsName="ContractEndDate" />
+        <sadl:attribute name="CONTRALICATE9A777F62CECCE465" binding="CONTRANEDONE3B0AD991D4C5AB7" d3p1:mdrsName="ContractSignedOn" />
+        <sadl:attribute name="CONTRALICATE0FFB0606FABAF7FA" binding="CONTRATNAME4338EAEC9FA09869" d3p1:mdrsName="ContractName" />
+        <sadl:attribute name="CONTRALICATE1E3C30E76051AC4E" binding="CONTRAMENEW1DD2603CC3694247" d3p1:mdrsName="ContractNameNew" />
+        <sadl:attribute name="CONTRALICATE4C192DDD50D29D36" binding="CONTRATUUID34F27FD553979108-CONTENT" d3p1:mdrsName="ContractUUID/content" />
+        <sadl:attribute name="CUSTOMLICATE89CB211CE5AD9818" binding="CUSTOMERIDAABBFA1D1639E593" d3p1:mdrsName="CustomerID" />
+        <sadl:attribute name="TICKETLICATEBB9681B05D068F40" binding="TICKETTATUS060FBE60EACE1EC3" d3p1:mdrsName="TicketStatus" />
+        <sadl:attribute name="CLAIMDLICATE2BE606B898A62C58" binding="CLAIMDPTION816D13B72044E4F3" d3p1:mdrsName="ClaimDescription" />
+        <sadl:attribute name="CLAIMNLICATED5F0918623598975" binding="CLAIMNUMBER2E9A0BE4D0BA5EF1-CONTENT" d3p1:mdrsName="ClaimNumber/content" />
+        <sadl:attribute name="SERVICLICATE788D0416D22CDA99" binding="SERVICEGORYE68A798137870E05" d3p1:mdrsName="ServiceCategory" />
+        <sadl:attribute name="OBJECTLICATE151B2894B90BFE78" binding="OBJECTECODEA95993E1F2ECC780" d3p1:mdrsName="ObjectApplianceCode" />
+        <sadl:attribute name="COMPLILICATE9DC458AD3C2E5735" binding="COMPLIANT8B846DB3604EC3D5" d3p1:mdrsName="Compliant" />
+        <sadl:attribute name="CLAIMDLICATE08CA61B4679550E6" binding="CLAIMDATE0CB9BE3831018B50" d3p1:mdrsName="ClaimDate" />
+        <sadl:attribute name="REPORTLICATE77145547EC90503F" binding="REPORTDDATED40DFF5273498D9D" d3p1:mdrsName="ReportedDate" />
+        <sadl:attribute name="REGISTLICATE9348722204C26FC2" binding="REGISTRODID4783A2E427C24129-CONTENT" d3p1:mdrsName="RegisteredProdID/content" />
+        <sadl:attribute name="COMPLELICATE54A8C5C173EBB19D" binding="COMPLENDATE58F830308A1AD8E2" d3p1:mdrsName="CompletionDate" />
+        <sadl:attribute name="TICKETLICATEF7B010C394BEFFEA" binding="TICKETBJECT322519F69C4B51AC" d3p1:mdrsName="TicketSubject" />
+        <sadl:attribute name="TECHNILICATE42EA3856AEE025E4" binding="TECHNIIANIDA9864B985AB5CDDC" d3p1:mdrsName="TechnicianID" />
+        <sadl:attribute name="SERVICLICATE56093F00BA38B918" binding="SERVICTREETB1333ECC55F33096" d3p1:mdrsName="ServiceLocStreet" />
+        <sadl:attribute name="SERVICLICATE3C65D9BDD5CCCEC9" binding="SERVICCCITY5C7471D13F50C6C3" d3p1:mdrsName="ServiceLocCity" />
+        <sadl:attribute name="SERVICLICATE02AF0BDAE6365F1F" binding="SERVICVINCE7A2665FF8CD4B0FA" d3p1:mdrsName="ServiceLocProvince" />
+        <sadl:attribute name="SERVICLICATE828078EF93E61FA2" binding="SERVICLCODEB04CEEF454A41EA8" d3p1:mdrsName="ServiceLocPostalCode" />
+        <sadl:attribute name="VISITSLICATE886707EFB34BC41D" binding="VISITSTDATE95793A75D545AAE1" d3p1:mdrsName="VisitStartDate" />
+        <sadl:attribute name="VISITELICATE8694D2F3CBBE2A3F" binding="VISITEDDATEE33C96C6C32BEA58" d3p1:mdrsName="VisitEndDate" />
+        <sadl:attribute name="SOURCELICATE648E3FC04103A7B4" binding="SOURCEAILER8C9049925AD1B454" d3p1:mdrsName="SourceAsRetailer" />
+        <sadl:attribute name="RESOLULICATEEDD9279BAAE33549" binding="RESOLUNCODE2E15FCFE934A0772" d3p1:mdrsName="ResolutionCode" />
+        <sadl:attribute name="RESOLULICATEAA980EBA30A329CD" binding="RESOLUEGORY55E4A3080F931779" d3p1:mdrsName="ResolutionCategory" />
+        <sadl:attribute name="FAULTCLICATE984D1C4B3CCBBFE1" binding="FAULTCODECE82BB66FA6F2314" d3p1:mdrsName="FaultCode" />
+        <sadl:attribute name="COMPONLICATE0E475C25ECDE9528" binding="COMPONTCODE56D78F1CDDDC7B6A" d3p1:mdrsName="ComponentCode" />
+        <sadl:attribute name="DEFECTLICATED0558CE6C403E4F6" binding="DEFECTCODE66E1987502D4E871" d3p1:mdrsName="DefectCode" />
+        <sadl:attribute name="ACTIONLICATEF2DBAF98AA50937A" binding="ACTIONTAKENB7DB514EAC9A5778" d3p1:mdrsName="ActionTaken" />
+        <sadl:attribute name="AUTHORLICATE0C2B18C936C4BBDE" binding="AUTHORNCODE2C4666B5A1D060E5" d3p1:mdrsName="AuthorizationCode" />
+        <sadl:attribute name="THIRDPLICATECC2366C9100DE641" binding="THIRDPIMNUM8C38AF05AA148E63" d3p1:mdrsName="ThirdPartyClaimNum" />
+        <sadl:attribute name="POREFRLICATE8C3AF339C9C11D80" binding="POREFRUMBERF1C161E72FD9D519" d3p1:mdrsName="PORefrenceNumber" />
+        <sadl:attribute name="CONTRALICATEDEA0D145462FFA1F" binding="CONTRAUMBER17E80A49AB9EF164" d3p1:mdrsName="ContractNumber" />
+        <sadl:attribute name="THIRDPLICATE5833073A230E790B" binding="THIRDPHCODEAC3D237FE487D507" d3p1:mdrsName="ThirdPartyAuthCode" />
+        <sadl:attribute name="COVERALICATE6BB372FD17A19923" binding="COVERAGROUP67B633D0E3B9819E" d3p1:mdrsName="CoverageGroup" />
+        <sadl:attribute name="COVERALICATE56D4B0AC24339C5F" binding="COVERAECODEE9725B2FD08D4744" d3p1:mdrsName="CoverageCode" />
+        <sadl:attribute name="WORKDELICATEEA98F5F98F95EACD" binding="WORKDEPTION1F01DFC05E36F23B" d3p1:mdrsName="WorkDescription" />
+        <sadl:attribute name="PRIVACLICATEE52276C2A0FB085A" binding="PRIVACYFLAG94A7BB449D710C8A" d3p1:mdrsName="PrivacyFlag" />
+        <sadl:attribute name="THIRDPLICATEC7FD3D4ACDBFBE29" binding="THIRDPVIDERA56828848E85A669" d3p1:mdrsName="ThirdPartyWarrantyProvider" />
+      </sadl:structure>
+    </sadl:structure>
+  </sadl:resultSet>
+</sadl:definition>

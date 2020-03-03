@@ -1,0 +1,156 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: InstallationPoint
+		Node: Root
+		Validation: OnSave 
+
+		Script file signature
+		----------------------------
+		Returns: Boolean
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script before an instance of the business object is saved to the data base.
+		It can have a return value of either true or false, which determines whether the instance of the business object is saved or not.
+		All fields in this business object are read-only and cannot be changed.
+*/
+
+import ABSL;
+import AP.Common.GDT;
+import AP.PC.IdentityManagement.Global;
+
+foreach (var inst in this)
+{
+	if (inst.IsSet())
+	{
+		var PurchaseDateValidation : Indicator;
+		var SerialNumberRPValidation : Indicator;
+		var ProductTypeValidation : Indicator;
+
+		//var current_userID = Context.GetCurrentIdentityUUID();
+		//var curr_userID = Identity.Retrieve(current_userID);
+		//var curr_userName = curr_userID.FormattedName;
+
+		PurchaseDateValidation = true;
+		//************************************************* Check if Purchase Date is Greater than Registration Date ******************************************
+		if (inst.PrimaryInstalledObject.IsSet() && !inst.LX_PRD_PV1.IsInitial()) //&& ((curr_userName == "CPI User" && inst.LX_PRD_PD1) || curr_userName != "CPI User"))
+		{
+			var InstallIndvProd = inst.PrimaryInstalledObject.InstalledObjectIndividualProduct;
+			if (InstallIndvProd.IsSet())
+			{
+				if (InstallIndvProd.IndividualProduct.IsSet())
+				{
+					var SrvProcInfo = InstallIndvProd.IndividualProduct.ServiceProcessInformation;
+					if (SrvProcInfo.IsSet())
+					{
+						if (!SrvProcInfo.PurchaseDateTime.IsInitial())
+						{
+							var PurchaseDate = SrvProcInfo.PurchaseDateTime.content.ToString().Substring(0, 10);	// Separate Date from Purchase Date Time field	
+							var RegistrationDate = inst.LX_PRD_PV1.ToString();							
+							if (!PurchaseDate.IsInitial())
+							{
+								if (PurchaseDate > RegistrationDate)
+								{
+									PurchaseDateValidation = false;
+									//raise ValidationMessage.Create("E", "Purchase Date cannot be a future date");
+									raise PurchaseValidationMessage.Create("E", PurchaseDate, RegistrationDate);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		//************************************************* Check if Purchase Date is Greater than Registration Date ******************************************
+		
+		//************************************************* Start of Check if Serial Number is numeric with Less than 9 digits ******************************************
+		SerialNumberRPValidation = true;
+
+		/* Use LX_PRD_SN1 instead of LX_PRD_SN for validation
+		if (inst.PrimaryInstalledObject.IsSet())
+		{
+			if (inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IsSet())
+			{
+				var InstallIndivProd = inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct;
+				if (InstallIndivProd.IsSet())
+				{
+					var SeriveProcInfo = InstallIndivProd.ServiceProcessInformation;
+					if (SeriveProcInfo.IsSet())
+					{
+						var SrlNum = SeriveProcInfo.LX_PRD_SN; 
+			*/
+						var SrlNum = inst.LX_PRD_SN1;
+						if (!SrlNum.IsInitial())
+						{
+							var SrlNumLen = SrlNum.Length();
+							var IsNumeric = Numeric.IsNumeric(SrlNum);
+							if (SrlNumLen != 8 || IsNumeric == false)
+							{
+								SerialNumberRPValidation = false;
+								raise ValidationMessage.Create("E", "Serial Number contains letters or longer than 8 digits");
+							}
+						}
+		/*	        }
+				}
+			}
+		} */
+		//************************************************* End of Check if Serial Number is numeric with Less than 9 digits ******************************************		
+	   
+		//************************************************* Start of Check if only Finished Product is select in Product field ******************************************
+		ProductTypeValidation = true;
+		if (inst.PrimaryInstalledObject.IsSet())
+		{
+			if (inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IsSet())
+			{
+				var InstallIndivProd = inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct;
+				if (InstallIndivProd.IsSet())
+				{
+					var ServiceProcInfo = InstallIndivProd.ServiceProcessInformation;
+					if (ServiceProcInfo.IsSet())
+					{
+						var RefProd = ServiceProcInfo.ReferencedMaterial;
+						if (RefProd.IsSet())
+						{
+							var RefProdCommon = RefProd.Common;
+							if (RefProdCommon.IsSet())
+							{
+								var ProdType = RefProdCommon.LX_PRD_TYP;
+								if (!ProdType.IsInitial())
+								{
+									if (ProdType == "ZFER" || ProdType == "ZPRT")
+									{
+										ProductTypeValidation = true;
+									}
+									else
+									{
+										ProductTypeValidation = false;
+										raise ValidationMessage.Create("E", "The Product you have selected is not a finished product. Please select a finished product");
+									}
+								}
+								if (ProdType.IsInitial())
+								{
+									ProductTypeValidation = false;
+									raise ValidationMessage.Create("E", "The Product you have selected is not a finished product. Please select a finished product");
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		//************************************************* End of Check if only Finished Product is select in Product field ******************************************
+		
+		if (PurchaseDateValidation == true && SerialNumberRPValidation == true && ProductTypeValidation == true)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}

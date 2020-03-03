@@ -1,0 +1,24 @@
+﻿import AP.Common.GDT;
+import AP.CRM.Global;
+
+[Extension] businessobject AP.CRM.Global:Contract {
+ 
+        // You must activate this business object before you can access the extension fields
+        // or messages in script files, forms, and screens.
+
+
+   		node CoveredObject {
+   	    } 
+    
+   		node Item {
+   	   
+      		node ItemEntitledProduct {
+      	    } 
+       
+      		node ItemCoveredObject {
+      	    } 
+
+        } 
+     action MapPartyInstance;
+  
+}

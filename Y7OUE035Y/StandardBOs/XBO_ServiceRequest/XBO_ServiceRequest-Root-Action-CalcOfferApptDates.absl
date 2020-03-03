@@ -1,0 +1,67 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: CalcOfferApptDates 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+//****************************************************************************************************************************//
+//Change Request ID: SAGARAKA_PI1.0
+//Author: Akanksha Sagar (SAGARAKA)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+
+import ABSL;
+
+foreach(var inst in this)
+{
+
+// Start of Global instance declaration for SAGARAKA_PI1.0
+	var lv_ReqTimePoint;
+	var lv_TimePer;
+	lv_ReqTimePoint = inst.RequestInitialReceiptTimePoint;
+	if(lv_ReqTimePoint.IsSet())
+	{
+		lv_TimePer = lv_ReqTimePoint.TimePoint;
+	}
+// End of Global instance decalaration for SAGARAKA_PI1.0
+	if(inst.AppointmentSlots.Count()>0)
+	{
+		inst.AppointmentSlots.Delete();								//Clearing the node each time
+	}
+	
+	inst.ZSDK_ApptOfferSlotType = "Day";							//Defaulting the value of appt slot type to Day
+
+	inst.ZSDK_ApptOfferFromDate.Clear();							//Clearing the FromDate field
+	inst.ZSDK_ApptOfferToDate.Clear();								//Clearing the ToDate field
+
+	//if(inst.RequestInitialReceiptTimePoint.IsSet())
+	if(lv_ReqTimePoint.IsSet()) //comment above and add for SAGARAKA_PI1.0
+	{
+		//TimePer = inst.RequestInitialReceiptTimePoint.TimePoint; //comment for SAGARAKA_PI1.0
+		if(!lv_TimePer.IsInitial())
+		{
+			inst.ZSDK_ApptOfferFromDate = lv_TimePer.Date;
+		}
+		else
+		{
+			raise MSG_ReplicationResponse.Create("E", "Requested date is missing, please update the date before calling the Appointment slots");
+		}
+	}
+	else
+	{
+		raise MSG_ReplicationResponse.Create("E", "Requested date is missing, please update the date before calling the Appointment slots");
+	}
+	inst.ZSDK_ApptOfferToDate = inst.ZSDK_ApptOfferFromDate.AddDuration(Duration.ParseFromString("P10D"));		//adding duration of 10 days
+	
+}

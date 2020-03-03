@@ -1,0 +1,13 @@
+import AP.Common.GDT as gdt;
+import AP.FO.IBase.Global;
+import AP.FO.BusinessPartner.Global;
+[Extension] businessobject AP.FO.IBase.Global:InstallationPoint raises ValidationMessage,PurchaseValidationMessage { 
+        // You must activate this business object before you can access the extension fields
+        // or messages in script files, forms, and screens.
+
+		[Label("Purchase Date Indicator")]	element ZSDK_PurDateCalcIndi: Indicator = false;
+		[Scenario(PES_CountryRegProd2Ticket)][Label("Backend Country")]	element ZSDK_Country: CountryCode;
+		
+		message ValidationMessage text "&1" : LANGUAGEINDEPENDENT_ENCRYPTED_EXTENDED_Name;
+		message PurchaseValidationMessage text "Purchase Date &1 can not be later than Registration Date &2" : LANGUAGEINDEPENDENT_EXTENDED_Text,LANGUAGEINDEPENDENT_EXTENDED_Text;
+}

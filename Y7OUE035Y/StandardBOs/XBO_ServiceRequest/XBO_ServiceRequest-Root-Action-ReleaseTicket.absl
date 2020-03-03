@@ -1,0 +1,49 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: ReleaseTicket 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SDK31.0
+//Author: Arya Manmadan (SDK3)
+//Description: Code clearance to improve system performance
+//Change Date: 02 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+
+//Invoke Finish Work and Request External Pricing
+foreach(var inst in this)
+{
+	inst.FinishFulfilmentProcessingOfAllItems(); //Finish Work (Header Level)
+	var Ticket_ItemNode;//added for SDK31.0
+	Ticket_ItemNode = inst.Item;
+
+	//Request External Pricing action will be triggered only if items are pricing relevant - only for Non B2B Tickets
+	if(inst.LX_TCK_BF == false)
+	{
+		//if(inst.Item.Count() > 0)
+		if(Ticket_ItemNode.Count() > 0)//commented above and added for SDK31.0
+		{
+			//var PricingRelevantItems = inst.Item.Where(n=>n.ExternalPricingRelevantIndicator); //Pricing Relevant line items
+			var PricingRelevantItems = Ticket_ItemNode.Where(n=>n.ExternalPricingRelevantIndicator); //Pricing Relevant line items //commented above and added for SDK31.0
+			if(PricingRelevantItems.Count() > 0)
+			{
+				inst.RequestExternalData(); //Request External Pricing (Header Level)
+			}
+		}
+	}
+	
+	inst.LX_TKT_BO = true;
+
+	inst.ResolutionCode = "121"; //	Defect - 454 -Change Resolution Code to "Visit Completed" on successful execution of the above actions
+}

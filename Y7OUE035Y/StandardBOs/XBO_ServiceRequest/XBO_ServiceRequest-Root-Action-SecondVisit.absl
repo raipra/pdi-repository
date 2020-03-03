@@ -1,0 +1,125 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: SecondVisit 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+//****************************************************************************************************************************//
+//Change Request ID: SAGARAKA_PI1.0
+//Author: Akanksha Sagar (SAGARAKA)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+
+foreach (var inst in this)
+{
+	//****************************** Start of Graphical Signature Requirement ***************************************//
+	if (inst.IsSet())
+	{
+		//Start of change to remove the signature attachments from attachment folder once revisit scenario is triggered
+		var lv_AttachFolder = inst.AttachmentFolder;
+		if (lv_AttachFolder.IsSet())
+		{
+			//var lv_AttachFolder = inst.AttachmentFolder; //add for SAGARAKA_PI1.0
+			//var DocInst = inst.AttachmentFolder.Document;
+			var DocInst = lv_AttachFolder.Document;// comment above and add for SAGARAKA_PI1.0
+			var GrpSigBuyer = "10087";
+			var GrpSigAgent = "10094";
+			var GrpSigTech = "10095";
+
+			if (DocInst.Count() > 0)
+			{
+				var GrpSigBuyerInst = DocInst.Where(n => n.TypeCode.content == GrpSigBuyer);
+				if (GrpSigBuyerInst.Count() > 0)
+				{
+					GrpSigBuyerInst.Delete();
+				}
+				var GrpSigAgentInst = DocInst.Where(n => n.TypeCode.content == GrpSigAgent);
+				if (GrpSigAgentInst.Count() > 0)
+				{
+					GrpSigAgentInst.Delete();
+				}
+				var GrpSigTechInst = DocInst.Where(n => n.TypeCode.content == GrpSigTech);
+				if (GrpSigTechInst.Count() > 0)
+				{
+					GrpSigTechInst.Delete();
+				}
+			}
+		}
+		//End of change to remove the signature attachments from attachment folder once revisit scenario is triggered
+
+		//****************************** End of Graphical Signature Requirement ***************************************//
+		var lv_itemsColl = inst.Item; //add for SAGARAKA_PI1.0
+		if (lv_itemsColl.Count() > 0) 
+		{
+			var RevisitItemExists;
+
+			//foreach (var items in inst.Item) 
+			foreach (var items in lv_itemsColl) //comment above and add for SAGARAKA_PI1.0
+			{	
+				//Check if line item with Processing Type as "Technician Scheduling" & Work Progress as Status "Finished" doesnt exists, if not create a new line item
+				if (items.UserServiceTransactionProcessingTypeCode == "ZMR1" && items.Status.ServiceRequestExecutionLifeCycleStatusCode != "6")
+				{
+					RevisitItemExists = 1;
+				}
+			}
+				
+			if (RevisitItemExists != 1)
+			{
+				//var SchedulingProducts = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZMR1" && (n.Status.ServiceRequestExecutionLifeCycleStatusCode.TrimLeft() == "6")); //Finished Status Check
+				var SchedulingProducts = lv_itemsColl.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZMR1" && (n.Status.ServiceRequestExecutionLifeCycleStatusCode.TrimLeft() == "6")); //Finished Status Check // comment above and add for SAGARAKA_PI1.0
+				var LatestSchedulingProduct = SchedulingProducts.OrderByDescending(n => n.ID).GetFirst();
+				if (LatestSchedulingProduct.IsSet()) //Check if Scheduling line already exists and is not in "Open" status
+				{					
+					//start of code addition by SAGARAKA_PI1.0
+					var RevisitLineItemEle : elementsof inst.Item;
+					RevisitLineItemEle.UserServiceTransactionProcessingTypeCode = "ZMR1"; //Set Processing Type as "Technician Scheduling"
+					RevisitLineItemEle.InvoicingMethodCode.content = "4";    //Set Invoicing Method as "Not Relevant"
+					var RevisitLineItem =  inst.Item.Create(RevisitLineItemEle);
+					//end of code addition by SAGARAKA_PI1.0
+					
+					//var RevisitLineItem = inst.Item.Create(); //Create a new line item //comment by SAGARAKA_PI1.0
+					if (RevisitLineItem.IsSet())
+					{
+						var lv_itemProduct = RevisitLineItem.ItemProduct;
+						if (lv_itemProduct.IsSet())
+						//if (RevisitLineItem.ItemProduct.IsSet())
+						{
+							//start of addition and comment for SAGARAKA_PI1.0
+							lv_itemProduct.ProductKey.ProductID.content = LatestSchedulingProduct.ItemProduct.ProductKey.ProductID.content; //QA - 30016(Standard Tech Time General)
+							lv_itemProduct.ToParent.Description = LatestSchedulingProduct.Description; //Product Description
+							//RevisitLineItem.ItemProduct.ProductKey.ProductID.content = LatestSchedulingProduct.ItemProduct.ProductKey.ProductID.content; //QA - 30016(Standard Tech Time General)
+							//RevisitLineItem.ItemProduct.ToParent.Description = LatestSchedulingProduct.Description; //Product Description
+							//end of addition and comment for SAGARAKA_PI1.0
+							//RevisitLineItem.UserServiceTransactionProcessingTypeCode = "ZMR1"; //Set Processing Type as "Technician Scheduling" //comment by SAGARAKA_PI1.0
+							//RevisitLineItem.InvoicingMethodCode.content = "4";    //Set Invoicing Method as "Not Relevant" //comment by SAGARAKA_PI1.0
+						}
+					}
+				}
+			}
+		}
+		//When Reschedule Visit button is clicked, change the Resolution Code & Service Category
+		inst.ResolutionCode = "131"; // Visit Changed
+		var ServIssCat = inst.MainActivityServiceIssueCategory;
+		if (ServIssCat.IsSet())
+		{
+			var lv_SrvCatCatalogue = ServIssCat.ServiceIssueCategoryCatalogueCategoryKey;  //comment above and add for SAGARAKA_PI1.0
+			if (!lv_SrvCatCatalogue.IsInitial())
+			{
+				//ServIssCat.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = "1.1.1.1.6"; // Service re-visit	
+				lv_SrvCatCatalogue.ServiceIssueCategoryID.content = "1.1.1.1.6"; // Service re-visit 
+			}
+		}
+	}
+}

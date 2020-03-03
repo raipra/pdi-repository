@@ -1,0 +1,3291 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: PBO_DataUpload
+		Node: FileInstance
+		Action: ProcessDataUpload 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+import AP.FO.BusinessPartner.Global;
+import AP.FO.IBase.Global;
+import AP.FO.ProductDataMaintenance.Global;
+import AP.Common.GDT;
+import AP.CRM.Global;
+import AP.Common.Global;
+
+foreach (var inst in this) //Foreach(1)
+{ 
+	//Run action only for un-processed entries
+	if (inst.ProcessingStatus == "O") //IF(1)
+	{
+		var ConsumerDuplicates : elementsof PBO_DataUpload.BusinessPartnerDuplicate;
+
+		//Indicator for Object Create & Update
+		var Cust_Create			: Indicator;
+		var Reg_Pdt_Create		: Indicator;
+		var Reg_Pdt_Update		: Indicator;
+		var Contract_Create		: Indicator;
+		var Contract_Update		: Indicator;
+		var Ticket_Create		: Indicator;
+		var Ticket_Update		: Indicator;
+		var Ticket_Item_Update	: Indicator;
+
+		//Store Duplicate Check Result
+		var Customer_Dup_Result : collectionof elementsof PBO_DataUpload.BusinessPartnerDuplicate; 
+		var Reg_Pdt_Dup_Result;
+		var Contract_Dup_Result;
+		var Assign_Reg_Pdt;
+
+		//Store New/Existing Object Instances
+		var Cust_Inst;
+		var Reg_Pdt_Inst;
+		var Contract_Inst;
+		var Ticket_Inst;
+		var Ticket_Item_Inst;
+		
+		//Store Object Internal IDs
+		var Ticket_ID;
+		var CustID;
+		var Cust_UUID;
+		var Reg_IntID : InstallationPointID_V2;
+		var Reg_IntUUID;
+		var PrefixedPhoneNumber;
+		var DataValidationError : Indicator;
+		var MandatoryFields : Indicator;
+		var LatestCustomer;
+		var TerritoryID;
+
+		//Derive Formatted Phone number to use in duplicate check
+		if (!inst.TelephonePrefix.IsInitial() && !inst.PhoneNumber.IsInitial())
+		{
+			PrefixedPhoneNumber = "+" + inst.TelephonePrefix + inst.PhoneNumber;
+		}
+
+		switch (inst.ItemType) //Switch Statement
+		{
+			case "C" //Create New Registered Product with warranty details
+			{ 
+				if (!inst.SourceAsRetailer) //For ISP
+				{
+					if (!inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial() && !inst.WarrantyType.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.CustomerCountry.IsInitial() && (!PrefixedPhoneNumber.IsInitial() || !inst.CustomerEmail.IsInitial()))
+					{
+						MandatoryFields = true;
+					}
+				}
+				else //For Retailers
+				{
+					if (!inst.WarrantyType.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.CustomerCountry.IsInitial() && (!PrefixedPhoneNumber.IsInitial() || !inst.CustomerEmail.IsInitial()))
+					{
+						MandatoryFields = true;
+					}
+				}
+				if (MandatoryFields) //If(2)
+				{
+					Customer_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Customer_DupCheck(inst.CustomerEmail, inst.CustomerLastName, PrefixedPhoneNumber, inst.CustomerCountry);
+					
+					foreach (var dupcheck in Customer_Dup_Result) //Foreach (2)
+					{
+						var checkExistingCustID = inst.BusinessPartnerDuplicate.Where(n => n.CustomerID.RemoveLeadingZeros() == dupcheck.CustomerID.RemoveLeadingZeros());
+						if (checkExistingCustID.Count() == 0)
+						{
+							ConsumerDuplicates.CustomerID					= dupcheck.CustomerID;
+							ConsumerDuplicates.CustomerUUID					= dupcheck.CustomerUUID;
+							ConsumerDuplicates.CustomerLastChangedDateTime	= dupcheck.CustomerLastChangedDateTime;
+							ConsumerDuplicates.CustomerCreatedOnDateTime	= dupcheck.CustomerCreatedOnDateTime;
+							ConsumerDuplicates.MatchPercent					= dupcheck.MatchPercent;
+
+							inst.BusinessPartnerDuplicate.Create(ConsumerDuplicates);
+						}
+					} //Foreach (2)
+					if (inst.BusinessPartnerDuplicate.Count() == 0)	//IF(2.1) if duplicate check returns 0 instance, create new consumer 
+					{
+						//Create new individual customer & registered product
+						Cust_Create = true;
+						Reg_Pdt_Create = true;
+
+					} //IF(2.1)
+					else if (inst.BusinessPartnerDuplicate.Count() == 1) //Else If(2.1) If a unique consumer exists, compare the registered product
+					{
+						//If Duplicate Customer Exists, check if Registered Product Exists
+						inst.CustomerID = inst.BusinessPartnerDuplicate.GetFirst().CustomerID;
+						inst.CustomerUUID = inst.BusinessPartnerDuplicate.GetFirst().CustomerUUID;
+
+						if (!inst.CustomerID.IsInitial())
+						{
+							Cust_Inst = Customer.Retrieve(inst.CustomerID);
+							if (Cust_Inst.IsSet())
+							{
+								inst.ToCustomer = Cust_Inst;	//Set Customer Association
+							}
+						}
+						if (!inst.CustomerID.IsInitial() && !inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial()) //If(2.2)
+						{
+							Reg_Pdt_Dup_Result = DataUpload_ReuseLibrary.DataUpload_RegPdt_DupCheck(inst.CustomerID, inst.ProductPNC, inst.SerialNumber);
+							if (Reg_Pdt_Dup_Result == "No Duplicate Found")//If Registered Product does not exists
+							{
+								//Set Flag to Create Registered Product
+								Reg_Pdt_Create = true;
+							}
+
+							else
+							{
+								Reg_Pdt_Update = true;
+								inst.RegisteredProdID.content = Reg_Pdt_Dup_Result;
+								
+								Reg_Pdt_Inst = InstallationPoint.Retrieve(inst.RegisteredProdID);
+								if (Reg_Pdt_Inst.IsSet())
+								{
+									inst.RegisteredProdUUID.content = Reg_Pdt_Inst.UUID.content;
+									inst.ToRegisteredProduct = Reg_Pdt_Inst;	//Set Registered Product Association
+								}
+								inst.ProcessingStatus = "C";
+
+								var CreateProcessLog : elementsof inst.ProcessLog;
+								CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+								CreateProcessLog.Trans_ProcessedObject.content = "01";//"Registered Product Creation";
+								CreateProcessLog.Trans_ObjectType.content = "04";//"Master Data";
+								CreateProcessLog.LogDescriptions.content = "06";//"Registered Product already exists for the customer"
+
+								inst.ProcessLog.Create(CreateProcessLog);
+							}
+						} //If (2.2)
+					} //Else If(2.1)
+					else if (inst.BusinessPartnerDuplicate.Count() > 1) //Else If(2.2)  Multiple consumer duplicates identified 
+					{
+						foreach(var duplicates in inst.BusinessPartnerDuplicate) //Verify if PNC + Serial number is registered to any of the duplicate consumer
+						{
+							if(!duplicates.CustomerID.IsInitial()) //If(2.2.1)
+							{
+								var dupCustQuery = InstallationPoint.QueryByParty;
+								var qryCustParty = dupCustQuery.CreateSelectionParams();
+								qryCustParty.Add(dupCustQuery.PartyInformationPartyPartyKey.PartyID.content,"I","EQ",duplicates.CustomerID);
+								var resultRegPdt = dupCustQuery.Execute(qryCustParty);
+
+								foreach(var regpdts in resultRegPdt) //Foreach
+								{
+									if(!regpdts.ID.IsInitial() && !regpdts.LX_PRD_SN1.IsInitial()) //If(2.2.2)
+									{
+										var ExistingPdtPNC;
+										var SerialNum;
+
+										var PrimaryInstalledObj = regpdts.PrimaryInstalledObject;
+										if(PrimaryInstalledObj.IsSet())
+										{
+											var InstalledIndv = PrimaryInstalledObj.InstalledObjectIndividualProduct;
+											if(InstalledIndv.IsSet())
+											{
+												var IndvProduct = InstalledIndv.IndividualProduct;
+												if(IndvProduct.IsSet())
+												{
+													var ServiceProcessInfo = IndvProduct.ServiceProcessInformation;
+													if(ServiceProcessInfo.IsSet())
+													{
+														var ReferencedProd = ServiceProcessInfo.ReferencedProductKey;
+														if(!ReferencedProd.IsInitial())
+														{
+															ExistingPdtPNC	= ReferencedProd.ProductID.content.RemoveLeadingZeros();
+														}
+													}
+												}
+											}
+										}
+										SerialNum		= regpdts.LX_PRD_SN1;
+
+										if(ExistingPdtPNC == inst.ProductPNC.content.RemoveLeadingZeros() && SerialNum == inst.SerialNumber) //If(2.2.3)
+										{
+											Reg_Pdt_Update = true;
+
+											//Pick Customer
+											inst.CustomerID		= duplicates.CustomerID;
+											inst.CustomerUUID	= duplicates.CustomerUUID;
+											Cust_Inst = Customer.Retrieve(inst.CustomerID);
+											if (Cust_Inst.IsSet())
+											{
+												inst.ToCustomer = Cust_Inst;	//Set Customer Association
+											}
+
+											//Pick Registered Product
+											inst.RegisteredProdID.content	= regpdts.ID.content;
+											inst.RegisteredProdUUID.content = regpdts.UUID.content;
+											inst.ToRegisteredProduct		= regpdts;	//Set Registered Product Association
+											
+											break;
+											break;
+										} //If(2.2.3)
+									} //If(2.2.2)
+								} //Foreach
+							} //If(2.2.1)
+						}//Foreach
+						
+						if(!Reg_Pdt_Update)	//If no registered product match found select latest consumer to create new registered product
+						{
+							LatestCustomer = inst.BusinessPartnerDuplicate.OrderByDescending(n=>n.CustomerLastChangedDateTime.content).GetFirst();
+							if(LatestCustomer.IsSet())
+							{
+								//Set Flag to Create Registered Product
+								Reg_Pdt_Create = true;
+
+								inst.CustomerID = LatestCustomer.CustomerID;
+								inst.CustomerUUID.content = LatestCustomer.CustomerUUID.content;
+								if(!inst.CustomerID.IsInitial())
+								{
+									Cust_Inst = Customer.Retrieve(inst.CustomerID);
+									if (Cust_Inst.IsSet())
+									{
+										inst.ToCustomer = Cust_Inst;	//Set Customer Association
+									}
+								}
+							}
+
+							inst.ProcessingStatus = "C";
+						}
+					} //Else If(2.2)
+				} //If (2)
+
+				else // Else (2.1) Missing Mandatory Fields - End of Process
+				{
+					inst.ProcessingStatus = "F";
+					DataValidationError = true;
+
+					//Error logging available in the lower part of the code
+
+				} //Else (2.1)
+			} //End of Case "C"
+
+			case "W" //Create Registered Product with Contract
+			{
+				if (!inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.CustomerCountry.IsInitial() && !inst.ThirdPartyContractID.IsInitial() && (!PrefixedPhoneNumber.IsInitial() || !inst.CustomerEmail.IsInitial())) //If(11)
+				{
+					Customer_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Customer_DupCheck(inst.CustomerEmail, inst.CustomerLastName, PrefixedPhoneNumber, inst.CustomerCountry);
+					
+					foreach (var dupcheck in Customer_Dup_Result) //Foreach (2)
+					{
+						var checkExistingCustID = inst.BusinessPartnerDuplicate.Where(n => n.CustomerID.RemoveLeadingZeros() == dupcheck.CustomerID.RemoveLeadingZeros());
+						if (checkExistingCustID.Count() == 0)
+						{
+							ConsumerDuplicates.CustomerID					= dupcheck.CustomerID;
+							ConsumerDuplicates.CustomerUUID					= dupcheck.CustomerUUID;
+							ConsumerDuplicates.CustomerLastChangedDateTime	= dupcheck.CustomerLastChangedDateTime;
+							ConsumerDuplicates.CustomerCreatedOnDateTime	= dupcheck.CustomerCreatedOnDateTime;
+							ConsumerDuplicates.MatchPercent					= dupcheck.MatchPercent;
+
+							inst.BusinessPartnerDuplicate.Create(ConsumerDuplicates);
+						}
+					} //Foreach (2)
+					if (inst.BusinessPartnerDuplicate.Count() == 0)	//IF(11.1) if duplicate check returns 0 instance, create new customer 
+					{
+						//Create new individual customer, registered product & contract
+						Cust_Create = true;
+						Reg_Pdt_Create = true;
+						Contract_Create = true;
+
+					} //If(11.1)
+					else if (inst.BusinessPartnerDuplicate.Count() == 1) //Else If(11.1) //If Unique consumer Exists, Verify Registered Product 
+					{
+						inst.CustomerID = inst.BusinessPartnerDuplicate.GetFirst().CustomerID;
+						
+						if (!inst.CustomerID.IsInitial() && !inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial())
+						{
+							Cust_Inst = Customer.Retrieve(inst.CustomerID);
+							inst.CustomerUUID.content = Cust_Inst.UUID.content;
+							Reg_Pdt_Dup_Result = DataUpload_ReuseLibrary.DataUpload_RegPdt_DupCheck(inst.CustomerID, inst.ProductPNC, inst.SerialNumber);
+							if (Reg_Pdt_Dup_Result == "No Duplicate Found")//If Registered Product does not exists
+							{
+								//Create new registered product & contract
+								Reg_Pdt_Create = true;
+								Contract_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Contract_DupCheck(inst.ThirdPartyContractID);
+
+								if (Contract_Dup_Result == "No Duplicate Found")
+								{
+									//Create New Contract
+									Contract_Create = true;
+								}
+								else
+								{
+									inst.ContractID.content = Contract_Dup_Result;
+									if (!inst.ContractID.IsInitial())
+									{
+										Contract_Inst = Contract.Retrieve(inst.ContractID.content);
+										if (Contract_Inst.IsSet())
+										{
+											if (Contract_Inst.Party.Where(n => n.RoleCode == "1001").Count() > 0)
+											{
+												var BuyerParty = Contract_Inst.Party.Where(n => n.RoleCode == "1001").Customer;
+												if (BuyerParty.GetFirst().IsSet())
+												{
+													var ConCustInst = BuyerParty.GetFirst();
+													if (ConCustInst.InternalID == inst.CustomerID)
+													{
+														Contract_Update = true;	
+													}
+													else
+													{
+														Contract_Create = true;
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+
+							else
+							{
+								inst.RegisteredProdID.content = Reg_Pdt_Dup_Result;
+								Reg_Pdt_Inst = InstallationPoint.Retrieve(inst.RegisteredProdID);
+								if(Reg_Pdt_Inst.IsSet())
+								{	
+									inst.RegisteredProdUUID.content = Reg_Pdt_Inst.UUID.content;
+									inst.ToRegisteredProduct = Reg_Pdt_Inst;
+								}
+								Contract_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Contract_DupCheck(inst.ThirdPartyContractID);
+								if (Contract_Dup_Result == "No Duplicate Found")
+								{
+									//Create New Contract
+									Contract_Create = true;
+								}
+								else //Existing Contract shall be updated
+								{
+									inst.ContractID.content = Contract_Dup_Result;	
+									if (!inst.ContractID.IsInitial())
+									{
+										Contract_Inst = Contract.Retrieve(inst.ContractID.content);
+										
+										if (Contract_Inst.IsSet())
+										{
+											Contract_Update = true;
+										}
+									}
+								}
+							}
+						} //If (11.2)
+					} //Else If(11.1)
+					else if (inst.BusinessPartnerDuplicate.Count() > 1) //Else If(11.2)  Multiple consumer duplicates identified
+					{
+						foreach(var duplicates in inst.BusinessPartnerDuplicate) //Foreach(1) Verify if PNC + Serial number is registered to any of the duplicate consumer
+						{
+							if(!duplicates.CustomerID.IsInitial()) //If(11.2.1)
+							{
+								var dupCustQuery = InstallationPoint.QueryByParty;
+								var qryCustParty = dupCustQuery.CreateSelectionParams();
+								qryCustParty.Add(dupCustQuery.PartyInformationPartyPartyKey.PartyID.content,"I","EQ",duplicates.CustomerID);
+								var resultRegPdt = dupCustQuery.Execute(qryCustParty);
+
+								foreach(var regpdts in resultRegPdt) //Foreach(2)
+								{
+									if(!regpdts.ID.IsInitial() && !regpdts.LX_PRD_SN1.IsInitial()) //If(11.2.2)
+									{
+										var ExistingPdtPNC;
+										var SerialNum;
+
+										var PrimaryInstalledObj = regpdts.PrimaryInstalledObject;
+										if(PrimaryInstalledObj.IsSet())
+										{
+											var InstalledIndv = PrimaryInstalledObj.InstalledObjectIndividualProduct;
+											if(InstalledIndv.IsSet())
+											{
+												var IndvProduct = InstalledIndv.IndividualProduct;
+												if(IndvProduct.IsSet())
+												{
+													var ServiceProcessInfo = IndvProduct.ServiceProcessInformation;
+													if(ServiceProcessInfo.IsSet())
+													{
+														var ReferencedProd = ServiceProcessInfo.ReferencedProductKey;
+														if(!ReferencedProd.IsInitial())
+														{
+															ExistingPdtPNC	= ReferencedProd.ProductID.content.RemoveLeadingZeros();
+														}
+													}
+												}
+											}
+										}
+										SerialNum		= regpdts.LX_PRD_SN1;
+
+										if(ExistingPdtPNC == inst.ProductPNC.content.RemoveLeadingZeros() && SerialNum == inst.SerialNumber) //If(11.2.3)
+										{
+											Reg_Pdt_Update = true;
+
+											//Pick Customer
+											inst.CustomerID		= duplicates.CustomerID;
+											inst.CustomerUUID	= duplicates.CustomerUUID;
+											Cust_Inst = Customer.Retrieve(inst.CustomerID);
+											if (Cust_Inst.IsSet())
+											{
+												inst.ToCustomer = Cust_Inst;	//Set Customer Association
+											}
+
+											//Pick Registered Product
+											inst.RegisteredProdID.content	= regpdts.ID.content;
+											inst.RegisteredProdUUID.content = regpdts.UUID.content;
+											inst.ToRegisteredProduct		= regpdts;	//Set Registered Product Association
+											
+											break;
+											break;
+										} //If(11.2.3)
+									} //If(11.2.2)
+								} //Foreach(2)
+							}//If(11.2.1)
+						} //Foreach(1)
+
+						if(!Reg_Pdt_Update) //If no registered product match is found , select latest consumer and create new registered product
+						{
+							LatestCustomer = inst.BusinessPartnerDuplicate.OrderByDescending(n=>n.CustomerLastChangedDateTime.content).GetFirst();
+							if(LatestCustomer.IsSet())
+							{
+								//Create new registered product
+								Reg_Pdt_Create = true;
+
+								inst.CustomerID = LatestCustomer.CustomerID;
+								inst.CustomerUUID.content = LatestCustomer.CustomerUUID.content;
+								if(!inst.CustomerID.IsInitial())
+								{
+									Cust_Inst = Customer.Retrieve(inst.CustomerID);
+									if (Cust_Inst.IsSet())
+									{
+										inst.ToCustomer = Cust_Inst;	//Set Customer Association
+									}
+								}
+							}
+						}
+						Contract_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Contract_DupCheck(inst.ThirdPartyContractID);
+						if (Contract_Dup_Result == "No Duplicate Found")
+						{
+							//Create New Contract
+							Contract_Create = true;
+						}
+						else //Else (11.2.4)
+						{
+							inst.ContractID.content = Contract_Dup_Result;
+							if (!inst.ContractID.IsInitial()) //If(11.2.5)
+							{
+								Contract_Inst = Contract.Retrieve(inst.ContractID.content);
+										
+								if (Contract_Inst.IsSet())
+								{
+									Contract_Update = true;
+								}
+							}//If(11.2.5)
+						}//Else(11.2.4)
+
+						inst.ProcessingStatus = "C";
+	
+					} //Else If(11.2)
+				} //If (11)
+				
+				else // Else (11.1) Missing Mandatory Fields - End of Process
+				{
+					inst.ProcessingStatus = "F";
+					DataValidationError = true;
+
+					//Error logging available in the lower part of the code
+				} //Else (11.1)
+			} //End of Case "W"
+
+			case "T" //Create New Ticket or Claim
+			{
+				if (!inst.SourceAsRetailer) //For ISP
+				{
+					if (!inst.CustomerCountry.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial() && (!PrefixedPhoneNumber.IsInitial() || !inst.CustomerEmail.IsInitial()))
+					{
+						MandatoryFields = true;
+					}
+				}
+				else //For Retailers
+				{	
+					//if (!inst.CustomerPostCode.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.ModelPartNum.IsInitial())
+					if (!inst.CustomerCountry.IsInitial() && !inst.CustomerLastName.IsInitial() && (!PrefixedPhoneNumber.IsInitial() || !inst.CustomerEmail.IsInitial()))
+					{
+						MandatoryFields = true;
+					}
+				}
+				if (MandatoryFields) //If(3)
+				{
+					//Perform Customer Duplicate check to validate Customer Details
+					Customer_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Customer_DupCheck(inst.CustomerEmail, inst.CustomerLastName, PrefixedPhoneNumber, inst.CustomerCountry);
+					foreach (var dupcheck in Customer_Dup_Result) //Foreach (3)
+					{
+						var checkExistingCustID = inst.BusinessPartnerDuplicate.Where(n => n.CustomerID.RemoveLeadingZeros() == dupcheck.CustomerID.RemoveLeadingZeros());
+						if (checkExistingCustID.Count() == 0)
+						{
+							ConsumerDuplicates.CustomerID					= dupcheck.CustomerID;
+							ConsumerDuplicates.CustomerUUID					= dupcheck.CustomerUUID;
+							ConsumerDuplicates.CustomerLastChangedDateTime	= dupcheck.CustomerLastChangedDateTime;
+							ConsumerDuplicates.CustomerCreatedOnDateTime	= dupcheck.CustomerCreatedOnDateTime;
+							ConsumerDuplicates.MatchPercent					= dupcheck.MatchPercent;
+
+							inst.BusinessPartnerDuplicate.Create(ConsumerDuplicates);
+						}
+					} //Foreach (3)
+					if (inst.BusinessPartnerDuplicate.Count() == 0)	//if duplicate check returns 0 instance, create new customer
+					{
+						//Create new individual customer, registered product & ticket
+						Cust_Create = true;
+						Reg_Pdt_Create = true;
+						Ticket_Create = true;
+					}
+					else if (inst.BusinessPartnerDuplicate.Count() == 1) //Else if (3.1)
+					{
+						//If Duplicate Customer Exists, check if Registered Product Exists
+						inst.CustomerID = inst.BusinessPartnerDuplicate.GetFirst().CustomerID;
+						inst.CustomerUUID = inst.BusinessPartnerDuplicate.GetFirst().CustomerUUID;
+						if (!inst.CustomerID.IsInitial())
+						{
+							Cust_Inst = Customer.Retrieve(inst.CustomerID);
+							if (Cust_Inst.IsSet())
+							{
+								inst.ToCustomer = Cust_Inst;	//Set Customer Association
+							}
+							
+						}
+						if (!inst.CustomerID.IsInitial()) //If(3.2)
+						{ 
+							if (!inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial()) //If(3.3)	//Registered Product will be created only for ISP Uploads
+							{
+								Reg_Pdt_Dup_Result = DataUpload_ReuseLibrary.DataUpload_RegPdt_DupCheck(inst.CustomerID, inst.ProductPNC, inst.SerialNumber);
+								if (Reg_Pdt_Dup_Result == "No Duplicate Found")//If Registered Product does not exists
+								{
+									//Set Flag to Create Registered Product
+									Reg_Pdt_Create = true;
+									Ticket_Create = true;
+								}
+								else //If Registered Product exists
+								{
+									Reg_Pdt_Update = true;	//To update ticket's service location to registered product
+
+									inst.RegisteredProdID.content = Reg_Pdt_Dup_Result;
+									if (!inst.RegisteredProdID.IsInitial())
+									{
+										Reg_Pdt_Inst = InstallationPoint.Retrieve(inst.RegisteredProdID);
+										if (Reg_Pdt_Inst.IsSet())
+										{
+											inst.RegisteredProdUUID.content = Reg_Pdt_Inst.UUID.content;
+											inst.ToRegisteredProduct = Reg_Pdt_Inst;	//Set Registered Product Association
+										}
+										Ticket_Create = true;
+									}
+								}
+							}//If(3.3)
+							else //Directly Create Ticket for Retailer Uploads
+							{
+								Ticket_Create = true;
+							}
+
+							inst.ProcessingStatus = "C";
+						}//If (3.2)
+					} //Else if (3.1)
+					else if (inst.BusinessPartnerDuplicate.Count() > 1) //Else If(3.2) Multiple duplicates identified - End of Process
+					{
+						foreach(var duplicates in inst.BusinessPartnerDuplicate) //Foreach(1) Verify if PNC + Serial number is registered to any of the duplicate consumer
+						{
+							if(!duplicates.CustomerID.IsInitial()) //If(11.2.1)
+							{
+								var dupCustQuery = InstallationPoint.QueryByParty;
+								var qryCustParty = dupCustQuery.CreateSelectionParams();
+								qryCustParty.Add(dupCustQuery.PartyInformationPartyPartyKey.PartyID.content,"I","EQ",duplicates.CustomerID);
+								var resultRegPdt = dupCustQuery.Execute(qryCustParty);
+
+								foreach(var regpdts in resultRegPdt) //Foreach(2)
+								{
+									if(!regpdts.ID.IsInitial() && !regpdts.LX_PRD_SN1.IsInitial()) //If(11.2.2)
+									{
+										var ExistingPdtPNC;
+										var SerialNum;
+
+										var PrimaryInstalledObj = regpdts.PrimaryInstalledObject;
+										if(PrimaryInstalledObj.IsSet())
+										{
+											var InstalledIndv = PrimaryInstalledObj.InstalledObjectIndividualProduct;
+											if(InstalledIndv.IsSet())
+											{
+												var IndvProduct = InstalledIndv.IndividualProduct;
+												if(IndvProduct.IsSet())
+												{
+													var ServiceProcessInfo = IndvProduct.ServiceProcessInformation;
+													if(ServiceProcessInfo.IsSet())
+													{
+														var ReferencedProd = ServiceProcessInfo.ReferencedProductKey;
+														if(!ReferencedProd.IsInitial())
+														{
+															ExistingPdtPNC	= ReferencedProd.ProductID.content.RemoveLeadingZeros();
+														}
+													}
+												}
+											}
+										}
+										SerialNum		= regpdts.LX_PRD_SN1;
+
+										if(ExistingPdtPNC == inst.ProductPNC.content.RemoveLeadingZeros() && SerialNum == inst.SerialNumber) //If(11.2.3)
+										{
+											Reg_Pdt_Update = true;
+											Ticket_Create = true;
+
+											//Pick Customer
+											inst.CustomerID		= duplicates.CustomerID;
+											inst.CustomerUUID	= duplicates.CustomerUUID;
+											Cust_Inst = Customer.Retrieve(inst.CustomerID);
+											if (Cust_Inst.IsSet())
+											{
+												inst.ToCustomer = Cust_Inst;	//Set Customer Association
+											}
+
+											//Pick Registered Product
+											inst.RegisteredProdID.content	= regpdts.ID.content;
+											inst.RegisteredProdUUID.content = regpdts.UUID.content;
+											inst.ToRegisteredProduct		= regpdts;	//Set Registered Product Association
+											
+											break;
+											break;
+										} //If(11.2.3)
+									}//If(11.2.2)
+								} //Foreach(2)
+							}//If(11.2.1)
+						} //Foreach(1)
+
+						if(!Reg_Pdt_Update && !Ticket_Create) //If no registered product match is found , select latest consumer and create new registered product
+						{
+							LatestCustomer = inst.BusinessPartnerDuplicate.OrderByDescending(n=>n.CustomerLastChangedDateTime.content).GetFirst();
+							if(LatestCustomer.IsSet())
+							{
+								//Create new registered product & ticket
+								Reg_Pdt_Create = true;
+								Ticket_Create = true;
+
+								inst.CustomerID = LatestCustomer.CustomerID;
+								inst.CustomerUUID.content = LatestCustomer.CustomerUUID.content;
+								if(!inst.CustomerID.IsInitial())
+								{
+									Cust_Inst = Customer.Retrieve(inst.CustomerID);
+									if (Cust_Inst.IsSet())
+									{
+										inst.ToCustomer = Cust_Inst;	//Set Customer Association
+									}
+								}
+
+								inst.ProcessingStatus = "C";
+							}
+						}
+					} //Else If(3.2)
+				} // If(3)
+
+				else //Missing Mandatory Fields - End of Process
+				{
+					inst.ProcessingStatus = "F";
+					DataValidationError = true;
+					//Error logging available in the lower part of the code
+				}
+			}//End of Case "T"
+
+			case "U" //Update Existing Ticket
+			{
+				if (!inst.ClaimNumber.IsInitial() && !inst.CustomerCountry.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial()) //If(4)
+				{
+					Ticket_Inst = ServiceRequest.Retrieve(inst.ClaimNumber.RemoveLeadingZeros());
+					if (Ticket_Inst.IsSet()) //If(4.1)
+					{
+						inst.ToTicket = Ticket_Inst;
+
+						if (Ticket_Inst.BuyerParty.IsSet())
+						{
+							inst.CustomerID = Ticket_Inst.BuyerParty.PartyKey.PartyID.content.RemoveLeadingZeros();
+							
+							if (!inst.CustomerID.IsInitial())
+							{
+								Cust_Inst = Customer.Retrieve(inst.CustomerID);
+								if (Cust_Inst.IsSet())
+								{
+									inst.CustomerUUID.content = Cust_Inst.UUID.content;
+									inst.ToCustomer = Cust_Inst;						//Set Customer Association
+								}
+							}
+						}
+						if (!Ticket_Inst.MainServiceReferenceObject.IsSet())	//If Registered Product is not available
+						{
+							Reg_Pdt_Create = true;
+							Ticket_Update = true;
+						}
+
+						else	//If Registered Product is available
+						{
+							var TicketRegPdt = Ticket_Inst.MainServiceReferenceObject;
+
+							if (TicketRegPdt.InstallationPointID.IsInitial())	
+							{
+								Assign_Reg_Pdt = true;//update serialid
+								Reg_Pdt_Create = true;
+								Ticket_Update = true;
+							}
+							else
+							{
+								if (!TicketRegPdt.MaterialKey.IsInitial())	//Validate PNC details with ISP data
+								{
+									if (!TicketRegPdt.MaterialKey.ProductID.IsInitial())
+									{
+										var ExistingPNC = TicketRegPdt.MaterialKey.ProductID.content.RemoveLeadingZeros();
+										if (ExistingPNC == inst.ProductPNC.content)	//If Existing PNC matches with Product PNC
+										{
+											Ticket_Update = true;
+										}
+										else //If PNC does not match then check other registered product for the same consumer
+										{
+											if (!inst.CustomerID.IsInitial())
+											{
+												var RegisteredProductQuery = InstallationPoint.QueryByParty;
+												var paramCustomer = RegisteredProductQuery.CreateSelectionParams();
+												paramCustomer.Add(RegisteredProductQuery.PartyInformationPartyPartyKey.PartyID.content, "I", "EQ", inst.CustomerID);
+												var ResultRegPdts = RegisteredProductQuery.Execute(paramCustomer);
+												foreach (var regpdts in ResultRegPdts)
+												{
+													if (regpdts.PrimaryInstalledObject.IsSet())
+													{
+														var PrimaryInstalledObject = regpdts.PrimaryInstalledObject;
+
+														if (PrimaryInstalledObject.InstalledObjectIndividualProduct.IsSet())
+														{
+															var InstalledObjectMat = PrimaryInstalledObject.InstalledObjectIndividualProduct;
+
+															if (InstalledObjectMat.IndividualProduct.IsSet())
+															{
+																if (InstalledObjectMat.IndividualProduct.ServiceProcessInformation.IsSet())
+																{
+																	var RegPdtPNC = InstalledObjectMat.IndividualProduct.ServiceProcessInformation.ReferencedProductKey.ProductID.content.RemoveLeadingZeros(); 
+
+																	if (RegPdtPNC == inst.ProductPNC.content.RemoveLeadingZeros())	//If the Registered Product exists with same consumer
+																	{
+																		inst.RegisteredProdID.content = regpdts.ID.content;
+																		inst.RegisteredProdUUID.content = regpdts.UUID.content;
+																		inst.ToRegisteredProduct = regpdts;
+
+																		Reg_Pdt_Update = true;	//To update ticket's service location to registered product
+																		Reg_Pdt_Create = false;
+																		Ticket_Update = true;
+																		break;																		
+																	}
+
+																	else
+																	{
+																		Assign_Reg_Pdt = true;
+																		Reg_Pdt_Create = true;
+																		Ticket_Update = true;
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					} //If(4.1)
+
+					else //Ticket Number sent by ISP is not valid one - End of Process
+					{
+						inst.ProcessingStatus = "F";
+
+						var CreateProcessLog : elementsof inst.ProcessLog;
+						CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+						CreateProcessLog.Trans_ProcessedObject.content = "03";//"Ticket Update";
+						CreateProcessLog.Trans_ObjectType.content = "05";//"Transactional Data";
+						CreateProcessLog.LogDescriptions.content = "11";//"Ticket &1 is not found";
+				
+						inst.ProcessLog.Create(CreateProcessLog);
+					}
+				} //If(4)
+				else //Mandatory Fields missing - End of Process
+				{
+					inst.ProcessingStatus = "F";
+					DataValidationError = true;
+					//Error logging available in the lower part of the code
+				}
+			}// End of Case "U"
+
+			case "I" //Ticket Additional Items
+			{
+				if (inst.TicketItems.Count() > 0) //If(5)
+				{
+					if (!inst.ClaimNumber.IsInitial() && !inst.CustomerCountry.IsInitial() && !inst.CustomerLastName.IsInitial() && !inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial()) //If(5.1)
+					{
+						Ticket_Inst = ServiceRequest.Retrieve(inst.ClaimNumber);
+						if (Ticket_Inst.IsSet()) //If(5.2)
+						{
+							inst.ToTicket = Ticket_Inst;
+							Ticket_Item_Update = true;
+
+						} //If(5.2)
+						else //Unable to Find C4C Ticket
+						{
+							inst.ProcessingStatus = "F";
+
+							var CreateProcessLog : elementsof inst.ProcessLog;
+							CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+							CreateProcessLog.Trans_ProcessedObject.content = "03";//"Ticket Update";
+							CreateProcessLog.Trans_ObjectType.content = "05";//"Transactional Data";
+							CreateProcessLog.LogDescriptions.content = "11";//"Ticket &1 is not found";
+				
+							inst.ProcessLog.Create(CreateProcessLog);
+						}
+					} //If(5.1)
+					
+					else //Mandatory Fields missing
+					{
+						inst.ProcessingStatus = "F";
+						DataValidationError = true;
+						//Error logging available in the lower part of the code
+					}
+				} //If(5)
+			} //End of Case "I"
+		}//End of Switch
+
+		//************************************************************************* INSTANCE CREATIONS ****************************************************************
+		if (Cust_Create) //If(6)
+		{
+			var Cust_Root : elementsof Customer;
+			var Cust_Common : elementsof Customer.Common;
+			var Cust_Role : elementsof Customer.Role;
+			var Cust_Addr : elementsof Customer.AddressInformation.Address.PostalAddress;
+			var Cust_Email : elementsof Customer.AddressInformation.Address.EMail;
+			var Cust_Tel : elementsof Customer.AddressInformation.Address.Telephone;
+
+			Cust_Root.CategoryCode = "1"; //Person
+
+			Cust_Inst = Customer.Create(Cust_Root);
+
+			if (Cust_Inst.IsSet()) //If(6.1)
+			{	
+				if (Cust_Inst.CurrentCommon.IsSet()) //If(6.2)
+				{
+					Cust_Inst.CurrentCommon.Person.Name.FamilyName = inst.CustomerLastName;
+					Cust_Inst.CurrentCommon.Person.Name.GivenName = inst.CustomerFirstName;
+					Cust_Inst.CurrentCommon.Person.NonVerbalCommunicationLanguageCode = inst.CustomerLanguage;
+					
+					if(inst.SourceAsRetailer)
+					{
+						Cust_Inst.CurrentCommon.LX_INC_SO	= "504";
+					}
+					else
+					{
+						Cust_Inst.CurrentCommon.LX_INC_SO	= "495";
+					}
+					switch (inst.PrivacyFlag) //Switch (3)
+					{
+						case "Y"
+						{
+							Cust_Inst.CurrentCommon.LX_INC_DG = false;					//Consent to share with 3rd Party		
+							Cust_Inst.CurrentCommon.LX_INC_EM = true;					//No Comms
+						}
+						case "E"
+						{
+							Cust_Inst.CurrentCommon.LX_INC_DG = true;					//Consent to share with 3rd Party
+							Cust_Inst.CurrentCommon.LX_INC_EM = false;					//No Comms
+						}
+						case "T"
+						{
+							Cust_Inst.CurrentCommon.LX_INC_DG = true;					//Consent to share with 3rd Party
+							Cust_Inst.CurrentCommon.LX_INC_EM = true;					//No Comms
+						}
+						case "N"
+						{
+							Cust_Inst.CurrentCommon.LX_INC_DG = false;					//Consent to share with 3rd Party
+							Cust_Inst.CurrentCommon.LX_INC_EM = false;					//No Comms
+						}
+					} //Switch (3)
+				} //If(6.2)
+						
+				if (!Cust_Inst.CurrentDefaultAddressInformation.IsSet()) //If(6.3)
+				{ 
+					var AddInfoInst = Cust_Inst.CurrentDefaultAddressInformation.Create();
+					if (AddInfoInst.Address.IsSet()) //If(6.4)
+					{  
+						var AddInst = AddInfoInst.Address;
+
+						var EmailInst = AddInst.DefaultEMail.Create();
+						var PhoneInst = AddInst.DefaultConventionalPhone.Create();
+						var MobileInst = AddInst.DefaultMobilePhone.Create();
+						var PostalAddrInst = AddInst.DefaultPostalAddressRepresentation.Create();
+							
+						if (EmailInst.IsSet())
+						{
+							EmailInst.URI.content = inst.CustomerEmail.content;
+						}
+						if (PhoneInst.IsSet())
+						{
+							PhoneInst.FormattedNumberDescription = inst.PhoneNumber;
+						}
+						if (MobileInst.IsSet())
+						{
+							MobileInst.FormattedNumberDescription = inst.MobileNumber;
+						}
+						if (PostalAddrInst.IsSet())
+						{	
+							PostalAddrInst.StreetName = inst.CustomerAddressLine1;
+							PostalAddrInst.StreetSuffixName = inst.CustomerAddressLine2;
+							PostalAddrInst.CityName = inst.CustomerCity;
+							PostalAddrInst.RegionCode.content = inst.CustomerState;								    		
+							PostalAddrInst.CountryCode = inst.CustomerCountry;
+							PostalAddrInst.StreetPostalCode = inst.CustomerPostCode; 		    
+						} 
+					} //If(6.4)
+				} //If(6.3)
+						
+				if (Cust_Inst.CustomerRole.IsSet())
+				{
+					Cust_Inst.CustomerRole.RoleCode.content = "CRM000";
+				}
+				else
+				{
+					Cust_Role.RoleCode.content = "CRM000";
+					Cust_Inst.CustomerRole.Create(Cust_Role);
+				}
+
+				inst.CustomerID = Cust_Inst.InternalID.RemoveLeadingZeros();
+				inst.CustomerUUID = Cust_Inst.UUID;
+				Cust_UUID = Cust_Inst.UUID.content;
+				inst.ToCustomer = Cust_Inst;	//Set Customer Association
+
+				Cust_Inst.Activate();
+
+				if (Cust_Inst.Status.LifeCycleStatusCode == "2") //Check If New Customer is activated
+				{
+					inst.ProcessingStatus = "C";	
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "01";//"Registered Product Creation";
+					CreateProcessLog.Trans_ObjectType.content = "04";//"Master Data";
+					CreateProcessLog.LogDescriptions.content = "24";//"New C4C Customer &1 has been created
+
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+				else
+				{
+					inst.ProcessingStatus = "F";	
+
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "01";//"Registered Product Creation";
+					CreateProcessLog.Trans_ObjectType.content = "04";//"Master Data";
+					CreateProcessLog.LogDescriptions.content = "12";//"New Consumer could not be activated, Registered Product Creation failed";
+
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+
+			} //If(6.1)
+		} //If (6) End of Customer Create
+		
+		if (Reg_Pdt_Create && !inst.ProductPNC.IsInitial() && !inst.SerialNumber.IsInitial()) //If(7)
+		{
+			//IndividualProduct creation
+			var Ind_pdt_inst : elementsof IndividualProduct;
+			var Ind_pdt_service : elementsof IndividualProduct.ServiceProcessInformation;
+			var Ind_pdt_warr : elementsof IndividualProduct.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment;
+
+			var MaterialInstance = Material.Retrieve(inst.ProductPNC);
+			if (MaterialInstance.IsSet())
+			{	
+				if (MaterialInstance.Common.IsSet())
+				{
+					if (MaterialInstance.Common.LX_PRD_TYP == "ZFER" && inst.SerialNumber.Length() == 8) //Create Registered Product only if PNC is a Finished Product and Serial Number length is 8 char long
+					{
+						var Ind_pdt_Ref = IndividualProduct.Create();
+					
+						if (Ind_pdt_Ref.IsSet()) // If(7.1) Value Assignment from File Content
+						{ 
+							Ind_pdt_service.ReferencedProductKey.ProductID.content = inst.ProductPNC.content;
+							Ind_pdt_service.ReferencedProductKey.ProductTypeCode = "1";
+							Ind_pdt_service.RegisteredProductCategory = " ";
+							Ind_pdt_service.LX_PRD_SN = inst.SerialNumber;
+							Ind_pdt_service.LX_PRD_RET = inst.Retailer;
+				
+							var pdate = inst.PurchaseDate; 
+							if(!pdate.IsInitial())
+							{
+								var Lc_PurchaseTime = Library::Time.ParseFromString("120101").ToString();
+								var DBPurDateTime = pdate.ToString().Concatenate(Lc_PurchaseTime);   
+
+								Ind_pdt_service.PurchaseDateTime.content = DBPurDateTime; //Purchase date
+							}
+							Ind_pdt_warr.WarrantyKey.ProductID.content = inst.WarrantyType;	
+							Ind_pdt_Ref.ProductInternalID.content = "1";	//dummy value to trigger code from SAP solution
+
+							Ind_pdt_Ref.ServiceProcessInformation.Create(Ind_pdt_service); 
+							Ind_pdt_Ref.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment.Create(Ind_pdt_warr);
+							Ind_pdt_Ref.ProductInternalID.content.Clear();
+						} //If(7.1)
+
+						//Registered Product creation
+						Reg_Pdt_Inst = InstallationPoint.Create();
+				
+						if (Reg_Pdt_Inst.IsSet()) //If(7.2)
+						{
+							inst.RegisteredProdID.content = Reg_Pdt_Inst.ID.content; //Store New Registered Proudct ID
+							inst.RegisteredProdUUID.content = Reg_Pdt_Inst.UUID.content;
+							inst.ToRegisteredProduct = Reg_Pdt_Inst;	//Set Registered Product Association
+							Reg_IntUUID = Reg_Pdt_Inst.UUID.content;
+
+							if (inst.SourceAsRetailer) // If source is retailer
+							{
+								Reg_Pdt_Inst.LX_PRD_CH1 = "504"; //Retailer
+							}
+							else
+							{
+								Reg_Pdt_Inst.LX_PRD_CH1 = "495"; //Automatic File Transfer
+							}
+							Reg_Pdt_Inst.LX_PRD_RET = inst.Retailer;
+							Reg_Pdt_Inst.LX_PRD_PD1 = inst.ProofOfPurchase;
+
+							if(inst.ToCustomer.IsSet())
+							{
+								var salesArrangement = inst.ToCustomer.SalesTerritoryAccount;
+								if(	salesArrangement.Count() > 0)
+								{
+									var salesTerritory = salesArrangement.GetFirst().ToParent;
+									if(salesTerritory.IsSet())
+									{
+										TerritoryID = salesTerritory.ID.content;
+									}
+								}
+							}
+							if(!TerritoryID.IsInitial())
+							{
+								if(Reg_Pdt_Inst.SalesAndServiceBusinessArea.IsSet())
+								{
+									Reg_Pdt_Inst.SalesAndServiceBusinessArea.SalesTerritoryID.content = TerritoryID;
+									Reg_Pdt_Inst.SalesAndServiceBusinessArea.ServiceTerritoryID.content = TerritoryID;
+								}
+								else
+								{
+									var NewsalesArea = Reg_Pdt_Inst.SalesAndServiceBusinessArea.Create();
+									if(NewsalesArea.IsSet())
+									{
+										NewsalesArea.SalesTerritoryID.content = TerritoryID;
+										NewsalesArea.ServiceTerritoryID.content = TerritoryID;
+									}
+								}
+							}
+
+							if (!Reg_Pdt_Inst.CustodianPartyInformation.IsSet()) //If(7.3)
+							{
+								var party = Reg_Pdt_Inst.CustodianPartyInformation.Create();
+								if (party.IsSet()) //If(7.4)
+								{
+									var party_Info = party.PartyInformationParty.Create();
+									if (party_Info.IsSet()) //If(7.5)
+									{
+										if (Cust_Inst.IsSet())//If new customer is created pass the UUID
+										{ 
+											party_Info.PartyUUID.content = Cust_Inst.UUID.content;
+											party_Info.RoleCategoryCode = "60";	//60-->customer
+											party_Info.RoleCode = "60";
+										}
+							
+									} //If(7.5)
+								} //If(7.4)
+							} //If(7.3)
+						
+							if (!Reg_Pdt_Inst.PrimaryInstalledObject.IsSet()) //If(7.6)
+							{
+								var product = Reg_Pdt_Inst.PrimaryInstalledObject.Create();
+								product.TypeCode.content = "2"; 
+					
+								if (product.IsSet()) //If(7.7)
+								{ 
+									var product_IndPdt = product.InstalledObjectIndividualProduct.Create();
+									product_IndPdt.IndividualProductUUID.content = Ind_pdt_Ref.UUID.content;
+									
+									if(Reg_Pdt_Inst.AddressInformation.IsSet())
+									{
+										if(inst.ItemType == "C" || inst.ItemType == "W")
+										{
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetName = inst.CustomerAddressLine1;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetSuffixName = inst.CustomerAddressLine2;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.CityName = inst.CustomerCity;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.RegionCode.content = inst.CustomerState;								    		
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.CountryCode = inst.CustomerCountry;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetPostalCode = inst.CustomerPostCode; 
+										}
+										else if(inst.ItemType == "T" || inst.ItemType == "U")
+										{
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetName = inst.ServiceLocStreet;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.CityName = inst.ServiceLocCity;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.RegionCode.content = inst.ServiceLocProvince;								    		
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.CountryCode = inst.CustomerCountry;
+											Reg_Pdt_Inst.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetPostalCode = inst.ServiceLocPostalCode; 	
+										}
+									}
+									else
+									{
+										var AddInfoInst = Reg_Pdt_Inst.AddressInformation.Create();
+										if (AddInfoInst.Address.IsSet()) //If(6.4)
+										{  
+											var AddInst = AddInfoInst.Address;
+
+											var PostalAddrInst	= AddInst.DefaultPostalAddressRepresentation.Create();
+							
+											if (PostalAddrInst.IsSet())
+											{	
+												if(inst.ItemType == "C" || inst.ItemType == "W")
+												{
+													PostalAddrInst.StreetName			= inst.CustomerAddressLine1;
+													PostalAddrInst.StreetSuffixName		= inst.CustomerAddressLine2;
+													PostalAddrInst.CityName				= inst.CustomerCity;
+													PostalAddrInst.RegionCode.content	= inst.CustomerState;								    		
+													PostalAddrInst.CountryCode			= inst.CustomerCountry;
+													PostalAddrInst.StreetPostalCode		= inst.CustomerPostCode; 
+												}
+												else if(inst.ItemType == "T" || inst.ItemType == "U")
+												{
+													PostalAddrInst.StreetName			= inst.ServiceLocStreet;
+													PostalAddrInst.CityName				= inst.ServiceLocCity;
+													PostalAddrInst.RegionCode.content	= inst.ServiceLocProvince;								    		
+													PostalAddrInst.CountryCode			= inst.CustomerCountry;
+													PostalAddrInst.StreetPostalCode		= inst.ServiceLocPostalCode; 	
+												}		    
+											} 
+										} //If(6.4)
+									} //Else
+										
+									Reg_Pdt_Inst.Activate();
+							
+									if (Reg_Pdt_Inst.Status.LifeCycleStatusCode == "2") //If Registered Prod is activated
+									{
+										inst.ProcessingStatus = "C";	
+
+										var CreateProcessLog : elementsof inst.ProcessLog;
+										CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+										CreateProcessLog.Trans_ProcessedObject.content = "01";//"Registered Product Creation";
+										CreateProcessLog.Trans_ObjectType.content = "04";//"Master Data";
+										CreateProcessLog.LogDescriptions.content = "26";//New Registered Product &1 has been created for C4C Consumer &2
+
+										inst.ProcessLog.Create(CreateProcessLog);
+									}
+									else
+									{
+										inst.ProcessingStatus = "F";	
+
+										var CreateProcessLog : elementsof inst.ProcessLog;
+										CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+										CreateProcessLog.Trans_ProcessedObject.content = "01";//"Registered Product Creation";
+										CreateProcessLog.Trans_ObjectType.content = "04";//"Master Data";
+										CreateProcessLog.LogDescriptions.content = "13";//"Registered Product could not be activated";
+
+										inst.ProcessLog.Create(CreateProcessLog);
+									}								
+								} //If(7.7)		
+							} //If(7.6)
+						}	//If(7
+					}
+					else
+					{
+						raise errormessage.Create("I", "Registered Product not created, please check Product PNC & Serial Number");
+					}
+
+				}
+				else
+				{
+					raise errormessage.Create("I", "Registered Product not created, please check Product PNC & Serial Number");
+				}
+			}
+		}//End of Registered Product Create
+
+		if(Reg_Pdt_Update) //Start of Registered Proudct Update
+		{
+			if(inst.ToRegisteredProduct.IsSet())
+			{
+				//Update Purchase Date
+				var pdate = inst.PurchaseDate; 
+				if(!pdate.IsInitial())
+				{
+					var Lc_PurchaseTime = Library::Time.ParseFromString("120101").ToString();
+					var DBPurDateTime = pdate.ToString().Concatenate(Lc_PurchaseTime);   
+
+					if(inst.ToRegisteredProduct.PrimaryInstalledObject.IsSet())
+					{
+						if(inst.ToRegisteredProduct.PrimaryInstalledObject.InstalledObjectIndividualProduct.IsSet())
+						{
+							if(inst.ToRegisteredProduct.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct.IsSet())
+							{
+								if(inst.ToRegisteredProduct.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct.ServiceProcessInformation.IsSet())
+								{
+									inst.ToRegisteredProduct.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct.ServiceProcessInformation.PurchaseDateTime.content = DBPurDateTime;
+								}
+							}
+						}
+					}
+				}
+				//Update Product Location
+				if(inst.ToRegisteredProduct.AddressInformation.IsSet())
+				{
+					if(inst.ItemType == "C" || inst.ItemType == "W")
+					{
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetName = inst.CustomerAddressLine1;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetSuffixName = inst.CustomerAddressLine2;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.CityName = inst.CustomerCity;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.RegionCode.content = inst.CustomerState;								    		
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.CountryCode = inst.CustomerCountry;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetPostalCode = inst.CustomerPostCode; 
+					}
+					else if(inst.ItemType == "T" || inst.ItemType == "U")
+					{
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetName = inst.ServiceLocStreet;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.CityName = inst.ServiceLocCity;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.RegionCode.content = inst.ServiceLocProvince;								    		
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.CountryCode = inst.CustomerCountry;
+						inst.ToRegisteredProduct.AddressInformation.Address.DefaultPostalAddressRepresentation.StreetPostalCode = inst.ServiceLocPostalCode; 	
+					}
+				}
+				else
+				{
+					var AddInfoInst = inst.ToRegisteredProduct.AddressInformation.Create();
+					if (AddInfoInst.Address.IsSet()) //If(6.4)
+					{  
+						var AddInst = AddInfoInst.Address;
+
+						var PostalAddrInst	= AddInst.DefaultPostalAddressRepresentation.Create();
+							
+						if (PostalAddrInst.IsSet())
+						{	
+							if(inst.ItemType == "C" || inst.ItemType == "W")
+							{
+								PostalAddrInst.StreetName			= inst.CustomerAddressLine1;
+								PostalAddrInst.StreetSuffixName		= inst.CustomerAddressLine2;
+								PostalAddrInst.CityName				= inst.CustomerCity;
+								PostalAddrInst.RegionCode.content	= inst.CustomerState;								    		
+								PostalAddrInst.CountryCode			= inst.CustomerCountry;
+								PostalAddrInst.StreetPostalCode		= inst.CustomerPostCode; 
+							}
+							else if(inst.ItemType == "T" || inst.ItemType == "U")
+							{
+								PostalAddrInst.StreetName			= inst.ServiceLocStreet;
+								PostalAddrInst.CityName				= inst.ServiceLocCity;
+								PostalAddrInst.RegionCode.content	= inst.ServiceLocProvince;								    		
+								PostalAddrInst.CountryCode			= inst.CustomerCountry;
+								PostalAddrInst.StreetPostalCode		= inst.ServiceLocPostalCode; 	
+							}		    
+						} 
+					} //If(6.4)
+				} //Else
+			}
+		} //End of Registered Proudct Update
+
+		if (Contract_Create) //If(12)
+		{
+			if (!inst.CustomerUUID.IsInitial() && !inst.RegisteredProdUUID.IsInitial()) //If (12.1) Check if Customer & Registered Product IDs are available
+			{
+				var Contract_Root : elementsof Contract;
+				var Contract_RootColl : collectionof Contract;
+				var Contract_BuyerColl : collectionof elementsof Contract.Party;
+				var Contract_BuyerParty : elementsof Contract.Party;
+				var Contract_CoveredObj : elementsof Contract.CoveredObject;
+
+				//Root Elements
+				Contract_Root.Name = inst.ContractNameNew;
+				Contract_Root.ProcessingTypeCode = inst.ContractType;				
+				Contract_Root.LX_SRC_DG = inst.ThirdPartyContractID;
+				Contract_Root.ValidityStartDate = inst.ContractStartDate;
+				Contract_Root.ValidityEndDate = inst.ContractEndDate;
+				Contract_Root.Date = inst.ContractSignedOn;
+
+				Contract_BuyerParty.PartyKey.PartyID.content = inst.CustomerID;
+				Contract_BuyerParty.RoleCode = "1001";
+				
+				//Contract_BuyerColl.Add(Contract_BuyerParty);
+				//Contract_RootColl.Add(Contract_Root);
+	
+				var NewContract = Contract.Create(Contract_Root);
+				//var NewContract = Contract.CreateWithReference(Contract_BuyerColl);
+				if (NewContract.IsSet()) //If(12.3)
+				{
+					inst.ContractID.content = NewContract.ID;
+					inst.ContractUUID.content = NewContract.UUID; //Contract UUID
+					if (!Cust_Create && inst.CustomerID != "##1")
+					{
+						var AccountParty : elementsof Contract.Party;
+						AccountParty.PartyKey.PartyID.content = inst.CustomerID;
+						AccountParty.RoleCode = "1001";
+						NewContract.Party.Create(AccountParty); 
+						
+					}
+				
+					else if (Cust_Create)
+					{
+						NewContract.LX_CON_DATAUPLOAD_CUUID = inst.CustomerUUID.content.ToString();
+					}
+					if (Reg_Pdt_Create)
+					{
+						NewContract.LX_CON_DATAUPLOAD_RPUUID = inst.RegisteredProdUUID.content.ToString();
+					}
+
+					if (NewContract.BillToParty.IsSet()) //Contract status can be set only if it is consistent
+					{
+						if (!NewContract.ValidityStartDate.IsInitial() && !NewContract.ValidityEndDate.IsInitial()) //Contract Status is determined based on validity dates
+						{
+							if (Context.GetCurrentSystemDate().IsBetween(NewContract.ValidityStartDate, NewContract.ValidityEndDate))
+							{
+								NewContract.ReleaseToActivate();	//Set Contract to Active
+							}
+							else
+							{
+								NewContract.FlagAsObsolete();		//Set Contract to Obsolete
+							}
+						}
+						else
+						{
+							NewContract.SetBackInPreparation();		// Set Contract to In Preparation
+						}
+
+						if (!inst.RegisteredProdID.content.IsInitial())
+						{
+							Contract_CoveredObj.InstallationPointID.content = inst.RegisteredProdID.content;
+							NewContract.CoveredObject.Create(Contract_CoveredObj);
+						}
+					}
+
+					inst.ProcessingStatus = "C";
+					var CreateProcessLogs : elementsof inst.ProcessLog;
+					CreateProcessLogs.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLogs.Trans_ProcessedObject.content = "40";
+					CreateProcessLogs.Trans_ObjectType.content = "04";
+					CreateProcessLogs.LogDescriptions.content = "44";
+
+					inst.ProcessLog.Create(CreateProcessLogs);
+				} //If(12.3)
+			} //If(12.1)
+		} //End of Contract Create If(12)
+
+		if (Contract_Update) //If(14)
+		{
+			if (!inst.CustomerUUID.IsInitial() && !inst.RegisteredProdUUID.IsInitial() && !inst.ContractID.IsInitial()) //If (12.1) Check if Customer, Registered Product & Contract IDs are available
+			{
+				if (Contract_Inst.IsSet())
+				{
+					inst.ContractUUID.content = Contract_Inst.UUID;//Contract UUID
+					var Contract_CoveredObj : elementsof Contract.CoveredObject;
+
+					Contract_Inst.ValidityStartDate = inst.ContractStartDate;
+					Contract_Inst.ValidityEndDate = inst.ContractEndDate;
+					Contract_Inst.LX_CON_DATAUPLOAD_RPUUID = inst.RegisteredProdUUID.content.ToString();
+
+					if (!inst.RegisteredProdID.IsInitial())
+					{
+						var RPInstance = InstallationPoint.Retrieve(inst.RegisteredProdID); 
+						if (RPInstance.IsSet())
+						{
+							var Installed_Obj = RPInstance.PrimaryInstalledObject;
+							if(Installed_Obj.IsSet())
+							{
+								var InstalledIndvProduct = Installed_Obj.InstalledObjectIndividualProduct;
+								if(InstalledIndvProduct.IsSet())
+								{
+									var IndividualProd = InstalledIndvProduct.IndividualProduct;
+									if(IndividualProd.IsSet())
+									{
+										var ServiceProcessInfo = IndividualProd.ServiceProcessInformation;
+										if(ServiceProcessInfo.IsSet())
+										{
+											if (Contract_Inst.CoveredObject.Count() > 0)
+											{
+												var ExistingCoveredObject = Contract_Inst.CoveredObject.Where(n => n.InstallationPointID.content == inst.RegisteredProdID.content);
+												if (ExistingCoveredObject.Count() == 0)
+												{
+													Contract_CoveredObj.InstallationPointID.content = inst.RegisteredProdID.content;
+													Contract_Inst.CoveredObject.Create(Contract_CoveredObj);
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					else
+					{
+						Contract_Inst.LX_CON_DATAUPLOAD_RPUUID = inst.RegisteredProdUUID.content.ToString();
+					}
+					inst.ProcessingStatus = "C";
+					var CreateProcessLogs : elementsof inst.ProcessLog;
+					CreateProcessLogs.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLogs.Trans_ProcessedObject.content = "40";
+					CreateProcessLogs.Trans_ObjectType.content = "04";
+					CreateProcessLogs.LogDescriptions.content = "45";
+
+					inst.ProcessLog.Create(CreateProcessLogs);
+				}
+			}
+		} //End of Contract Update //If(14)
+
+		if (Ticket_Create) //If (8) Create New Ticket
+		{
+			if (!inst.CustomerID.IsInitial() && !inst.CustomerUUID.IsInitial()) //If (8.1) Check if Customer IDs are available
+			{
+				var Ser_req_inst : elementsof ServiceRequest;
+				var Ser_req_BuyerParty : elementsof ServiceRequest.Party;
+				var Ser_req_RegPdt : elementsof ServiceRequest.ServiceReferenceObject;
+				var Ser_req_Item : elementsof ServiceRequest.Item;
+				var Ser_req_TimePoint : elementsof ServiceRequest.TimePointTerms;
+				var Ser_req_Category : elementsof ServiceRequest.IncidentServiceIssueCategory;
+			
+				//Root Elements		
+				Ser_req_inst.LX_TKT_FUPID		= inst.RecordID.RemoveLeadingZeros();				//File Instance Record ID
+				Ser_req_inst.Name.content		= inst.TicketSubject;								//Ticket Subject
+				Ser_req_inst.LX_PRD_MI			= inst.ModelPartNum;								//Model Part Number
+				Ser_req_inst.LX_TCK_CVRG		= inst.CoverageCode;								//Coverage code
+				Ser_req_inst.LX_TKT_COVG		= inst.CoverageGroup;								//Coverage Group
+				Ser_req_inst.LX_PRD_SN1			= inst.SerialNumber;								//Serial Number
+				Ser_req_inst.LX_TKT_ASTDT		= inst.VisitStartDate.ConvertToGlobalDateTime();	//Visit Start Date
+				Ser_req_inst.LX_TKT_AENDT		= inst.VisitEndDate.ConvertToGlobalDateTime();		//Visit End Date
+				Ser_req_inst.LX_TKT_EXW_PRV		= inst.ThirdPartyWarrantyProvider;					//3rd Party Warranty Provider 
+				Ser_req_inst.LX_PRD_RET			= inst.Retailer;									//Retailer
+				Ser_req_inst.ResolutionCode		= inst.ResolutionCode;								//Resolution Code
+				Ser_req_inst.LX_TCK_AT			= inst.ActionTaken;									//Action Taken
+				Ser_req_inst.LX_TKT_DGCTRNR		= inst.ContractNumber;								//Contract Number		
+				//Ser_req_inst.LX_TCK_GA		= inst.AuthorizationCode;							//Generic Authorisation Code			
+				Ser_req_inst.LX_TCK_DG			= inst.AuthorizationCode;
+				//Ser_req_inst.LX_TXT_FCK		= inst.FaultCode;									//Fault Code
+				//Ser_req_inst.LX_REF_PO		= inst.PORefrenceNumber;
+				
+				var Material_Inst = Material.Retrieve(inst.ProductPNC);
+				if (Material_Inst.IsSet())
+				{
+					if (Material_Inst.Common.IsSet())
+					{
+						if (Ser_req_inst.LX_TXT_FCK.IsInitial())
+						{
+							Ser_req_inst.LX_TXT_FCK = Material_Inst.Common.LX_PRD_FCK;	//Fault Code
+						}
+					}
+				}
+
+				if (!inst.CustomerUUID.IsInitial())
+				{
+					Ser_req_inst.LX_TKT_DATAUPLOAD_CUUID = inst.CustomerUUID.content.ToString();	// New Customer UUID as Internal ID is not available (inst fetched in Ticket through custom action)
+				}	
+				if (!inst.RegisteredProdUUID.IsInitial())
+				{
+					Ser_req_inst.LX_TKT_DATAUPLOAD_RPUUID = inst.RegisteredProdUUID.content.ToString();	// New Registered Prod UUID as Internal ID is not available (inst fetched in Ticket through custom action)
+				}
+
+				if (inst.SourceAsRetailer) // If source of the ticket is retailer
+				{
+					Ser_req_inst.LX_PRD_CH1			= "504";					//Source = Retailer
+					Ser_req_inst.LX_TKT_FUPSOURCE	= "504";					//Dummy Source (only for File upload functionality)
+					Ser_req_inst.LX_TKT_EXW_PRV = inst.ISPID;					// External Warranty Provider
+					Ser_req_inst.LX_TKT_DGCLMNR = inst.ThirdPartyClaimNum;		// 3rd Party Claim Number
+					Ser_req_inst.LX_TCK_CVRG = "Z5";  
+				}
+				else
+				{
+					Ser_req_inst.LX_PRD_CH1 = "495";						//Source = File Transfer
+					Ser_req_inst.LX_TKT_FUPSOURCE	= "495";				//Dummy Source (only for File upload functionality)
+					Ser_req_inst.LX_REF_PO	= inst.PORefrenceNumber;		//Claims PO Reference Number
+				}
+				switch (Ser_req_inst.LX_TXT_FCK) //Switch (2) Component & Defect Codes
+				{
+					case "A10" //Vaccum cleaner household
+					{
+						Ser_req_inst.A10ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.A10DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "A15" //Steam Cleaner with Ironer
+					{
+						Ser_req_inst.A15ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.A15DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "A16" //High Pressure Cleaner
+					{
+						Ser_req_inst.A16ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.A16DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "B26" //Commercian Vaccum Cleaner
+					{
+						Ser_req_inst.B26ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.B26DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "B31" //Turbocleaner
+					{
+						Ser_req_inst.B31DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "B32" //Air Cleaner, commercial
+					{
+						Ser_req_inst.B32ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.B32DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "B35" //Automatic Scrubber-Dryer
+					{
+						Ser_req_inst.B35DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "B36" //Sweepers, Commercial
+					{
+						Ser_req_inst.B36DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "C10" //Refrigeration
+					{
+						Ser_req_inst.LX_TXT_C10CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_C10DC = inst.DefectCode;		//Defect Code
+					}
+					case "C11" //Air Conditioner
+					{
+						Ser_req_inst.LX_TXT_C11CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_C11DC = inst.DefectCode;		//Defect Code
+					}
+					case "D10" //Cookers
+					{
+						Ser_req_inst.LX_TXT_D10CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_D10DC = inst.DefectCode;		//Defect Code
+					}
+					case "D11" //Combi kitchen
+					{
+						Ser_req_inst.LX_TXT_D11CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_D11DC = inst.DefectCode;		//Defect Code
+					}
+					case "D12" //Kitchen Media/Entertainment
+					{
+						Ser_req_inst.D12ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.D12DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "D20" //Cookers hoods
+					{
+						Ser_req_inst.LX_TXT_D20CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_D20DC = inst.DefectCode;		//Defect Code
+					}
+					case "D50" //Microwave ovens
+					{
+						Ser_req_inst.LX_TXT_D50CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_D50DC = inst.DefectCode;		//Defect Code
+					}
+					case "F10" //Dishwashers
+					{
+						Ser_req_inst.LX_TXT_F10CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_F10DC = inst.DefectCode;		//Defect Code
+					}
+					case "G10" //Washing Machine
+					{
+						Ser_req_inst.LX_TXT_G10CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_G10DC = inst.DefectCode;		//Defect Code
+					}
+					case "G40" //Dry Cabinet & Wash-Basin
+					{
+						Ser_req_inst.LX_TXT_G40CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_G40DC = inst.DefectCode;		//Defect Code
+					}
+					case "G45" //Tumble & spin dryer
+					{
+						Ser_req_inst.LX_TXT_G45CC = inst.ComponentCode;	//Component Code
+						Ser_req_inst.LX_TXT_G45DC = inst.DefectCode;		//Defect Code
+					}
+					case "G50" //Mangles, Household
+					{
+						Ser_req_inst.G50ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.G50DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "J20" //Toilets
+					{
+						Ser_req_inst.J20DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "J22" //Water Purifier
+					{
+						Ser_req_inst.J22ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.J22DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "J23" //Food Waste Disposer
+					{
+						Ser_req_inst.J23ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.J23DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "J25" //Hot Water Appliances / Heaters
+					{
+						Ser_req_inst.J25ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.J25DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "J26" //Storage Heaters
+					{
+						Ser_req_inst.J26ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.J26DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "M17" //Small Electric Appliances
+					{
+						Ser_req_inst.M17ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.M17DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "N50" //Open Fire Heaters Wood Stoves
+					{
+						Ser_req_inst.N50DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "N60" //Central Ventilation / Heating
+					{
+						Ser_req_inst.N60DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "X90" //RAD Damages
+					{
+						Ser_req_inst.X90ComponentCode = inst.ComponentCode;	//Component Code
+						Ser_req_inst.X90DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "Z14" //Generator for Caravans / Boats
+					{
+						Ser_req_inst.Z14DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "Z15" //Water Pumps for Marine Purpose
+					{
+						Ser_req_inst.Z15DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "Z16" //Battery Chargers
+					{
+						Ser_req_inst.Z16DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "Z17" //Marine Air Conditioner
+					{
+						Ser_req_inst.Z17DefectCode = inst.DefectCode;		//Defect Code
+					}
+					case "Z35" //Safes / Minisafes
+					{
+						Ser_req_inst.Z35DefectCode = inst.DefectCode;		//Defect Code
+					}	
+				} //Switch (2)
+				 
+				Ticket_Inst = ServiceRequest.Create(Ser_req_inst);
+			
+				if (Ticket_Inst.IsSet()) //If(8.2) Create Node Instances of Service Ticket
+				{
+					inst.ToTicket = Ticket_Inst;
+					inst.ClaimNumber.content = Ticket_Inst.ID.content; //Assign new Ticket ID to PBO_DataUpload
+					
+					if (inst.SourceAsRetailer) // If source of the ticket is retailer
+					{
+						var MainActvityServiceIssue = Ticket_Inst.MainActivityServiceIssueCategory;                       // 21 ov SIT Change no :14   
+						if (MainActvityServiceIssue.IsSet())
+						{
+							if (!inst.ResolutionCategory.IsInitial())
+							{
+								MainActvityServiceIssue.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ResolutionCategory;
+							}
+							else
+							{
+								MainActvityServiceIssue.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = "1.1.1.1.5"; //“Service Visit Needed by ISP”. 
+							}
+						}
+						else
+						{
+						   
+							var Issue_Category = Ticket_Inst.MainActivityServiceIssueCategory.Create();
+							if (Issue_Category.IsSet())
+							{
+								if (!inst.ResolutionCategory.IsInitial())
+								{
+									Issue_Category.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ResolutionCategory;
+								}
+								else
+								{
+									Issue_Category.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = "1.1.1.1.5"; //“Service Visit Needed by ISP”. 
+								}
+							}
+
+						}
+					}
+					else //If source of the ticket is ISP
+					{
+						var MainActvityServiceIssue = Ticket_Inst.MainActivityServiceIssueCategory;                       // 21 ov SIT Change no :14   
+						if (MainActvityServiceIssue.IsSet())
+						{
+							if (!inst.ResolutionCategory.IsInitial())
+							{
+								MainActvityServiceIssue.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ResolutionCategory;
+							}
+							else
+							{
+								MainActvityServiceIssue.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = "1.1.1.1.3"; //“Service Visit Booked”             
+							}
+
+						}
+						else
+						{
+						   
+							var Issue_Category = Ticket_Inst.MainActivityServiceIssueCategory.Create();
+							if (Issue_Category.IsSet())
+							{
+								if (!inst.ResolutionCategory.IsInitial())
+								{
+									Issue_Category.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ResolutionCategory;
+								}
+								else
+								{
+									Issue_Category.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = "1.1.1.1.3"; //“Service Visit Booked” 
+								}
+							}
+
+						}
+						//Service Technician Team
+						if (!Ticket_Inst.ServiceExecutionTeamParty.IsSet())
+						{
+							var ServiceTechnicianTeam = Ticket_Inst.ServiceExecutionTeamParty.Create();
+							if (ServiceTechnicianTeam.IsSet())
+							{
+								ServiceTechnicianTeam.PartyKey.PartyID.content = inst.ISPID;
+							}
+						}
+						else
+						{
+							Ticket_Inst.ServiceExecutionTeamParty.PartyKey.PartyID.content = inst.ISPID;
+						}
+					}	
+					
+					
+					//Service Category
+					if (Ticket_Inst.ServiceTerms.IsSet())
+					{
+						Ticket_Inst.ServiceTerms.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ServiceCategory;
+					
+						if (!inst.TicketStatus.IsInitial())	//Map Ticket Status if sent by ISP
+						{
+							Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = inst.TicketStatus;
+						}
+					}
+
+					//Object / Appliance Code
+					if (Ticket_Inst.MainIncidentServiceIssueCategory.IsSet())
+					{
+						Ticket_Inst.MainIncidentServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ObjectApplianceCode;
+					}
+					
+					//Complaint
+					if (Ticket_Inst.MainObjectPartServiceIssueCategory.IsSet())
+					{
+						Ticket_Inst.MainObjectPartServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.Compliant;
+					}
+					//Assign Consumer ID to Ticket
+					if (Ticket_Inst.BuyerParty.IsSet() && !inst.CustomerID.IsInitial())
+					{
+						Ticket_Inst.BuyerParty.PartyKey.PartyID.content = inst.CustomerID.RemoveLeadingZeros();
+					}
+					//Assign Registered Prod ID to Ticket
+					if (!Ticket_Inst.MainServiceReferenceObject.IsSet() && !inst.RegisteredProdID.IsInitial())
+					{
+						var NewMainServiceRegObj = Ticket_Inst.MainServiceReferenceObject.Create();
+						if (NewMainServiceRegObj.IsSet())
+						{
+							NewMainServiceRegObj.InstallationPointID.content = inst.RegisteredProdID.content;
+							
+							//****************************** Start of Warranty Claim Validation and Image Capturing for Italy ***************************************//
+							if (Ticket_Inst.ServicePointLocation.IsSet())
+							{
+								var lv_SrvLoc = Ticket_Inst.ServicePointLocation;
+								if (lv_SrvLoc.UsedAddress.IsSet())
+								{
+									var lv_SrvLocAddr = lv_SrvLoc.UsedAddress;
+									if (lv_SrvLocAddr.DefaultPostalAddressRepresentation.IsSet())
+									{ 
+										var lv_SrvLocDefAddr = lv_SrvLocAddr.DefaultPostalAddressRepresentation;
+										if (!lv_SrvLocDefAddr.CountryCode.IsInitial())
+										{
+											var lv_SrvLoc_CountryCode = lv_SrvLocDefAddr.CountryCode;
+											if (lv_SrvLoc_CountryCode == "IT")
+											{
+												Ticket_Inst.FetchAttachment();
+											}
+										}
+									}
+								}
+							}						
+							//****************************** End of Warranty Claim Validation and Image Capturing for Italy ***************************************//
+						}
+					}
+					
+					
+					//Requested On
+					if (Ticket_Inst.RequestInitialReceiptTimePoint.IsSet())
+					{
+						Ticket_Inst.RequestInitialReceiptTimePoint.TimePoint.DateTime = inst.ReportedDate.ConvertToGlobalDateTime().ConvertToDateTime();
+					}
+					//Completed On
+					if (Ticket_Inst.ResolvedOnTimePoint.IsSet())
+					{
+						Ticket_Inst.ResolvedOnTimePoint.TimePoint.DateTime = inst.CompletionDate.ConvertToGlobalDateTime().ConvertToDateTime();
+					}
+					//Requested On
+					if (Ticket_Inst.RequestedFulfillmentPeriod.IsSet())
+					{
+						Ticket_Inst.RequestedFulfillmentPeriod.TimePointPeriod.StartTimePoint.DateTime = inst.ReportedDate.ConvertToGlobalDateTime().ConvertToDateTime();
+					}
+					//Service Technician
+					//if(!Ticket_Inst.ServicePerformerParty.IsSet())
+					//{
+					//var ServiceTechnician = Ticket_Inst.ServicePerformerParty.Create();
+					//if(ServiceTechnician.IsSet())
+					//{
+					//ServiceTechnician.RoleCode = "43";
+					//ServiceTechnician.PartyKey.PartyID.content = inst.TechnicianID;
+					//}
+					//}
+					//else
+					//{
+					//Ticket_Inst.ServicePerformerParty.PartyKey.PartyID.content = inst.TechnicianID;
+					//}
+					//Populate Service Location
+					if (Ticket_Inst.ServicePointLocation.IsSet()) //If(8.3)
+					{
+						var Ser_Req_Addr = Ticket_Inst.ServicePointLocation.UsedAddress;
+						if (Ser_Req_Addr.IsSet()) //If(8.4)
+						{ 
+							var ServiceLocation;
+
+							if (Ser_Req_Addr.DefaultPostalAddressRepresentation.IsSet()) //If(8.5)
+							{
+								ServiceLocation = Ser_Req_Addr.DefaultPostalAddressRepresentation;
+							}
+							else
+							{
+								ServiceLocation = Ser_Req_Addr.DefaultPostalAddressRepresentation.Create();
+							}
+							if (ServiceLocation.IsSet())
+							{
+								ServiceLocation.StreetName = inst.ServiceLocStreet;
+								ServiceLocation.CityName = inst.ServiceLocCity;
+								ServiceLocation.RegionCode.content = inst.ServiceLocProvince;
+								ServiceLocation.StreetPostalCode = inst.ServiceLocPostalCode;
+								ServiceLocation.CountryCode = inst.CustomerCountry;
+							}
+						} //If(8.4)
+					}//If(8.3)
+					//Populate Ticket Item
+					foreach (var items in inst.TicketItems) //Foreach(6)
+					{
+						var Ser_Req_Item = Ticket_Inst.Item.Create();
+						if (Ser_Req_Item.IsSet()) //If(8.7)
+						{
+							//Ser_Req_Item.ID		= items.ClaimItemNumber.ToString();
+							Ser_Req_Item.LX_TKT_CLM = items.ClaimAmount;
+
+							if (Ser_Req_Item.ItemProduct.IsSet())
+							{
+								if (items.RexPartNumFlag)
+								{
+									//For Retailers - Query Products using Model Part Number to identify the PNC
+									if (!items.SpareCode.IsInitial())
+									{
+										var qryMaterial = Material.QueryByDescription;
+										var paramModelNumber = qryMaterial.CreateSelectionParams();
+										paramModelNumber.Add(qryMaterial.LX_PRD_MI_B7AD952QPQ6NZ0DX95SWUJ8PG, "I", "EQ", items.SpareCode);
+										var resultMaterial = qryMaterial.Execute(paramModelNumber);
+										if (resultMaterial.Count() > 0)
+										{
+											Ser_Req_Item.ItemProduct.ProductKey.ProductID.content = resultMaterial.GetFirst().InternalID.content;
+										}
+									}
+								}
+								else
+								{
+									Ser_Req_Item.ItemProduct.ProductKey.ProductID.content = items.SpareCode;
+								}
+								if (!Ser_Req_Item.FirstFulfilledItemScheduleLine.IsSet())
+								{
+									var UpdateActualQuantity : elementsof ServiceRequest.Item.ItemScheduleLine;
+									UpdateActualQuantity.Quantity.content = items.SpareQuantity;
+									Ser_Req_Item.FirstFulfilledItemScheduleLine.Create(UpdateActualQuantity);
+								}
+							}
+							else //Else (8.1)
+							{
+								var Ser_Req_Item_Prod = Ser_Req_Item.ItemProduct.Create();
+								if (Ser_Req_Item_Prod.IsSet())
+								{
+									if (items.RexPartNumFlag)
+									{
+										//For Retailers - Query Products using Model Part Number to identify the PNC
+										if (!items.SpareCode.IsInitial())
+										{
+											var qryMaterial = Material.QueryByDescription;
+											var paramModelNumber = qryMaterial.CreateSelectionParams();
+											paramModelNumber.Add(qryMaterial.LX_PRD_MI_B7AD952QPQ6NZ0DX95SWUJ8PG, "I", "EQ", items.SpareCode);
+											var resultMaterial = qryMaterial.Execute(paramModelNumber);
+											if (resultMaterial.Count() > 0)
+											{
+												Ser_Req_Item_Prod.ProductKey.ProductID.content = resultMaterial.GetFirst().InternalID.content;
+											}
+										}
+									}
+									else
+									{
+										Ser_Req_Item_Prod.ProductKey.ProductID.content = items.SpareCode;
+									}
+									if (!Ser_Req_Item.FirstFulfilledItemScheduleLine.IsSet())
+									{
+										var UpdateActualQuantity : elementsof ServiceRequest.Item.ItemScheduleLine;
+										UpdateActualQuantity.Quantity.content = items.SpareQuantity;
+										Ser_Req_Item.FirstFulfilledItemScheduleLine.Create(UpdateActualQuantity);
+									}
+								}
+							} //Else (8.1)
+							if (!items.ItemProcessingType.IsInitial())
+							{
+								Ser_Req_Item.InvoicingMethodCode.content = "4";
+								Ser_Req_Item.ExternalPricingRelevantIndicator = false;
+								Ser_Req_Item.UserServiceTransactionProcessingTypeCode = items.ItemProcessingType;
+							}
+
+						} //If(8.7)
+					} //Foreach(6) End of Foreach Populate Ticket Item
+
+					//Populate Description & Work Description 
+					if (!Ticket_Inst.TextCollection.IsSet()) //If(8.8)
+					{
+						var textInstance = Ticket_Inst.TextCollection.Create();
+
+						if (textInstance.IsSet())//If(8.9)
+						{
+							var TicketWorkDescription = textInstance.Text.Create();
+							if (TicketWorkDescription.IsSet()) //If(8.10)
+							{
+								TicketWorkDescription.TypeCode.content = "10022";
+								var TicketWorkDescriptionText = TicketWorkDescription.TextContent.Create();
+								if (TicketWorkDescriptionText.IsSet())
+								{
+									TicketWorkDescriptionText.Text.content = inst.WorkDescription;
+								}
+							}//If(8.10)
+							
+							var TickettextDescription = TicketWorkDescription.ToParent.Text.Create();
+							if (TickettextDescription.IsSet()) //If(8.11)
+							{
+								TickettextDescription.TypeCode.content = "10004";
+								var TicketDescriptionText = TickettextDescription.TextContent.Create();
+								if (TicketDescriptionText.IsSet())
+								{
+									TicketDescriptionText.Text.content = inst.ClaimDescription;
+								}
+							}//If(8.11)	
+						}//If(8.9)
+					} //If(8.8)
+
+					inst.ProcessingStatus = "C";
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "02";//"Ticket Create";
+					CreateProcessLog.Trans_ObjectType.content = "05";//"Transactional Data";
+					CreateProcessLog.LogDescriptions.content = "28";//ataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("28") + inst.ClaimNumber.content.RemoveLeadingZeros() +DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("29") + inst.CustomerID.RemoveLeadingZeros() + DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("30") + inst.RegisteredProdID.content.RemoveLeadingZeros();
+					//New Service Ticket &1 created for Customer &2 appliance ID &3   
+					inst.ProcessLog.Create(CreateProcessLog);
+				} //If(8.2)
+			} //If(8.1)
+		}//If(8) End of Ticket Create
+
+		if (Ticket_Update)  //If(9)
+		{
+			if (Ticket_Inst.IsSet()) //If(9.1)
+			{
+				//Root Elements
+				Ticket_Inst.LX_TKT_FUPID = inst.RecordID.RemoveLeadingZeros();						//Record ID	
+				//Ticket_Inst.Name.content = inst.TicketSubject;									//Ticket Subject
+				if (!inst.ResolutionCode.IsInitial())
+				{
+					Ticket_Inst.ResolutionCode = inst.ResolutionCode;								//Resolution Code
+				}
+				if (Ticket_Inst.LX_TCK_CVRG.IsInitial() && !inst.CoverageCode.IsInitial())
+				{
+					Ticket_Inst.LX_TCK_CVRG = inst.CoverageCode;									//Coverage code
+				}
+				if (!inst.CoverageGroup.IsInitial())
+				{
+					Ticket_Inst.LX_TKT_COVG = inst.CoverageGroup;									//Coverage Group
+				}
+				if (!inst.VisitStartDate.IsInitial())
+				{
+					Ticket_Inst.LX_TKT_ASTDT = inst.VisitStartDate.ConvertToGlobalDateTime();		//Visit Start Date
+				}
+				if (!inst.VisitEndDate.IsInitial())
+				{
+					Ticket_Inst.LX_TKT_AENDT = inst.VisitEndDate.ConvertToGlobalDateTime();			//Visit End Date
+				}
+				//Ticket_Inst.LX_TXT_FCK = inst.FaultCode;											//Fault Code
+				if (!inst.ActionTaken.IsInitial())
+				{
+					Ticket_Inst.LX_TCK_AT = inst.ActionTaken;										//Action Taken
+				}
+				if (!inst.ContractNumber.IsInitial())
+				{
+					Ticket_Inst.LX_TKT_DGCTRNR = inst.ContractNumber;								//Contract Number		
+				}
+				if (!inst.Retailer.IsInitial())
+				{
+					Ticket_Inst.LX_PRD_RET = inst.Retailer;											//Retailer
+				}
+				if (!inst.ThirdPartyWarrantyProvider.IsInitial())
+				{
+					Ticket_Inst.LX_TKT_EXW_PRV = inst.ThirdPartyWarrantyProvider;
+				}
+				//Ticket_Inst.LX_REF_PO = inst.ThirdPartyClaimNum;								//Claims PO Reference Number
+				//Ticket_Inst.LX_TCK_GA = inst.AuthorizationCode;									//Generic Authorisation Code
+				if (!inst.AuthorizationCode.IsInitial())
+				{
+					Ticket_Inst.LX_TCK_DG = inst.AuthorizationCode;
+				}
+				if (!inst.SerialNumber.IsInitial())
+				{
+					Ticket_Inst.LX_PRD_SN1 = inst.SerialNumber;
+				}
+				var Material_Inst = Material.Retrieve(inst.ProductPNC);
+				if (Material_Inst.IsSet())
+				{
+					if (Material_Inst.Common.IsSet())
+					{
+						if (Ticket_Inst.LX_TXT_FCK.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_FCK = Material_Inst.Common.LX_PRD_FCK;	//Fault Code
+						}
+					 
+					}
+				}
+				
+				if (inst.SourceAsRetailer) // If source of the ticket is retailer
+				{
+					Ticket_Inst.LX_PRD_CH1			= "504";					//Source = Retailer
+					Ticket_Inst.LX_TKT_FUPSOURCE	= "504";					//Dummy Source (only for File upload functionality)
+					if (!inst.ISPID.IsInitial())
+					{
+						Ticket_Inst.LX_TKT_EXW_PRV = inst.ISPID;		// External Warranty Provider
+					}
+					Ticket_Inst.LX_TCK_CVRG = "Z5";					// 21 ov SIT Change no :14  
+					if (!inst.ThirdPartyClaimNum.IsInitial())
+					{
+						Ticket_Inst.LX_TKT_DGCLMNR = inst.ThirdPartyClaimNum;
+					}
+				}
+				else //If source of the ticket is ISP
+				{
+					Ticket_Inst.LX_PRD_CH1			= "495";			//Source = File Transfer
+					Ticket_Inst.LX_TKT_FUPSOURCE	= "495";			//Dummy Source (only for File upload functionality)
+					if (!inst.PORefrenceNumber.IsInitial())
+					{
+						Ticket_Inst.LX_REF_PO = inst.PORefrenceNumber;								//Claims PO Reference Number
+					}
+					//if consumer is registered with ISP's PNC(arya)
+					if (!inst.RegisteredProdID.content.IsInitial())
+					{
+						if (!Ticket_Inst.MainServiceReferenceObject.IsSet())
+						{
+							var MainServiceObj = Ticket_Inst.MainServiceReferenceObject.Create();
+							if (MainServiceObj.IsSet())
+							{
+								MainServiceObj.InstallationPointID.content = inst.RegisteredProdID.content;
+							}
+					    
+						}
+						else
+						{
+							Ticket_Inst.MainServiceReferenceObject.InstallationPointID.content = inst.RegisteredProdID.content;
+						}
+					}
+					//if consumer is registered with ISP's PNC(arya)
+					
+					//Service Technician Team
+					if (!Ticket_Inst.ServiceExecutionTeamParty.IsSet())
+					{
+						var ServiceTechnicianTeam = Ticket_Inst.ServiceExecutionTeamParty.Create();
+						if (ServiceTechnicianTeam.IsSet())
+						{
+							ServiceTechnicianTeam.PartyKey.PartyID.content = inst.ISPID;
+						}
+					}
+					else
+					{
+						if (!inst.ISPID.IsInitial())
+						{
+							Ticket_Inst.ServiceExecutionTeamParty.PartyKey.PartyID.content = inst.ISPID;
+						}
+					}
+				}
+				
+				//Assign New Registered Product IDs - For Retailer Ticket updates
+				if (!Ticket_Inst.MainServiceReferenceObject.IsSet() && !inst.RegisteredProdUUID.IsInitial())
+				{
+					Ticket_Inst.LX_TKT_DATAUPLOAD_RPUUID = inst.RegisteredProdUUID.content.ToString();	// New Registered Prod UUID as Internal ID is not available (inst fetched in Ticket through custom action)
+				}
+				else
+				{
+					if (Assign_Reg_Pdt && Reg_Pdt_Create)
+					{
+						Ticket_Inst.LX_TKT_DATAUPLOAD_RPUUID = inst.RegisteredProdUUID.content.ToString();	// New Registered Prod UUID as Internal ID is not available (inst fetched in Ticket through custom action)
+					}
+				}
+				//Service Category
+				if (Ticket_Inst.ServiceTerms.IsSet())
+				{
+					if (!inst.ServiceCategory.IsInitial())
+					{
+						Ticket_Inst.ServiceTerms.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ServiceCategory;
+					}
+					if (!inst.TicketStatus.IsInitial())	//Map Ticket Status if sent by ISP
+					{
+						Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = inst.TicketStatus;
+					}
+				}
+				//Object / Appliance Code
+				if (Ticket_Inst.MainIncidentServiceIssueCategory.IsSet() && !inst.ObjectApplianceCode.IsInitial())
+				{
+				    
+					Ticket_Inst.MainIncidentServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.ObjectApplianceCode;
+					
+				}
+				//Complaint
+				if (Ticket_Inst.MainObjectPartServiceIssueCategory.IsSet() && !inst.Compliant.IsInitial())
+				{
+				    
+					Ticket_Inst.MainObjectPartServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content = inst.Compliant;
+					
+				}
+
+				//Service Location
+				if (Ticket_Inst.ServicePointLocation.IsSet()) //If(9.1.1)
+				{
+					if (Ticket_Inst.ServicePointLocation.UsedAddress.IsSet())
+					{
+						if (Ticket_Inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.IsSet())
+						{
+							if (!inst.ServiceLocStreet.IsInitial())
+							{
+								Ticket_Inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.StreetName = inst.ServiceLocStreet;
+							}
+							if (!inst.ServiceLocCity.IsInitial())
+							{
+								Ticket_Inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.CityName = inst.ServiceLocCity;
+							}
+							if (!inst.ServiceLocProvince.IsInitial())
+							{
+								Ticket_Inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.RegionCode.content = inst.ServiceLocProvince;
+							}
+							if (!inst.ServiceLocPostalCode.IsInitial())
+							{
+								Ticket_Inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.StreetPostalCode = inst.ServiceLocPostalCode;
+							}
+						}
+					}
+				} //If(9.1.1)
+				//Reported On
+				if (Ticket_Inst.RequestInitialReceiptTimePoint.IsSet() && !inst.ReportedDate.IsInitial())
+				{
+					Ticket_Inst.RequestInitialReceiptTimePoint.TimePoint.DateTime = inst.ReportedDate.ConvertToGlobalDateTime().ConvertToDateTime();
+				}
+				//Requested Start Date
+				if (Ticket_Inst.RequestedFulfillmentPeriod.IsSet() && !inst.ReportedDate.IsInitial())
+				{
+					Ticket_Inst.RequestedFulfillmentPeriod.TimePointPeriod.StartTimePoint.DateTime = inst.ReportedDate.ConvertToGlobalDateTime().ConvertToDateTime();
+				}
+				//Completed On
+				if (Ticket_Inst.ResolvedOnTimePoint.IsSet() && !inst.CompletionDate.IsInitial())
+				{
+					Ticket_Inst.ResolvedOnTimePoint.TimePoint.DateTime = inst.CompletionDate.ConvertToGlobalDateTime().ConvertToDateTime();
+				}
+				//Populate Purchase Date
+	
+				//Service Technician
+				//if(!Ticket_Inst.ServicePerformerParty.IsSet())
+				//{
+				//var ServiceTechnician = Ticket_Inst.ServicePerformerParty.Create();
+				//if(ServiceTechnician.IsSet())
+				//{
+				//ServiceTechnician.RoleCode = "43";
+				//ServiceTechnician.PartyKey.PartyID.content = inst.TechnicianID;
+				//}
+				//}
+				//else
+				//{
+				//Ticket_Inst.ServicePerformerParty.PartyKey.PartyID.content = inst.TechnicianID;
+				//}
+				
+				switch (Ticket_Inst.LX_TXT_FCK) //Switch (9) Component & Defect Codes 
+				{
+					case "A10" //Vaccum cleaner household
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.A10ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.A10DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "A15" //Steam Cleaner with Ironer
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.A15ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.A15DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "A16" //High Pressure Cleaner
+					{
+					    
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.A16ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.A16DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "B26" //Commercian Vaccum Cleaner
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.B26ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.B26DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "B31" //Turbocleaner
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.B31DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "B32" //Air Cleaner, commercial
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.B32ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.B32DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "B35" //Automatic Scrubber-Dryer
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.B35DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "B36" //Sweepers, Commercial
+					{  
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.B36DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "C10" //Refrigeration
+					{
+					    
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_C10CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_C10DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "C11" //Air Conditioner
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_C11CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_C11DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "D10" //Cookers
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D10CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D10DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "D11" //Combi kitchen
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D11CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D11DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "D12" //Kitchen Media/Entertainment
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.D12ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.D12DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "D20" //Cookers hoods
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D20CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D20DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "D50" //Microwave ovens
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D50CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_D50DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "F10" //Dishwashers
+					{   
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_F10CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_F10DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "G10" //Washing Machine
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_G10CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_G10DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "G40" //Dry Cabinet & Wash-Basin
+					{   
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_G40CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_G40DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "G45" //Tumble & spin dryer
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_G45CC = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.LX_TXT_G45DC = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "G50" //Mangles, Household
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.G50ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.G50DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "J20" //Toilets
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.J20DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "J22" //Water Purifier
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.J22ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.J22DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "J23" //Food Waste Disposer
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.J23ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.J23DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "J25" //Hot Water Appliances / Heaters
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.J25ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.J25DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "J26" //Storage Heaters
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.J26ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.J26DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "M17" //Small Electric Appliances
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.M17ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.M17DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "N50" //Open Fire Heaters Wood Stoves
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.N50DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "N60" //Central Ventilation / Heating
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.N60DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "X90" //RAD Damages
+					{
+						if (!inst.ComponentCode.IsInitial())
+						{
+							Ticket_Inst.X90ComponentCode = inst.ComponentCode;	//Component Code
+						}
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.X90DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "Z14" //Generator for Caravans / Boats
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.Z14DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "Z15" //Water Pumps for Marine Purpose
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.Z15DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "Z16" //Battery Chargers
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.Z16DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "Z17" //Marine Air Conditioner
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.Z17DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}
+					case "Z35" //Safes / Minisafes
+					{
+						if (!inst.DefectCode.IsInitial())
+						{
+							Ticket_Inst.Z35DefectCode = inst.DefectCode;		//Defect Code
+						}
+					}	
+				} //Switch (9)
+
+				//****************************** Start of Warranty Claim Validation and Image Capturing for Italy ***************************************//
+				if (Ticket_Inst.ServicePointLocation.IsSet())
+				{
+					var lv_SrvLoc_update = Ticket_Inst.ServicePointLocation;
+					if (lv_SrvLoc_update.UsedAddress.IsSet())
+					{
+						var lv_SrvLocAddr_update = lv_SrvLoc_update.UsedAddress;
+						if (lv_SrvLocAddr_update.DefaultPostalAddressRepresentation.IsSet())
+						{ 
+							var lv_SrvLocDefAddr_update = lv_SrvLocAddr_update.DefaultPostalAddressRepresentation;
+							if (!lv_SrvLocDefAddr_update.CountryCode.IsInitial())
+							{
+								var lv_SrvLoc_CountryCode_update = lv_SrvLocDefAddr_update.CountryCode;
+								if (lv_SrvLoc_CountryCode_update == "IT")
+								{
+									Ticket_Inst.FetchAttachment();
+								}
+							}
+						}
+					}
+				}						
+				//****************************** End of Warranty Claim Validation and Image Capturing for Italy ***************************************//
+
+				//Delete Existing Item lines
+				if (inst.TicketItems.Count() > 0)
+				{
+					if (Ticket_Inst.Item.Count() > 0)
+					{
+						foreach (var Line_Item in Ticket_Inst.Item)
+						{
+							if (Line_Item.Status.ExternalFollowUpProcessingReleaseStatusCode == "6") //ERP Rel. Status = Not Relevent
+							{
+								//Ticket_Inst.Item.Delete();
+								Line_Item.Delete();
+							}
+						}
+					}
+				
+					//Create New Item lines as sent by ISP or 3rd Party
+					foreach (var items in inst.TicketItems) //Foreach(10)
+					{
+						var Ser_Req_Item : elementsof ServiceRequest.Item;
+					    
+						if (!items.ClaimAmount.IsInitial())
+						{
+							Ser_Req_Item.LX_TKT_CLM = items.ClaimAmount;
+						}
+
+						Ticket_Item_Inst = Ticket_Inst.Item.Create(Ser_Req_Item);
+						if (Ticket_Item_Inst.IsSet())
+						{
+							if (Ticket_Item_Inst.ItemProduct.IsSet())
+							{
+								if (items.RexPartNumFlag)
+								{
+									//For Retailers - Query Products using Model Part Number to identify the PNC
+									if (!items.SpareCode.IsInitial())
+									{
+										var qryMaterial = Material.QueryByDescription;
+										var paramModelNumber = qryMaterial.CreateSelectionParams();
+										paramModelNumber.Add(qryMaterial.LX_PRD_MI_B7AD952QPQ6NZ0DX95SWUJ8PG, "I", "EQ", items.SpareCode);
+										var resultMaterial = qryMaterial.Execute(paramModelNumber);
+										if (resultMaterial.Count() > 0)
+										{
+											Ticket_Item_Inst.ItemProduct.ProductKey.ProductID.content = resultMaterial.GetFirst().InternalID.content;
+										}
+									}
+								}
+								else
+								{
+									if (!items.SpareCode.IsInitial())
+									{
+										Ticket_Item_Inst.ItemProduct.ProductKey.ProductID.content = items.SpareCode;
+									}
+								}
+								if (!Ticket_Item_Inst.FirstFulfilledItemScheduleLine.IsSet())
+								{
+									var UpdateActualQuantity : elementsof ServiceRequest.Item.ItemScheduleLine;
+									UpdateActualQuantity.Quantity.content = items.SpareQuantity;
+									Ticket_Item_Inst.FirstFulfilledItemScheduleLine.Create(UpdateActualQuantity);
+								}
+							}
+
+							if (!items.ItemProcessingType.IsInitial())
+							{
+								Ticket_Item_Inst.InvoicingMethodCode.content = "4";
+								Ticket_Item_Inst.ExternalPricingRelevantIndicator = false;
+								Ticket_Item_Inst.UserServiceTransactionProcessingTypeCode = items.ItemProcessingType;
+							}
+						}
+					} //Foreach (10)
+				}
+				
+				//Required for Claims Submission to Service Power
+				if (Ticket_Inst.LX_TKT_FUPSOURCE == "495")
+				{
+					//Auto Populate ISP Type, Claims Type & Status
+					Ticket_Inst.LX_TKT_ISPTYP = "111";
+					Ticket_Inst.LX_TKT_SCEN = "102";
+
+					if (Ticket_Inst.Item.Count() > 0)
+					{
+						var ClaimItem = Ticket_Inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZCLM" || n.UserServiceTransactionProcessingTypeCode == "ZPAR");
+						
+						if(Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z1")
+						{
+							   if((Ticket_Inst.ResolutionCode == "101" || Ticket_Inst.ResolutionCode == "111"|| Ticket_Inst.ResolutionCode == "161"))
+							   {
+									Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "5";			//Status -completed		
+							   }
+							   if ((ClaimItem.Count() > 0) && (Ticket_Inst.ResolutionCode == "121" || Ticket_Inst.ResolutionCode == "131"|| Ticket_Inst.ResolutionCode == "181")) //Change Status to Claims Validation only for Ticket with Part or Labor Claim
+							   {
+									Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z7";			//Status - Claims Validation
+							   }  
+							   if(Ticket_Inst.ResolutionCode == "191" ||Ticket_Inst.ResolutionCode=="")
+							   {
+									Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z6";			//Status - Action Needed								
+							   }
+							   if(Ticket_Inst.ResolutionCode == "141")
+							   {
+									Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z2";			//Status - Cancelled								
+							   }
+					    }
+					}
+				}
+				//Populate Description & Work Description 
+				if (!Ticket_Inst.TextCollection.IsSet()) //If(9.2)
+				{
+					var textInstance = Ticket_Inst.TextCollection.Create();
+					if (textInstance.IsSet())//If(9.3)
+					{
+						var TicketDescription = textInstance.Text.Create();	// Description
+						if (TicketDescription.IsSet()) //If(9.4)
+						{
+							TicketDescription.TypeCode.content = "10022";
+							var TicketDescriptionText = TicketDescription.TextContent.Create();
+							if (TicketDescriptionText.IsSet())
+							{ 
+								if (!inst.WorkDescription.IsInitial())
+								{
+									TicketDescriptionText.Text.content = inst.WorkDescription;
+								}
+							}
+						}//If(9.4)
+							
+						var TicketWorkDescription = TicketDescription.ToParent.Text.Create();
+						if (TicketWorkDescription.IsSet()) //If(9.5)
+						{
+
+							foreach (var item in textInstance.Text)
+							{
+								if (item.TypeCode.content == "10004")
+								{
+									var TicketDescriptionText = TicketWorkDescription.TextContent.Create(); 
+									if (TicketDescriptionText.IsSet())
+									{
+										if (!inst.ClaimDescription.IsInitial())
+										{
+											TicketDescriptionText.Text.content = inst.ClaimDescription;
+										}
+									}
+								}
+							}
+							
+						}//If(9.5)	
+					}//If(9.3)
+				} //If(9.2)
+
+				else //Else (9.1)
+				{
+					var UpdateWorkDescription = Ticket_Inst.TextCollection.Text.Where(n => n.TypeCode.content == "10022").GetFirst();
+					if (UpdateWorkDescription.IsSet())
+					{
+						UpdateWorkDescription.TextContent.Text.content = inst.WorkDescription;
+					}
+					else
+					{
+						var NewWorkDescription : elementsof Ticket_Inst.TextCollection.Text;
+						NewWorkDescription.TypeCode.content = "10022";
+						var WorkDescriptionInstance = Ticket_Inst.TextCollection.Text.Create(NewWorkDescription);
+						if (WorkDescriptionInstance.IsSet()) //If(9.6)
+						{
+							var TicketWorkDescriptionText = WorkDescriptionInstance.TextContent.Create();
+							if (TicketWorkDescriptionText.IsSet())
+							{
+								if (!inst.WorkDescription.IsInitial())
+								{
+									TicketWorkDescriptionText.Text.content = inst.WorkDescription;	
+								}
+							}
+						} //If(9.6)
+					}
+					
+					var UpdateDescription = Ticket_Inst.TextCollection.Text.Where(n => n.TypeCode.content == "10004").GetFirst();
+					if (UpdateDescription.IsSet())
+					{
+						if (!inst.ClaimDescription.IsInitial())
+						{
+							UpdateDescription.TextContent.Text.content = inst.ClaimDescription;
+						}
+					}
+					else
+					{
+						var NewDescription : elementsof Ticket_Inst.TextCollection.Text;
+						NewDescription.TypeCode.content = "10004";
+						var TicketDescriptionInstance = Ticket_Inst.TextCollection.Text.Create(NewDescription);
+						if (TicketDescriptionInstance.IsSet()) //If(9.6)
+						{
+							var TicketDescriptionText = TicketDescriptionInstance.TextContent.Create();
+							if (TicketDescriptionText.IsSet())
+							{	
+								if (!inst.ClaimDescription.IsInitial())
+								{
+									TicketDescriptionText.Text.content = inst.ClaimDescription;
+								}
+							}
+						} //If(9.6)
+					}
+				} //Else (9.1)
+
+				inst.ProcessingStatus = "C";
+				var CreateProcessLog : elementsof inst.ProcessLog;
+				CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+				CreateProcessLog.Trans_ProcessedObject.content = "02";//"Ticket Create";
+				CreateProcessLog.Trans_ObjectType.content = "05";//"Transactional Data";
+				CreateProcessLog.LogDescriptions.content = "31";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("31") + inst.ClaimNumber.content.RemoveLeadingZeros() + DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("32") + inst.CustomerID.RemoveLeadingZeros() + DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("30") + inst.RegisteredProdID.content.RemoveLeadingZeros();
+				//C4C Service Ticket &1 updated for Customer &2 appliance ID &3
+				inst.ProcessLog.Create(CreateProcessLog);
+			} //If(9.1)
+		} //If(9)End of Ticket Update
+
+		if (Ticket_Item_Update) //If(10) Ticket Item Addition
+		{
+			if (Ticket_Inst.IsSet() && inst.TicketItems.Count() > 0) //If(10.1)
+			{
+				//Delete Existing Item lines
+				if (Ticket_Inst.Item.Count() > 0)
+				{
+					foreach (var Line_Item in Ticket_Inst.Item)
+					{
+						if (Line_Item.Status.ExternalFollowUpProcessingReleaseStatusCode == "6")  //ERP Rel. Status = Not Relevent
+						{ 
+							Line_Item.Delete();
+							//Ticket_Inst.Item.Delete();
+						}
+					}
+				}
+				//Create New Item lines as sent by ISP or 3rd Party
+				foreach (var items in inst.TicketItems) //Foreach(10)
+				{
+					var Ser_Req_Item : elementsof ServiceRequest.Item;
+					
+					//TicketItemss.ID										= items.ClaimItemNumber.ToString();
+					Ser_Req_Item.LX_TKT_CLM = items.ClaimAmount;
+
+					Ticket_Item_Inst = Ticket_Inst.Item.Create(Ser_Req_Item);
+					if (Ticket_Item_Inst.IsSet())
+					{
+						if (Ticket_Item_Inst.ItemProduct.IsSet())
+						{
+							if (items.RexPartNumFlag)
+							{
+								//For Retailers - Query Products using Model Part Number to identify the PNC
+								if (!items.SpareCode.IsInitial())
+								{
+									var qryMaterial = Material.QueryByDescription;
+									var paramModelNumber = qryMaterial.CreateSelectionParams();
+									paramModelNumber.Add(qryMaterial.LX_PRD_MI_B7AD952QPQ6NZ0DX95SWUJ8PG, "I", "EQ", items.SpareCode);
+									var resultMaterial = qryMaterial.Execute(paramModelNumber);
+									if (resultMaterial.Count() > 0)
+									{
+										Ticket_Item_Inst.ItemProduct.ProductKey.ProductID.content = resultMaterial.GetFirst().InternalID.content;
+									}
+								}
+							}
+							else
+							{
+								Ticket_Item_Inst.ItemProduct.ProductKey.ProductID.content = items.SpareCode;
+							}
+							if (!Ticket_Item_Inst.FirstFulfilledItemScheduleLine.IsSet())
+							{
+								var UpdateActualQuantity : elementsof ServiceRequest.Item.ItemScheduleLine;
+								UpdateActualQuantity.Quantity.content = items.SpareQuantity;
+								Ticket_Item_Inst.FirstFulfilledItemScheduleLine.Create(UpdateActualQuantity);
+							}
+						}
+
+						if (!items.ItemProcessingType.IsInitial())
+						{
+							Ticket_Item_Inst.InvoicingMethodCode.content = "4";
+							Ticket_Item_Inst.ExternalPricingRelevantIndicator = false;
+							Ticket_Item_Inst.UserServiceTransactionProcessingTypeCode = items.ItemProcessingType;
+						}
+					}
+				} //Foreach (10)
+			} //If(10.1)
+		} //If (10) End of Ticket Item Addition
+
+		//Submit Claims Relevant Ticket to Service Power - WF Created to Change Ticket Status to Claims Validation
+		
+		//**********************************************************************END OF INSTANCE CREATIONS ****************************************************************
+
+		//**********************************************************************DATA VALIDATION ERRORS ****************************************************************
+		if (DataValidationError)
+		{
+			var ValidationErrorColl	: collectionof Text;
+			var ValidationErrorText :Text;
+		
+			if (inst.CustomerLastName.IsInitial())
+			{
+				ValidationErrorText.content = "14";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("14");//"Customer Last Name is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.CustomerCountry.IsInitial())
+			{
+				ValidationErrorText.content = "15";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("15");//"Customer Postal Code is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.ProductPNC.IsInitial() && !inst.SourceAsRetailer)
+			{
+				ValidationErrorText.content = "16";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("16");//"Product PNC number is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.SerialNumber.IsInitial() && !inst.SourceAsRetailer)
+			{
+				ValidationErrorText.content = "17";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("17");//"Product Serial number is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if(inst.CustomerEmail.IsInitial() && (inst.ItemType == "C" || inst.ItemType == "W" || inst.ItemType == "T"))
+			{
+				ValidationErrorText.content = "69";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if(PrefixedPhoneNumber.IsInitial() && (inst.ItemType == "C" || inst.ItemType == "W" || inst.ItemType == "T"))
+			{
+				ValidationErrorText.content = "70";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.ItemType == "C" && inst.WarrantyType.IsInitial())
+			{
+				ValidationErrorText.content = "18";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("18");//"Product Warranty ID is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.ItemType == "W" && inst.ThirdPartyContractID.IsInitial())
+			{
+				ValidationErrorText.content = "19";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("19");//"3rd Party Contract ID is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.ItemType == "W" && inst.ContractStartDate.IsInitial())
+			{
+				ValidationErrorText.content = "20";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("20");//"Contract Start Date is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if (inst.ItemType == "W" && inst.ContractEndDate.IsInitial())
+			{
+				ValidationErrorText.content = "21";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("21");//"Contract End Date is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+			if ((inst.ItemType == "U" || inst.ItemType == "I") && inst.ClaimNumber.IsInitial())
+			{
+				ValidationErrorText.content = "22";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("22");//"C4C Ticket Number is missing";
+				ValidationErrorColl.Add(ValidationErrorText);
+				ValidationErrorText.Clear();
+			}
+
+			//Create Error Log Node Instance
+			if (ValidationErrorColl.Count() > 0)
+			{
+				var CreateProcessLog : elementsof inst.ProcessLog;
+				CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+				
+				if (inst.ItemType == "H")
+				{
+					//CreateProcessLog.ProcessedObject	= inst.ItemType.GetDescription();
+					CreateProcessLog.Trans_ProcessedObject.content = "33";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("33");//Header
+				}
+				if (inst.ItemType == "T")
+				{
+					CreateProcessLog.Trans_ProcessedObject.content = "34";// = DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("34");//Create New Ticket / Claim
+				}
+				if (inst.ItemType == "U")
+				{
+					CreateProcessLog.Trans_ProcessedObject.content = "35";// = DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("35");//Update Existing Ticket Details
+				}
+				if (inst.ItemType == "C")
+				{
+					CreateProcessLog.Trans_ProcessedObject.content = "36";// = DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("36");//Create Registered Product with Warranty
+				}
+				if (inst.ItemType == "I")
+				{
+					CreateProcessLog.Trans_ProcessedObject.content = "37";// = DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("37");//Additional Details for Ticket Item
+				}
+				if (inst.ItemType == "W")
+				{
+					CreateProcessLog.Trans_ProcessedObject.content = "38";// = DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("38");//Create Registered Product with Contract
+				}
+				
+				if (inst.ItemType == "T" || inst.ItemType == "U" || inst.ItemType == "I")
+				{
+					CreateProcessLog.Trans_ObjectType.content = "05";//		= DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("05");//"Transactional Data";
+				}
+				else
+				{
+					CreateProcessLog.Trans_ObjectType.content = "04";//		= DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("04");//"Master Data";
+					//var msg = DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("29");//"Master Data";
+					//raise errormessage.Create("E", "Proof of Purchase is not Validated");
+				}
+				
+				foreach(var validationErrors in ValidationErrorColl)
+				{
+					CreateProcessLog.LogDescriptions.content = validationErrors.content;
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+			}
+		}
+		//**********************************************************************DATA VALIDATION ERRORS ****************************************************************
+		//**********************************************************************INSTANCE CREATION ERRORS ****************************************************************
+		else
+		{
+			if (inst.ItemType == "C")
+			{
+				if (inst.CustomerUUID.IsInitial())
+				{
+					inst.ProcessingStatus = "F";
+
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "36";
+					CreateProcessLog.Trans_ObjectType.content = "04";
+					CreateProcessLog.LogDescriptions.content = "47";
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+				if (inst.RegisteredProdUUID.IsInitial())
+				{
+					inst.ProcessingStatus = "F";
+
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "36";
+					CreateProcessLog.Trans_ObjectType.content = "04";
+					CreateProcessLog.LogDescriptions.content = "48";
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+			}
+			else if (inst.ItemType == "W")
+			{
+				if (inst.ContractUUID.IsInitial())
+				{
+					inst.ProcessingStatus = "F";
+
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "38";
+					CreateProcessLog.Trans_ObjectType.content = "04";
+					CreateProcessLog.LogDescriptions.content = "50";
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+			}
+			else if (inst.ItemType == "T")
+			{
+				if (inst.ClaimNumber.IsInitial())
+				{
+					inst.ProcessingStatus = "F";
+
+					var CreateProcessLog : elementsof inst.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "34";
+					CreateProcessLog.Trans_ObjectType.content = "05";
+					CreateProcessLog.LogDescriptions.content = "49";
+					inst.ProcessLog.Create(CreateProcessLog);
+				}
+				if(!inst.SourceAsRetailer && inst.TicketItems.Count() == 0)
+				{
+					raise errormessage.Create("W","No labor or parts item available in the ticket for claims submission");
+				}
+			}
+		}
+		//**********************************************************************INSTANCE CREATION ERRORS ****************************************************************
+		inst.ProcessedTimestamp = Context.GetCurrentSystemDateTime().ToString();
+	}
+}
+
+
+//********************************************************************** Commented Code ****************************************************************
+//if (inst.ModelPartNum.IsInitial() && inst.SourceAsRetailer)
+//{
+//ValidationErrorText = "46";//DataUpload_ReuseLibrary.DataUpload_Translate_Errorlog("17");//"Model Part Number is missing";
+//}
+
+//For Retailers - Query Products using Model Part Number to identify the PNC
+//if(inst.ProductPNC.IsInitial() && !inst.ModelPartNum.IsInitial())
+//{
+//var qryMaterial = Material.QueryByDescription;
+//var paramModelNumber = qryMaterial.CreateSelectionParams();
+//paramModelNumber.Add(qryMaterial.LX_PRD_MI_B7AD952QPQ6NZ0DX95SWUJ8PG,"I","EQ",inst.ModelPartNum);
+//var resultMaterial = qryMaterial.Execute(paramModelNumber);
+//if(resultMaterial.Count() > 0)
+//{
+//inst.ProductPNC.content	= resultMaterial.GetFirst().InternalID.content;
+//}
+//}
+
+
+//Submit Claims Relevant Ticket to Service Power - WF Created to Change Ticket Status to Claims Validation
+//if (Ticket_Inst.IsSet())
+//{
+//if (Ticket_Inst.Item.Count() > 0)
+//{
+//var ClaimsRelevantItems = Ticket_Inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZCLM" || n.UserServiceTransactionProcessingTypeCode == "ZPAR");
+//if (ClaimsRelevantItems.Count() > 0)
+//{
+//Ticket_Inst.SubmitClaimsTicket();
+//}
+//}
+//}
+
+//Item Update / Create
+////Perform Customer Duplicate check to validate Customer Details
+							//Customer_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Customer_DupCheck(inst.CustomerEmail, inst.CustomerLastName, PrefixedPhoneNumber, inst.CustomerPostCode);
+							//foreach (var dupcheck in Customer_Dup_Result) //Foreach(5)
+							//{
+							//var checkExistingCustID = inst.BusinessPartnerDuplicate.Where(n => n.CustomerID.RemoveLeadingZeros() == dupcheck.CustomerID.RemoveLeadingZeros());
+							//if (checkExistingCustID.Count() == 0)
+							//{
+							//ConsumerDuplicates.CustomerID	= dupcheck.CustomerID;
+							//ConsumerDuplicates.CustomerUUID = dupcheck.CustomerUUID;
+							//ConsumerDuplicates.MatchPercent = dupcheck.MatchPercent;
+							//
+							//inst.BusinessPartnerDuplicate.Create(ConsumerDuplicates);
+							//}
+							//} //Foreach(5)
+							//if (inst.BusinessPartnerDuplicate.Count() == 1) //If(5.3)
+							//{
+							//inst.CustomerID		= inst.BusinessPartnerDuplicate.GetFirst().CustomerID;
+							//inst.CustomerUUID	= inst.BusinessPartnerDuplicate.GetFirst().CustomerUUID;
+							//if (!inst.CustomerID.IsInitial()) //If(5.4)
+							//{
+							//Cust_Inst = Customer.Retrieve(inst.CustomerID);
+							//if(Cust_Inst.IsSet())
+							//{
+							//inst.ToCustomer = Cust_Inst;	//Set Customer Association
+							//}
+							////Check if customer matches with existing Ticket
+							//if(Ticket_Inst.BuyerParty.IsSet())//If(5.10)
+							//{
+							//if (!Ticket_Inst.BuyerParty.PartyKey.PartyID.content.IsInitial()) //If(5.5)
+							//{
+							//if (Ticket_Inst.BuyerParty.PartyKey.PartyID.content.RemoveLeadingZeros() == inst.CustomerID.RemoveLeadingZeros()) //If(5.6)
+							//{
+							////Perform Registered Product Duplicate check to validate the appliance
+							//Reg_Pdt_Dup_Result = DataUpload_ReuseLibrary.DataUpload_RegPdt_DupCheck(inst.CustomerID, inst.ProductPNC, inst.SerialNumber);
+							//if (Reg_Pdt_Dup_Result != "No Duplicate Found") //If(5.7)
+							//{
+							//inst.RegisteredProdID.content = Reg_Pdt_Dup_Result;
+							//if (!inst.RegisteredProdID.IsInitial()) //If(5.8)
+							//{
+							//Reg_Pdt_Inst = InstallationPoint.Retrieve(inst.RegisteredProdID);
+							//if(Reg_Pdt_Inst.IsSet())
+							//{
+							//inst.RegisteredProdUUID		= Reg_Pdt_Inst.UUID;
+							//inst.ToRegisteredProduct	= Reg_Pdt_Inst;	//Set Registered Product Association
+							//}
+							////Check if Appliance matches with existing ticket
+							//if (Ticket_Inst.MainServiceReferenceObject.IsSet()) //If(5.9)
+							//{
+							//if (Ticket_Inst.MainServiceReferenceObject.InstallationPointID.content == inst.RegisteredProdID.content)
+							//{
+							//Ticket_Item_Update = true;
+							//}
+							//else // If Registered Product does not match with existing ticket
+							//{
+							//inst.ProcessingStatus = "F";
+							//
+							//var CreateProcessLog : elementsof inst.ProcessLog;
+							//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+							//CreateProcessLog.Trans_ProcessedObject.content	= "02";//"Ticket Create";
+							//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+							//CreateProcessLog.LogDescriptions.content   		= "08";//"Registered Product match not found, unable to process Ticket Update";
+							//
+							//inst.ProcessLog.Create(CreateProcessLog);
+							//}
+							//} //If(5.9)
+							//} //If(5.8)
+							//} //If(5.7)
+							//} //If(5.6)
+							//else //If Customer does not match with existing ticket
+							//{
+							//inst.ProcessingStatus = "F";
+							//
+							//var CreateProcessLog : elementsof inst.ProcessLog;
+							//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+							//CreateProcessLog.Trans_ProcessedObject.content	= "03";//"Ticket Update";
+							//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+							//CreateProcessLog.LogDescriptions.content   		= "09";//"Customer match not found, unable to process Ticket Update";
+							//
+							//inst.ProcessLog.Create(CreateProcessLog);
+							//}
+							//} //If(5.5)
+							//}//If(5.10)
+							//} //If(5.4)
+							//} //If(5.3)
+							//else //Customer Not found in C4C
+							//{
+							//inst.ProcessingStatus = "F";
+							//
+							//var CreateProcessLog : elementsof inst.ProcessLog;
+							//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+							//CreateProcessLog.Trans_ProcessedObject.content	= "03";//"Ticket Update";
+							//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+							//CreateProcessLog.LogDescriptions.content    	= "09";//"Customer not found, unable to process Ticket Update";
+							//
+							//inst.ProcessLog.Create(CreateProcessLog);
+							//}
+
+//Ticket update commented code - Before If(4.1) closure
+////Perform Customer Duplicate check to validate Customer Details
+						//Customer_Dup_Result = DataUpload_ReuseLibrary.DataUpload_Customer_DupCheck(inst.CustomerEmail, inst.CustomerLastName, PrefixedPhoneNumber, inst.CustomerPostCode);
+						//foreach (var dupcheck in Customer_Dup_Result) //Foreach(4)
+						//{
+						//var checkExistingCustID = inst.BusinessPartnerDuplicate.Where(n => n.CustomerID.RemoveLeadingZeros() == dupcheck.CustomerID.RemoveLeadingZeros());
+						//if (checkExistingCustID.Count() == 0)
+						//{
+						//ConsumerDuplicates.CustomerID	= dupcheck.CustomerID;
+						//ConsumerDuplicates.CustomerUUID = dupcheck.CustomerUUID;
+						//ConsumerDuplicates.MatchPercent = dupcheck.MatchPercent;
+						//
+						//inst.BusinessPartnerDuplicate.Create(ConsumerDuplicates);
+						//}
+						//} //Foreach (4)
+						//if (inst.BusinessPartnerDuplicate.Count() == 1) //If(4.2)
+						//{
+						//inst.CustomerID		= inst.BusinessPartnerDuplicate.GetFirst().CustomerID.RemoveLeadingZeros();
+						//inst.CustomerUUID	= inst.BusinessPartnerDuplicate.GetFirst().CustomerUUID;
+						//
+						//if (!inst.CustomerID.IsInitial()) //If(4.3)
+						//{
+						//Cust_Inst = Customer.Retrieve(inst.CustomerID);
+						//if(Cust_Inst.IsSet())
+						//{
+						//inst.ToCustomer = Cust_Inst;	//Set Customer Association
+						//}
+						//if(Ticket_Inst.BuyerParty.IsSet())
+						//{
+						////Check if customer matches with existing Ticket
+						//if (!Ticket_Inst.BuyerParty.PartyKey.PartyID.IsInitial())//if(!Ticket_Inst.BuyerID.IsInitial()) //If(4.4)
+						//{
+						//if (Ticket_Inst.BuyerParty.PartyKey.PartyID.content.RemoveLeadingZeros() == inst.CustomerID.RemoveLeadingZeros()) //If(4.5)
+						//{
+						////Perform Registered Product Duplicate check to validate the appliance
+						//Reg_Pdt_Dup_Result = DataUpload_ReuseLibrary.DataUpload_RegPdt_DupCheck(inst.CustomerID, inst.ProductPNC, inst.SerialNumber);
+						//if (Reg_Pdt_Dup_Result != "No Duplicate Found") //If(4.6)
+						//{
+						//inst.RegisteredProdID.content = Reg_Pdt_Dup_Result;
+						//if (!inst.RegisteredProdID.IsInitial()) //If(4.7)
+						//{
+						//Reg_Pdt_Inst = InstallationPoint.Retrieve(inst.RegisteredProdID);
+						//if(Reg_Pdt_Inst.IsSet())
+						//{
+						//inst.RegisteredProdUUID		= Reg_Pdt_Inst.UUID;
+						//inst.ToRegisteredProduct	= Reg_Pdt_Inst;	//Set Registered Product Association
+						//}
+						////Check if Appliance matches with existing ticket
+						//if (Ticket_Inst.MainServiceReferenceObject.IsSet()) //If(4.8)
+						//{
+						//if (Ticket_Inst.MainServiceReferenceObject.InstallationPointID.content == inst.RegisteredProdID.content)
+						//{
+						//Ticket_Update = true;
+						//}
+						//else // If Registered Product does not match with existing ticket
+						//{
+						//inst.ProcessingStatus = "F";
+						//
+						//var CreateProcessLog : elementsof inst.ProcessLog;
+						//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+						//CreateProcessLog.Trans_ProcessedObject.content	= "02";//"Ticket Create";
+						//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+						//CreateProcessLog.LogDescriptions.content	    = "08";//"Registered Product match not found, unable to process Ticket Update";
+						//
+						//inst.ProcessLog.Create(CreateProcessLog);
+						//}
+						//} //If(4.8)
+						//} //If(4.7)
+						//} //If(4.6)
+						//else //If Registered Product is not available, Tickets created by Retailer will not have RP, hence ISP would send updates
+						//{
+						//Reg_Pdt_Create	= true;
+						//Ticket_Update	= true;
+						//}
+						//} //If(4.5) 
+						//else //Customer does not match- End of Process
+						//{
+						//inst.ProcessingStatus = "F";
+						//
+						//var CreateProcessLog : elementsof inst.ProcessLog;
+						//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+						//CreateProcessLog.Trans_ProcessedObject.content	= "03";//"Ticket Update";
+						//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+						//CreateProcessLog.LogDescriptions.content	    = "09";//"Customer match not found, unable to process Ticket Update";
+						//
+						//inst.ProcessLog.Create(CreateProcessLog);
+						//}
+						//} //If(4.4)
+						//}
+						//} //If(4.3)
+						//} //If(4.2)
+						//else if (inst.BusinessPartnerDuplicate.Count() == 0) //Customer not found - End of Process
+						//{
+						//inst.ProcessingStatus = "F";
+						//
+						//var CreateProcessLog : elementsof inst.ProcessLog;
+						//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+						//CreateProcessLog.Trans_ProcessedObject.content	= "03";//"Ticket Update";
+						//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+						//CreateProcessLog.LogDescriptions.content   		= "09";//"Customer not found, unable to process Ticket Update";
+						//
+						//inst.ProcessLog.Create(CreateProcessLog);
+						//}
+						//else // Multiple Customer Duplicates - End of Process
+						//{
+						//
+						//inst.ProcessingStatus = "F";
+						//
+						//var CreateProcessLog : elementsof inst.ProcessLog;
+						//CreateProcessLog.TimeStamp						= Context.GetCurrentSystemDateTime().ToString();
+						//CreateProcessLog.Trans_ProcessedObject.content	= "03";//"Ticket Update";
+						//CreateProcessLog.Trans_ObjectType.content		= "05";//"Transactional Data";
+						//CreateProcessLog.LogDescriptions.content    	= "10";//"Multiple Customer Duplicates identified, unable to process Ticket Creation";
+						//
+						//inst.ProcessLog.Create(CreateProcessLog);
+						//}
+
+						//if (Ticket_Inst.ResolutionCode == "191" && (Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z1"))
+				//{
+					//Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z6";			//Status - Action Needed								
+				//}
+		//
+				//else
+				//{
+					//if (ClaimItem.Count() > 0 && (Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "1" || Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z1")) //Change Status to Claims Validation only for Ticket with Part or Labor Claim
+					//{
+						//Ticket_Inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z7";			//Status - Claims Validation
+					//}
+				//}

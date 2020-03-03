@@ -1,0 +1,290 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: FaultCodeDetermination 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+
+foreach (var inst in this)
+{
+	if (!inst.LX_TXT_FCK.IsInitial() && !inst.LX_TXT_CC.IsInitial() && !inst.LX_TXT_DC.IsInitial())
+	{
+		switch (inst.LX_TXT_FCK)
+		{
+			case "C10" //Refrigeration
+			{
+				inst.LX_TXT_C10CC = inst.LX_TXT_CC;
+				inst.LX_TXT_C10DC = inst.LX_TXT_DC;
+			}
+			case "D10" //Cookers
+			{
+				inst.LX_TXT_D10CC = inst.LX_TXT_CC;
+				inst.LX_TXT_D10DC = inst.LX_TXT_DC;
+			}
+			case "D11" //Combi kitchen
+			{
+				inst.LX_TXT_D11CC = inst.LX_TXT_CC;
+				inst.LX_TXT_D11DC = inst.LX_TXT_DC;
+			}
+			case "D20" //Cookers hoods
+			{
+				inst.LX_TXT_D20CC = inst.LX_TXT_CC;
+				inst.LX_TXT_D20DC = inst.LX_TXT_DC;
+			}
+			case "D50" //Microwave ovens
+			{
+				inst.LX_TXT_D50CC = inst.LX_TXT_CC;
+				inst.LX_TXT_D50DC = inst.LX_TXT_DC;
+			}
+			case "F10" //Dishwashers
+			{
+				inst.LX_TXT_F10CC = inst.LX_TXT_CC;
+				inst.LX_TXT_F10DC = inst.LX_TXT_DC;
+			}
+			case "G10" //Washing Machine
+			{
+				inst.LX_TXT_G10CC = inst.LX_TXT_CC;
+				inst.LX_TXT_G10DC = inst.LX_TXT_DC;
+			}
+			case "G40" //Dry Cabinet & Wash-Basin
+			{
+				inst.LX_TXT_G40CC = inst.LX_TXT_CC;
+				inst.LX_TXT_G40DC = inst.LX_TXT_DC;
+			}
+			case "G45" //Tumble & spin dryer
+			{
+				inst.LX_TXT_G45CC = inst.LX_TXT_CC;
+				inst.LX_TXT_G45DC = inst.LX_TXT_DC;
+			}
+			case "G50" //Mangles, Household
+			{
+				inst.G50ComponentCode = inst.LX_TXT_CC; 	
+				inst.G50DefectCode = inst.LX_TXT_DC;		
+			}
+			case "J20" //Toilets
+			{
+				inst.J20DefectCode = inst.LX_TXT_DC; 
+			}
+			case "J22" //Water Purifier
+			{
+				inst.J22ComponentCode = inst.LX_TXT_CC;
+				inst.J22DefectCode = inst.LX_TXT_DC;  
+			}
+			case "J23" //Food Waste Disposer
+			{
+				inst.J23ComponentCode = inst.LX_TXT_CC;
+				inst.J23DefectCode = inst.LX_TXT_DC; 
+			}
+			case "J25" //Hot Water Appliances / Heaters
+			{
+				inst.J25ComponentCode = inst.LX_TXT_CC; 
+				inst.J25DefectCode = inst.LX_TXT_DC;
+			}
+			case "J26" //Storage Heaters
+			{
+				inst.J26ComponentCode = inst.LX_TXT_CC; 
+				inst.J26DefectCode = inst.LX_TXT_DC;
+			}
+			case "M17" //Small Electric Appliances
+			{
+				inst.M17ComponentCode = inst.LX_TXT_CC; 
+				inst.M17DefectCode = inst.LX_TXT_DC;
+			}
+			case "N50" //Open Fire Heaters Wood Stoves
+			{
+				inst.N50DefectCode = inst.LX_TXT_DC;
+			}
+			case "N60" //Central Ventilation / Heating
+			{
+				inst.N60DefectCode = inst.LX_TXT_DC;
+			}
+			case "X90" //RAD Damages
+			{
+				inst.X90ComponentCode = inst.LX_TXT_CC; 
+				inst.X90DefectCode = inst.LX_TXT_DC;
+			}
+			case "Z14" //Generator for Caravans / Boats
+			{
+				inst.Z14DefectCode = inst.LX_TXT_DC;
+			}
+			case "Z15" //Water Pumps for Marine Purpose
+			{
+				inst.Z15DefectCode = inst.LX_TXT_DC;
+			}
+			case "Z16" //Battery Chargers
+			{
+				inst.Z16DefectCode = inst.LX_TXT_DC;
+			}
+			case "Z17" //Marine Air Conditioner
+			{
+				inst.Z17DefectCode = inst.LX_TXT_DC;
+			}
+			case "Z35" //Safes / Minisafes
+			{
+				inst.Z35DefectCode = inst.LX_TXT_DC;
+			}
+			//Newly added fault code keys
+			case "Axx"
+			{
+				inst.AxxComponentCode = inst.LX_TXT_CC; //Component Code
+				inst.AxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Bxx"
+			{
+				inst.BxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.BxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Cxx"
+			{
+				inst.CxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.CxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Dxx"
+			{
+				inst.DxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.DxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Exx"
+			{
+				inst.ExxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.ExxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Fxx"
+			{
+				inst.FxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.FxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Gxx"
+			{
+				inst.GxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.GxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H11"
+			{
+				inst.H11ComponentCode1 = inst.LX_TXT_CC;//Component Code
+				inst.H11DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H12"
+			{
+				inst.H12ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H12DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H13"
+			{
+				inst.H13ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H13Defectcode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H15"
+			{
+				inst.H15ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H15DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H18"
+			{
+				inst.H18ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H18DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H20"
+			{
+				inst.H20ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H20DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H21"
+			{
+				inst.H21ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H21DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H22"
+			{
+				inst.H22ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H22DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H23"
+			{
+				inst.H23ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H23DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H24"
+			{
+				inst.H24ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H24DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "H25"
+			{
+				inst.H25ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.H25DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Hxx"
+			{
+				inst.HxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.HxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Ixx"
+			{
+				inst.IxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.IxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Jxx"
+			{
+				inst.JxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.JxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Kxx"
+			{
+				inst.KxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.KxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "L03"
+			{
+				inst.L03ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.L03DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "L08"
+			{
+				inst.L08ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.L08DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "L17"
+			{
+				inst.L17ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.L17DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "L18"
+			{
+				inst.L18ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.L18DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "L19"
+			{
+				inst.L19ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.L19DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "L20"
+			{
+				inst.L20ComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.L20DefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Nxx"
+			{
+				inst.NxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.NxxDefectCode = inst.LX_TXT_DC;		//Defect Code
+			}
+			case "Xxx"
+			{
+				inst.XxxComponentCode = inst.LX_TXT_CC;//Component Code
+				inst.XXXDefectcode = inst.LX_TXT_DC;		//Defect Code
+			}
+			//Newly added fault coade keys
+		}	
+	}
+}

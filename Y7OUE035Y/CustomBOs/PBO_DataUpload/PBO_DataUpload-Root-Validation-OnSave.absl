@@ -1,0 +1,101 @@
+﻿/*
+
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: PBO_DataUpload
+		Node: Root
+		Validation: OnSave 
+
+		Script file signature
+		----------------------------
+		Returns: Boolean
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script before an instance of the business object is saved to the data base.
+		It can have a return value of either true or false, which determines whether the instance of the business object is saved or not.
+		All fields in this business object are read-only and cannot be changed.
+*/
+
+import ABSL;
+import AP.Common.GDT;
+import AP.FO.ProductDataMaintenance.Global;
+
+foreach(var inst in this)
+{
+	var CustomerLastNameValidation	:Indicator = true;
+	var CustomerPostalValidation	:Indicator = true;
+	var DataValidation				:Indicator = true;
+
+	//Validation only for data coming from Retailers
+	if(inst.SourceAsRetailer)
+	{
+		//Customer Last Name validation
+		if(inst.CustomerLastName.IsInitial())
+		{
+			raise errormessage.Create("E", "Customer Last Name is missing");
+			CustomerLastNameValidation = false;
+		}
+		else
+		{
+			CustomerLastNameValidation = true;
+		}
+		//Postal Code validation
+		if(inst.CustomerPostCode.IsInitial())
+		{
+			raise errormessage.Create("E", "Customer Postal Code is missing");
+			CustomerPostalValidation = false;
+		}
+		else
+		{
+			CustomerPostalValidation = true;
+		}
+	}
+	else
+	{
+		DataValidation = true;
+	}
+
+	if(DataValidation && CustomerLastNameValidation && CustomerPostalValidation)
+	{
+		return true;	
+	}
+	else
+	{
+		return false;
+	}
+
+}
+
+
+//if(inst.ItemType == "T") Not all Retailers have model part number (only Unieuro has this details,hence this validation is removed)
+//{
+	//if(inst.ModelPartNum.IsInitial())
+	//{
+		//raise errormessage.Create("E", "Model Part number is missing");
+		//DataValidation = false;
+	//}
+	//else
+	//{
+		//var MaterialQuery = Material.QueryByDescription;
+		//var ModelPartNum = MaterialQuery.CreateSelectionParams();
+		//ModelPartNum.Add(MaterialQuery.LX_PRD_MI_B7AD952QPQ6NZ0DX95SWUJ8PG,"I","EQ",inst.ModelPartNum);
+		//var ValidateModelPartNum = MaterialQuery.Execute(ModelPartNum);
+		//if(ValidateModelPartNum.Count() == 0) //If the Model Part Number is not found in Material Master
+		//{
+			//raise errormessage.Create("E", "Model Number sent is incorrect and not available in C4C");
+			//DataValidation = false;
+		//}
+		//else
+		//{
+			//DataValidation = true;
+		//}
+	//}
+//}
+//else
+//{
+	//DataValidation = true;
+//}

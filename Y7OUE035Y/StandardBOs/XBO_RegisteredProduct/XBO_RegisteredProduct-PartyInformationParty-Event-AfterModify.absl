@@ -1,0 +1,141 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: InstallationPoint
+		Node: PartyInformationParty
+		Event: AfterModify 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script if:
+		- the value of any field in the node in which this script is contained is modified.
+		- the node itself is modified by another business object within the same solution.
+*/
+import ABSL;
+import AP.Common.GDT;
+
+
+foreach (var item in this) //For #1
+{
+	//code to retrieve country of the selected customer
+	var Warranty_Reset_Indicator : Indicator;
+	var InstalledObject_Node = item.ToRoot.PrimaryInstalledObject;
+	if (item.RoleCategoryCode == "60" && !item.PartyKey.PartyID.content.IsInitial())//(All_Party_Info.Count() > 0)
+	{   
+			var Customer_Info = item.Party;
+			if (Customer_Info.IsSet()) //if #1
+			{
+				if (Customer_Info.Customer.IsSet()) //if #2
+				{
+					if (Customer_Info.Customer.CurrentDefaultAddressInformation.IsSet())//if #3
+					{
+						var Customer_address = Customer_Info.Customer.CurrentDefaultAddressInformation;
+						if (Customer_address.IsSet()) //if #4
+						{
+							if (Customer_address.Address.IsSet())//if #5
+							{
+								if (Customer_address.Address.DefaultPostalAddressRepresentation.IsSet())//if #6
+								{
+									var Customer_Country = Customer_address.Address.DefaultPostalAddressRepresentation.CountryCode;
+									//code to extract warranty code based on the country code of the consumer
+									if (!Customer_Country.IsInitial())//if #7
+									{
+										var warranty_Code_List = COUNTRYBASED_FIELDMAPPINGS.QueryByElements;
+										var Sel_Param = warranty_Code_List.CreateSelectionParams();
+										Sel_Param.Add(warranty_Code_List.COUNTRY, "I", "EQ", Customer_Country);
+										var Customer_Warranty_Mapping_Info = warranty_Code_List.Execute(Sel_Param);
+								
+										//code to map the warranty code to the warranty field
+															
+										if (Customer_Warranty_Mapping_Info.Count() > 0)//if #8
+										{
+											var Customer_Warranty = Customer_Warranty_Mapping_Info.GetFirst();
+											
+											if (InstalledObject_Node.IsSet())//if #9
+											{
+												var Individual_Product_Info = InstalledObject_Node.InstalledObjectIndividualProduct;
+												if (Individual_Product_Info.IsSet())//if #10
+												{
+													if (Individual_Product_Info.IndividualProduct.IsSet())//if #11
+													{
+														if (Individual_Product_Info.IndividualProduct.ServiceProcessInformation.IsSet())//if #12
+														{
+															if (Individual_Product_Info.IndividualProduct.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment.IsSet())
+															{
+																if (Customer_Warranty.IsSet())//warranty.IsInitial()
+																{
+																	Individual_Product_Info.IndividualProduct.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment.WarrantyKey.ProductID.content = Customer_Warranty.WARRANTY;
+																}
+															}
+															else
+															{
+																var Service_Process_Info_Warranty_Create = Individual_Product_Info.IndividualProduct.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment.Create();
+																if (Customer_Warranty.IsSet())
+																{
+																	Service_Process_Info_Warranty_Create.WarrantyKey.ProductID.content = Customer_Warranty.WARRANTY;
+																}
+															}
+														}//if #12
+														else // else #1
+														{
+															var Service_Process_Info_Create = Individual_Product_Info.IndividualProduct.ServiceProcessInformation.Create();//inst.IndividualProduct.ServiceProcessInformation.Create();
+															var Service_Process_Info_Warr_Create = Service_Process_Info_Create.ServiceProcessInformationWarrantyAssignment.Create();
+															if (Customer_Warranty.IsSet())
+															{
+																Service_Process_Info_Warr_Create.WarrantyKey.ProductID.content = Customer_Warranty.WARRANTY;
+															}
+
+														}// else #1	   
+													}//if #11
+												}//if #10
+											}//if #9
+										}//if #8
+										else //else #2
+										{
+											Warranty_Reset_Indicator = true;
+										} //else #2
+									}//if #7
+								}//if #6
+							}//if #5
+						}//if #4
+					}//if #3
+				}//if #2
+			}//if #1
+
+			
+		} //if(Customers.Count()>0)
+		else 
+		{
+		  var Parent_node = item.ToRoot.PartyInformation;
+		  var involved_party_count = Parent_node.Count();
+		  if(involved_party_count == 1)
+		  {
+			Warranty_Reset_Indicator = true;						
+		  }
+		}//else #3
+		if (Warranty_Reset_Indicator)
+		{	
+			if (InstalledObject_Node.IsSet())
+			{
+				var Individual_Product_Info = InstalledObject_Node.InstalledObjectIndividualProduct;
+				if (Individual_Product_Info.IsSet())
+				{
+					if (Individual_Product_Info.IndividualProduct.IsSet())
+					{
+						if (Individual_Product_Info.IndividualProduct.ServiceProcessInformation.IsSet())
+						{
+							if (Individual_Product_Info.IndividualProduct.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment.IsSet())
+							{
+								Individual_Product_Info.IndividualProduct.ServiceProcessInformation.ServiceProcessInformationWarrantyAssignment.WarrantyKey.ProductID.Clear();	
+							}
+						}
+					}
+				}
+			}		
+		}
+	
+}//For #1
+	

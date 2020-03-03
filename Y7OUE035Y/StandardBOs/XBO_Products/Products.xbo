@@ -1,0 +1,37 @@
+﻿import AP.Common.GDT;
+import AP.FO.ProductDataMaintenance.Global;
+
+[Extension] businessobject AP.FO.ProductDataMaintenance.Global:Material {
+ 
+        // You must activate this business object before you can access the extension fields
+        // or messages in script files, forms, and screens.
+
+    
+   		node SupplierInformation {
+   	    } 
+    
+   		node SalesProcessInformation {
+   	    } 
+    
+   		node Common {
+
+		[Scenario (PRODAPPS)] [Label("Appliance Skill")]			element EAApplianceSkill		:CLAPPSKILLCode;
+   	    } 
+    
+   		node QuantityConversion {
+   	    } 
+    
+   		node CompetitorInformation {
+   	    } 
+    
+   		node CustomerInformation {
+   	    } 
+    
+   		node OwnProduct {
+   	    } 
+    
+   		node MeasurementPointTemplate {
+   	    } 
+     
+  
+}

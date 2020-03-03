@@ -1,0 +1,105 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: BusinessTransactionDocumentReference
+		Event: AfterModify 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script if:
+		- the value of any field in the node in which this script is contained is modified.
+		- the node itself is modified by another business object within the same solution.
+*/
+
+import ABSL;
+
+foreach(var inst in this)
+{
+	if (!inst.BusinessTransactionDocumentReference.IsInitial())
+	{
+		var BusinessTransaction = inst.BusinessTransactionDocumentReference;
+
+		if(BusinessTransaction.TypeCode == "39")
+		{
+			if (inst.EmailActivity.IsSet())
+			{
+				var LatestEmail = inst.EmailActivity;
+
+				if (LatestEmail.MessageFromParty.IsSet())
+				{
+					var MessageFromParty = LatestEmail.MessageFromParty;
+					var ECCEmail;
+
+					if (Context.GetSystemURL().ToLowerCase().Contains("my324697"))		//Test system
+					{
+						if (inst.ToRoot.ServicePointLocation.IsSet())
+						{
+							var ServicePointLoc = inst.ToRoot.ServicePointLocation;
+
+							if (ServicePointLoc.UsedAddress.DefaultPostalAddressRepresentation.IsSet())
+							{
+								var DefaultAddress = ServicePointLoc.UsedAddress.DefaultPostalAddressRepresentation;
+
+								if (DefaultAddress.CountryCode == "BE")
+								{
+									ECCEmail = "customerservice.ert@electrolux.be";
+								}
+								else if (DefaultAddress.CountryCode == "GB")
+								{
+									ECCEmail = "ar_uk@electrolux.de";
+								}
+							}
+						}
+					}
+					else if (Context.GetSystemURL().ToLowerCase().Contains("my338453")) //QA System
+					{
+						ECCEmail = "BATCH_BE11CC@ELECTROLUX.COM";
+					}
+					else if (Context.GetSystemURL().ToLowerCase().Contains("my339657"))	//Production System
+					{
+						if (inst.ToRoot.ServicePointLocation.IsSet())
+						{
+							var ServicePointLoc = inst.ToRoot.ServicePointLocation;
+
+							if (ServicePointLoc.UsedAddress.DefaultPostalAddressRepresentation.IsSet())
+							{
+								var DefaultAddress = ServicePointLoc.UsedAddress.DefaultPostalAddressRepresentation;
+
+								if (DefaultAddress.CountryCode == "BE")
+								{
+									ECCEmail = "customerservice.ert@electrolux.be";
+								}
+								else if (DefaultAddress.CountryCode == "GB")
+								{
+									ECCEmail = "ar_uk@electrolux.de";
+								}
+							}
+						}
+					}
+		
+					if ((!ECCEmail.IsInitial() && MessageFromParty.EmailURI == ECCEmail) || MessageFromParty.EmailURI == "Ruchika.Soni@cognizant.com")
+					{
+						if (inst.ToRoot.Status.ServiceRequestLifeCycleStatusCode != "3" && !inst.ToRoot.LX_TKT_COMPL_DATE.IsInitial())	//If the ticket status was completed earlier
+						{
+							//Set Status to Completed
+							if (inst.ToRoot.ServiceTerms.IsSet())
+							{
+								inst.ToRoot.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "5";	
+							}
+							else
+							{
+								var serviceterms : elementsof ServiceRequest.ServiceTerms;
+								serviceterms.ServiceRequestUserLifeCycleStatusCode = "5";
+								inst.ToRoot.ServiceTerms.Create(serviceterms);
+							}
+						}		
+					}
+				}
+			}
+		}
+	}
+}

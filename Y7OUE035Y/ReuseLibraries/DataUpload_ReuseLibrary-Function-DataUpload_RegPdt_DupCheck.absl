@@ -1,0 +1,76 @@
+﻿import ABSL;
+import AP.Common.GDT;
+import AP.FO.IBase.Global;
+
+var result : DataType::LANGUAGEINDEPENDENT_MEDIUM_Name;
+result = "No Duplicate Found"; 
+
+var DuplicateRegPdt : elementsof PBO_DataUpload.BusinessPartnerDuplicate;
+var Duplicates : collectionof elementsof PBO_DataUpload.BusinessPartnerDuplicate;
+
+if(!CustomerID.IsInitial())
+{
+	//Registered Product duplicate Check with Consumer ID
+	var req = InstallationPoint.QueryByParty;
+	var reg_param = req.CreateSelectionParams();
+	reg_param.Add(req.PartyInformationPartyPartyKey.PartyID.content,"I","EQ", CustomerID);
+	var reg_QResult = req.Execute(reg_param);
+
+	if(reg_QResult.Count()==0)
+	{
+		 result = "No Duplicate Found"; //no pdt found against the customer 
+	}
+	else //Else
+	{
+	   //Verify PNC & Serial number with identified instance
+	   foreach(var inst in reg_QResult) //Foreach
+	   {
+		  if(inst.IsSet()) //If(1)
+		  {
+			var PrimaryInstalledObj = inst.PrimaryInstalledObject;
+
+			if(PrimaryInstalledObj.IsSet()) //If(2)
+			{
+				var InstalledObjIndvProduct = PrimaryInstalledObj.InstalledObjectIndividualProduct;
+
+				if(InstalledObjIndvProduct.IsSet()) //If(3)
+				{
+					var IndividualProductInst = InstalledObjIndvProduct.IndividualProduct;
+
+					if(IndividualProductInst.IsSet())//If(4)
+					{
+						var IndividualPrdServiceProcessInfo = IndividualProductInst.ServiceProcessInformation;
+
+						if(IndividualPrdServiceProcessInfo.IsSet()) //If(5)
+						{
+								var ReferenceProductInst = IndividualPrdServiceProcessInfo.ReferencedProductKey;
+
+								if(ReferenceProductInst.ProductID.content.RemoveLeadingZeros() == PNCNumber.content.RemoveLeadingZeros() && inst.LX_PRD_SN1 == SerialNumber) //If(6)
+								{
+									DuplicateRegPdt.MatchPercent = inst.ID.content;
+									if(!inst.SystemAdministrativeData.IsInitial())
+									{
+										DuplicateRegPdt.CustomerLastChangedDateTime = inst.SystemAdministrativeData.LastChangeDateTime.ConvertToDateTime();
+									}
+									
+									Duplicates.Add(DuplicateRegPdt);
+									
+								} //If(6)
+							}	//If(5)
+						} //If(4) 
+					}//If(3)
+				} //If(2)
+			} //If(1)
+		} //Foreach
+
+		if(Duplicates.Count() > 0)
+		{
+			var LatestDupRegPdt = Duplicates.OrderByDescending(n=>n.CustomerLastChangedDateTime.content).GetFirst();
+			if(!LatestDupRegPdt.IsInitial())
+			{
+				result = LatestDupRegPdt.MatchPercent; // return the registered product ID
+			}
+		}
+	}//else
+}//If
+return result;

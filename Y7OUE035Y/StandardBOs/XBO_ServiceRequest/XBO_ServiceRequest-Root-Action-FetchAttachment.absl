@@ -1,0 +1,403 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: FetchAttachment 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+import AP.PC.IdentityManagement.Global; 
+import AP.FO.BusinessPartner.Global; 
+import AP.FO.IBase.Global; 
+import DocumentServices.Global as docServicesGlobal; 
+import AP.Common.GDT as apCommonGDT;
+import BASIS.Global;
+
+foreach (var inst in this)
+{
+	//****************************** Start of Warranty Claim Validation and Image Capturing for Italy ***************************************//
+	if (inst.IsSet())
+	{
+		//Start of Business logic 
+		var currentDate = Context.GetCurrentSystemDate();
+		var MaterialRef = inst.MainServiceReferenceObject;
+		var lv_attachFolder;
+		var lv_doc;
+		lv_attachFolder = inst.AttachmentFolder;
+		if(lv_attachFolder.IsSet())
+		{
+		 lv_doc = lv_attachFolder.Document;
+		}
+		var MaterialRef_InstPoint;
+		var RegisteredProductInst;
+		var RegPdt_PrimaryInstalledObject;
+		var RegPdt_InstalledObjectIndividualProduct;
+		var RegisteredProductIndividual;
+		var WarrantyStartDate;
+		var lv_SrvLoc;
+		var lv_SrvLocAddr;
+		var lv_SrvLocDefAddr;
+		var lv_SrvLoc_CountryCode;
+		var lv_RPserialNum;
+		var lv_RPpncNum;
+		var lv_TktSerialNum;
+		var lv_TktPNCnum;
+		var lv_verFileVarient_POP;
+		var lv_fileContent_POP;
+		var lv_binObj_POP : BinaryObject;
+		var lv_docType_POP : apCommonGDT:DocumentTypeCode;
+		var lv_docName_POP : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docAltName_POP : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docDesc_POP : apCommonGDT:Description;
+		var lv_verFileVarient_RP;
+		var lv_fileContent_RP;
+		var lv_binObj_RP : BinaryObject;
+		var lv_docType_RP : apCommonGDT:DocumentTypeCode;
+		var lv_docName_RP : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docAltName_RP : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docDesc_RP : apCommonGDT:Description;
+		var lv_verFileVarient_SWO;
+		var lv_fileContent_SWO;
+		var lv_binObj_SWO : BinaryObject;
+		var lv_docType_SWO : apCommonGDT:DocumentTypeCode;
+		var lv_docName_SWO : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docAltName_SWO : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docDesc_SWO : apCommonGDT:Description;
+		var lv_verFileVarient_AP1;
+		var lv_fileContent_AP1;
+		var lv_binObj_AP1 : BinaryObject;
+		var lv_docType_AP1 : apCommonGDT:DocumentTypeCode;
+		var lv_docName_AP1 : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docAltName_AP1 : apCommonGDT:LANGUAGEINDEPENDENT_EXTENDED_Name;
+		var lv_docDesc_AP1 : apCommonGDT:Description;
+		var lc_suffix_RP = "_RP";
+		var lc_suffix_POP = "_POP";
+		var lc_suffix_SWO = "_SWO";
+		var lc_suffix_AP1 = "_AP1";
+		var lv_inst_indicator = "false";
+		var lv_NewAttachment;
+		var lv_attach_added = "false";
+
+		//Get Country
+		lv_SrvLoc = inst.ServicePointLocation;
+		if (lv_SrvLoc.IsSet())
+		{
+			lv_SrvLocAddr = lv_SrvLoc.UsedAddress;
+			if (lv_SrvLocAddr.IsSet())
+			{
+				lv_SrvLocDefAddr = lv_SrvLocAddr.DefaultPostalAddressRepresentation;
+				if (lv_SrvLocDefAddr.IsSet())
+				{ 
+					lv_SrvLoc_CountryCode = lv_SrvLocDefAddr.CountryCode;
+					if (!lv_SrvLoc_CountryCode.IsInitial())
+					{
+						if (lv_SrvLoc_CountryCode == "IT")
+						{
+							//Get registered product and warranty date
+							if (MaterialRef.IsSet())
+							{
+								lv_RPpncNum = MaterialRef.MaterialKey.ProductID.content.RemoveLeadingZeros(); //RP PNC number
+								MaterialRef_InstPoint = MaterialRef.InstallationPoint;	 				
+								if (MaterialRef_InstPoint.IsSet())
+								{
+									lv_RPserialNum = MaterialRef_InstPoint.LX_PRD_SN1; // RP serial number
+									RegisteredProductInst = InstallationPoint.Retrieve(MaterialRef_InstPoint.ID);
+									if (RegisteredProductInst.IsSet())
+									{
+										RegPdt_PrimaryInstalledObject = RegisteredProductInst.PrimaryInstalledObject;
+										if (RegPdt_PrimaryInstalledObject.IsSet())
+										{
+											RegPdt_InstalledObjectIndividualProduct = RegPdt_PrimaryInstalledObject.InstalledObjectIndividualProduct;
+											if (RegPdt_InstalledObjectIndividualProduct.IsSet())
+											{
+												RegisteredProductIndividual = RegPdt_InstalledObjectIndividualProduct.IndividualProduct;
+												if (RegisteredProductIndividual.IsSet()) 
+												{   
+													//warranty end date
+													var RegPrd_SrvcInfo = RegisteredProductIndividual.ServiceProcessInformation;
+													if (RegPrd_SrvcInfo.IsSet())
+													{
+														var RegPrd_WrntInfo = RegPrd_SrvcInfo.ServiceProcessInformationWarrantyAssignment;
+														if (RegPrd_WrntInfo.IsSet())
+														{
+															var RegPrd_ValidPrd = RegPrd_WrntInfo.ValidityPeriod;
+															if (!RegPrd_ValidPrd.IsInitial())
+															{
+																var lv_WarrDate = RegPrd_ValidPrd.EndDate;
+																if (lv_WarrDate.GreaterEquals(currentDate))
+																{
+																	//Check if valid SN and PNC is added in ticket
+																	if (!inst.LX_PRD_SN1.IsInitial() && !lv_RPpncNum.IsInitial())
+																	{	
+																		var lv_PNC_SR = lv_RPpncNum + "_" + inst.LX_PRD_SN1 + "*";
+																		var lv_PNC_SR_RP = lv_RPpncNum + "_" + inst.LX_PRD_SN1 + lc_suffix_RP;
+																		var lv_PNC_SR_POP = lv_RPpncNum + "_" + inst.LX_PRD_SN1 + lc_suffix_POP;
+																		var lv_PNC_SR_SWO = lv_RPpncNum + "_" + inst.LX_PRD_SN1 + lc_suffix_SWO;
+																		var lv_PNC_SR_AP1 = lv_RPpncNum + "_" + inst.LX_PRD_SN1 + lc_suffix_AP1;
+																		var docQuery = BusinessObject::Document.Version.QueryByElements;
+																		var docSelectionParams = docQuery.CreateSelectionParams();
+																		docSelectionParams.Add(docQuery.Name, "I", "CP", lv_PNC_SR);
+																		var docResultData = docQuery.Execute(docSelectionParams);
+																		if (docResultData.Count() > 0) //IF docResultData
+																		{
+																			var docResultDataPOP = docResultData.Where(n => n.Name == lv_PNC_SR_POP).OrderByDescending(n => n.SystemAdministrativeData.LastChangeDateTime);
+																			if (docResultDataPOP.Count() > 0)
+																			{
+																				var lv_POPdata = docResultDataPOP.GetFirst();
+																				lv_verFileVarient_POP = lv_POPdata.VersionFileVariant;
+																				if (lv_verFileVarient_POP.Count() > 0)
+																				{
+																					lv_docAltName_POP = lv_verFileVarient_POP.GetFirst().Name;
+																					lv_docName_POP = lv_verFileVarient_POP.GetFirst().Name;
+																					lv_docDesc_POP.content = lv_verFileVarient_POP.GetFirst().Name;
+																					lv_docType_POP.content = "ZPOP"; //Proof of Purchase
+																					lv_fileContent_POP = lv_verFileVarient_POP.GetFirst().VersionFileVariantContent;
+																					if (lv_fileContent_POP.IsSet())
+																					{
+																						lv_binObj_POP = lv_fileContent_POP.BinaryObject;	
+																					}
+																				}
+																				//attach file to ticket Attachment
+																				if (lv_attachFolder.IsSet())
+																				{
+																					var lv_AttachExist = lv_doc.Where(n => n.Name == lv_docName_POP && n.TypeCode.content == "ZPOP");
+																					if (lv_AttachExist.Count() > 0)
+																					{
+																						lv_AttachExist.GetFirst().Delete();
+																						lv_attachFolder.CreateFile(lv_docType_POP, lv_docName_POP, lv_docAltName_POP, lv_docDesc_POP, lv_binObj_POP);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																					else
+																					{
+																						lv_attachFolder.CreateFile(lv_docType_POP, lv_docName_POP, lv_docAltName_POP, lv_docDesc_POP, lv_binObj_POP);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else
+																				{
+																					lv_NewAttachment = inst.AttachmentFolder.Create();
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_POP, lv_docName_POP, lv_docAltName_POP, lv_docDesc_POP, lv_binObj_POP);
+																						lv_inst_indicator = "true";
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																			}
+																																					
+																			var docResultDataRP = docResultData.Where(n => n.Name == lv_PNC_SR_RP).OrderByDescending(n => n.SystemAdministrativeData.LastChangeDateTime);
+																			if (docResultDataRP.Count() > 0)
+																			{
+																				var lv_RPdata = docResultDataRP.GetFirst();
+																				lv_verFileVarient_RP = lv_RPdata.VersionFileVariant;
+																				if (lv_verFileVarient_RP.Count() > 0)
+																				{
+																					lv_docAltName_RP = lv_verFileVarient_RP.GetFirst().Name;
+																					lv_docName_RP = lv_verFileVarient_RP.GetFirst().Name;
+																					lv_docDesc_RP.content = lv_verFileVarient_RP.GetFirst().Name;
+																					lv_docType_RP.content = "ZPOP"; //Proof of Purchase
+																					lv_fileContent_RP = lv_verFileVarient_RP.GetFirst().VersionFileVariantContent;
+																					if (lv_fileContent_RP.IsSet())
+																					{
+																						lv_binObj_RP = lv_fileContent_RP.BinaryObject;	
+																					}
+																				}
+																				//attach file to ticket Attachment
+																				if (lv_attachFolder.IsSet())
+																				{
+																					var lv_AttachExist = lv_doc.Where(n => n.Name == lv_docName_RP && n.TypeCode.content == "ZPOP");
+																					if (lv_AttachExist.Count() > 0)
+																					{
+																						lv_AttachExist.GetFirst().Delete();
+																						lv_attachFolder.CreateFile(lv_docType_RP, lv_docName_RP, lv_docAltName_RP, lv_docDesc_RP, lv_binObj_RP);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																					else
+																					{
+																						lv_attachFolder.CreateFile(lv_docType_RP, lv_docName_RP, lv_docAltName_RP, lv_docDesc_RP, lv_binObj_RP);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else if (lv_inst_indicator == "true")
+																				{	
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_RP, lv_docName_RP, lv_docAltName_RP, lv_docDesc_RP, lv_binObj_RP);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else
+																				{
+																					lv_NewAttachment = inst.AttachmentFolder.Create();
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_RP, lv_docName_RP, lv_docAltName_RP, lv_docDesc_RP, lv_binObj_RP);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																			}
+
+																			//start of SWO and AP1
+																			var docResultDataSWO = docResultData.Where(n => n.Name == lv_PNC_SR_SWO).OrderByDescending(n => n.SystemAdministrativeData.LastChangeDateTime);
+																			if (docResultDataSWO.Count() > 0)
+																			{
+																				var lv_SWOdata = docResultDataSWO.GetFirst();
+																				lv_verFileVarient_SWO = lv_SWOdata.VersionFileVariant;
+																				if (lv_verFileVarient_SWO.Count() > 0)
+																				{
+																					lv_docAltName_SWO = lv_verFileVarient_SWO.GetFirst().Name;
+																					lv_docName_SWO = lv_verFileVarient_SWO.GetFirst().Name;
+																					lv_docDesc_SWO.content = lv_verFileVarient_SWO.GetFirst().Name;
+																					lv_docType_SWO.content = "10001"; //Standard Attachment
+																					lv_fileContent_SWO = lv_verFileVarient_SWO.GetFirst().VersionFileVariantContent;
+																					if (lv_fileContent_SWO.IsSet())
+																					{
+																						lv_binObj_SWO = lv_fileContent_SWO.BinaryObject;	
+																					}
+																				}
+																				//attach file to ticket Attachment
+																				if (lv_attachFolder.IsSet())
+																				{
+																					var lv_AttachExist = lv_doc.Where(n => n.Name == lv_docName_SWO && n.TypeCode.content == "10001");
+																					if (lv_AttachExist.Count() > 0)
+																					{
+																						lv_AttachExist.GetFirst().Delete();
+																						lv_attachFolder.CreateFile(lv_docType_SWO, lv_docName_SWO, lv_docAltName_SWO, lv_docDesc_SWO, lv_binObj_SWO);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																					else
+																					{
+																						lv_attachFolder.CreateFile(lv_docType_SWO, lv_docName_SWO, lv_docAltName_SWO, lv_docDesc_SWO, lv_binObj_SWO);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else if (lv_inst_indicator == "true")
+																				{	
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_SWO, lv_docName_SWO, lv_docAltName_SWO, lv_docDesc_SWO, lv_binObj_SWO);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else
+																				{
+																					lv_NewAttachment = inst.AttachmentFolder.Create();
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_SWO, lv_docName_SWO, lv_docAltName_SWO, lv_docDesc_SWO, lv_binObj_SWO);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																			}
+
+																			
+																			var docResultDataAP1 = docResultData.Where(n => n.Name == lv_PNC_SR_AP1).OrderByDescending(n => n.SystemAdministrativeData.LastChangeDateTime);
+																			if (docResultDataAP1.Count() > 0)
+																			{
+																				var lv_AP1data = docResultDataAP1.GetFirst();
+																				lv_verFileVarient_AP1 = lv_AP1data.VersionFileVariant;
+																				if (lv_verFileVarient_AP1.Count() > 0)
+																				{
+																					lv_docAltName_AP1 = lv_verFileVarient_AP1.GetFirst().Name;
+																					lv_docName_AP1 = lv_verFileVarient_AP1.GetFirst().Name;
+																					lv_docDesc_AP1.content = lv_verFileVarient_AP1.GetFirst().Name;
+																					lv_docType_AP1.content = "10001"; //Standard Attachment
+																					lv_fileContent_AP1 = lv_verFileVarient_AP1.GetFirst().VersionFileVariantContent;
+																					if (lv_fileContent_AP1.IsSet())
+																					{
+																						lv_binObj_AP1 = lv_fileContent_AP1.BinaryObject;	
+																					}
+																				}
+																				//attach file to ticket Attachment
+																				if (lv_attachFolder.IsSet())
+																				{
+																					var lv_AttachExist = lv_doc.Where(n => n.Name == lv_docName_AP1 && n.TypeCode.content == "10001");
+																					if (lv_AttachExist.Count() > 0)
+																					{
+																						lv_AttachExist.GetFirst().Delete();
+																						lv_attachFolder.CreateFile(lv_docType_AP1, lv_docName_AP1, lv_docAltName_AP1, lv_docDesc_AP1, lv_binObj_AP1);
+																						inst.LX_PRD_PD1 = true;
+																					}
+																					else
+																					{
+																						lv_attachFolder.CreateFile(lv_docType_AP1, lv_docName_AP1, lv_docAltName_AP1, lv_docDesc_AP1, lv_binObj_AP1);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else if (lv_inst_indicator == "true")
+																				{	
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_AP1, lv_docName_AP1, lv_docAltName_AP1, lv_docDesc_AP1, lv_binObj_AP1);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																				else
+																				{
+																					lv_NewAttachment = inst.AttachmentFolder.Create();
+																					if (lv_NewAttachment.IsSet())
+																					{
+																						lv_NewAttachment.CreateFile(lv_docType_AP1, lv_docName_AP1, lv_docAltName_AP1, lv_docDesc_AP1, lv_binObj_AP1);
+																						inst.LX_PRD_PD1 = true;
+																						lv_attach_added = "true";
+																					}
+																				}
+																			}
+
+																		} //IF docResultData
+																		else
+																		{
+																			raise InformationMessages.Create("W", "Fetch Attachment failed, no image found for PNC and serial number combination");
+																		}
+																	} //end of Check if valid SN and PNC
+																	else
+																	{
+																		raise InformationMessages.Create("W", "Fetch Attachment failed because Serial number or Product PNC is not maintained in Ticket");
+																	}
+																} // end of Warranty loop
+																else
+																{
+																	raise InformationMessages.Create("W", "Fetch Attachment failed because product is out of warranty");
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								} //end loop of Reg Prod
+
+							}
+						}
+					}
+				}
+			} //end loop of Get country
+		}
+		if (lv_attach_added == "true")
+		{
+			raise InformationMessages.Create("I", "Attachment successfully added to the ticket");
+		}
+	}
+}

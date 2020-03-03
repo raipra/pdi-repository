@@ -1,0 +1,144 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: RetriveEStockTicket 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+//****************************************************************************************************************************//
+//Change Request ID: SAGARAKA_PI1.0
+//Author: Akanksha Sagar (SAGARAKA)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+import AP.FO.MOM.Global;
+
+foreach (var Inst in this)
+{
+	Inst.EStockTicket.Delete();//For deleting the node initially
+
+	var Request					: Library::Ext_EStockTicket.Zc4cC4cTicketStatusOut.Request;
+	var SrvPartyExeInst			= Inst.ServiceExecutionTeamParty; 
+
+
+	Request.ITicket				= Inst.ID.content.RemoveLeadingZeros();//Inst ID
+	
+	//For extracting the company ID of the technician
+	if(SrvPartyExeInst.IsSet())
+	{
+		var TechTeamID						= SrvPartyExeInst.PartyKey.PartyID.content;
+		
+		if (!TechTeamID.IsInitial())
+		{
+			var TechTeamOrgID				= OrganisationalUnit.Retrieve(TechTeamID);
+			if (TechTeamOrgID.IsSet())
+			{
+				if (TechTeamOrgID.Company.Count() > 0)
+				{
+					//Start of Addition for SAGARAKA_PI_1.0
+					var lv_TechTeamCompany = TechTeamOrgID.Company.GetFirst();
+					if(lv_TechTeamCompany.IsSet())
+					{
+						//var CompanyInst			= TechTeamOrgID.Company.GetFirst().Company.ID;//For extracting the company ID of the technician
+						var CompanyInst			= lv_TechTeamCompany.Company.ID;
+						if(!CompanyInst.IsInitial()) //add comment by SAGARAKA_PI1.0
+						{
+							Request.ServiceOrg		= CompanyInst;
+						}
+					}
+					//End od Addition of code for SAGARAKA_PI1.0
+				}
+			}
+		}
+	}
+	if (!Request.ServiceOrg.IsInitial())
+	{
+		var Response						: Library::Ext_EStockTicket.Zc4cC4cTicketStatusOut.Response; 
+		Response							= Library::Ext_EStockTicket.Zc4cC4cTicketStatusOut(Request, "", "EStockTicket_Sce");//Response
+
+		if (!Response.ExportStatus.item.GetFirst().IsInitial())
+		{
+			foreach (var item in Response.ExportStatus.item)
+			{
+				if(item.Zc4cStatus.ToUpperCase() != "STOCK")
+				{
+					var Get_EStockTicket					: elementsof ServiceRequest.EStockTicket;
+					Get_EStockTicket.ZSDK_Abgru				= item.Abgru;//Rejection Reason
+					Get_EStockTicket.ZSDK_Bismt				= item.Bismt;//REX Part Number
+					Get_EStockTicket.ZSDK_C4cAtp			= item.C4cAtp;//ATP Check
+					Get_EStockTicket.ZSDK_C4cProcType		= item.C4cProcType;//Service Proc. Type
+					Get_EStockTicket.ZSDK_C4cServeProcType	= item.C4cServeProcType;//Service User Proc. Type
+					Get_EStockTicket.ZSDK_Datum				= item.Datum;//Current Date
+					Get_EStockTicket.ZSDK_Ddtext			= item.Ddtext;//Status Description
+					Get_EStockTicket.ZSDK_DocDate			= item.DocDate;//Doc. Date
+					Get_EStockTicket.ZSDK_EccProcTpye		= item.EccProcType;//ECC Proc. Type
+					Get_EStockTicket.ZSDK_Edatu				= item.Edatu;//Schedule line date
+					Get_EStockTicket.ZSDK_Lfdnr				= item.Lfdnr;//Seq. Number
+					Get_EStockTicket.ZSDK_LfdnrItm			= item.LfdnrItm;//Item Seq. Number
+					Get_EStockTicket.ZSDK_Lgobe				= item.Lgobe;//Storage Location Desc
+					Get_EStockTicket.ZSDK_Lgort				= item.Lgort;//Storage Location
+					Get_EStockTicket.ZSDK_Maktx				= item.Maktx;//Material Desc.
+					Get_EStockTicket.ZSDK_Mandt				= item.Mandt;//Client
+					Get_EStockTicket.ZSDK_Matnr				= item.Matnr;//SAP Part Number
+					Get_EStockTicket.ZSDK_Menge				= item.Menge;//Quantity
+					Get_EStockTicket.ZSDK_Plant				= item.Plant;//Plant
+					Get_EStockTicket.ZSDK_ServiceOrg		= item.ServiceOrg;//C4C Service Org.
+					Get_EStockTicket.ZSDK_ServiceTeam		= item.ServiceTeam;//C4C Service Team
+					Get_EStockTicket.ZSDK_ServiceTech		= item.ServiceTech;//Service Emp. ID
+					Get_EStockTicket.ZSDK_Ticket			= item.Ticket;//Inst Number
+					Get_EStockTicket.ZSDK_TicketItem		= item.TicketItm;//Item
+					Get_EStockTicket.ZSDK_TicketItemNumber.content	= item.TicketItm;//ItemNumber
+				
+					if(!Get_EStockTicket.ZSDK_TicketItemNumber.content.IsInitial())
+					{
+						Get_EStockTicket.ZSDK_TicketItemNumber.RemoveLeadingZeros();
+					}
+				
+					Get_EStockTicket.ZSDK_Uname				= item.Uname;//Current User
+					Get_EStockTicket.ZSDK_Uzeit				= item.Uzeit;//Current Time
+					Get_EStockTicket.ZSDK_WorkDate			= item.WorkDate;//Work Date
+					Get_EStockTicket.ZSDK_Zc4cStatus		= item.Zc4cStatus;//Inst Status ID
+			
+
+					//Concatenating Uname, Datum and Uzeit for Event Timestamp
+					if (!Get_EStockTicket.ZSDK_Uname.IsInitial())
+					{
+						Get_EStockTicket.ZSDK_EventDateTime = Get_EStockTicket.ZSDK_Uname;
+					}
+					if (!Get_EStockTicket.ZSDK_Datum.IsInitial())
+					{
+						Get_EStockTicket.ZSDK_EventDateTime = Get_EStockTicket.ZSDK_EventDateTime + " " + Get_EStockTicket.ZSDK_Datum;
+					}
+					if (!Get_EStockTicket.ZSDK_Uzeit.IsInitial())
+					{
+						Get_EStockTicket.ZSDK_EventDateTime = Get_EStockTicket.ZSDK_EventDateTime + " " + Get_EStockTicket.ZSDK_Uzeit.ToString();
+					}
+
+					Inst.EStockTicket.Create(Get_EStockTicket);
+					Get_EStockTicket.Clear();
+				}
+			}
+		}
+		else if (Response.CommunicationFault.MaximumLogItemSeverityCode == "3")//Error handling
+		{
+			foreach (var error in Response.CommunicationFault.Item)
+			{
+				raise MSG_ReplicationResponse.Create("E", error.Note);
+			}
+		}
+	}
+	else
+	{
+		raise MSG_ReplicationResponse.Create("E", "Company not maintained for the Service Technician Team");
+	}
+}

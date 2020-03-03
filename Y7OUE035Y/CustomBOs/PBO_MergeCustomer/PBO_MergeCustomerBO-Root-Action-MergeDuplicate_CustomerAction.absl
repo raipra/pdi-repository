@@ -1,0 +1,328 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: PBO_MergeCustomerBO
+		Node: Root
+		Action: MergeDuplicate_CustomerAction 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+
+import ABSL;
+
+import AP.FO.BusinessPartner.Global;
+import AP.Common.Global;
+import AP.Common.GDT;
+
+foreach (var item in this)
+{
+	var Duplicate_Std_Node : elementsof PBO_MergeCustomerBO.Duplicate_Customers_Standard;
+	var Dup_Customer_Custom : elementsof PBO_MergeCustomerBO.Duplicate_Customers;
+	var BP_DefaultAddr;
+	var BP_DefaultAddr_Addr;
+	var BP_CurrCommon;
+	var BP_DefaultAddr_Addr_email;
+	var BP_DefaultAddr_Addr_phone;
+	var BP_DefaultAddr_Addr_postaladdr;
+	var BP_System_Data;
+	var BP_SCIID_Node;
+	var Master_Record;
+	var Master_atRoot : Indicator;
+	var BUPDupCkeck;
+	var Cust_Asso;
+	if (!item.Customer_SCIID.IsInitial())
+	{
+		Master_Record = item.Customer_ID.RemoveLeadingZeros();
+		Master_atRoot = true;
+	}
+	Cust_Asso = item.ToCustomer;
+	if (Cust_Asso.IsSet())
+	{
+		Cust_Asso.CheckForDuplicates();//standard duplicate check
+		BUPDupCkeck = Cust_Asso.BusinessPartnerDuplicateCheck;//standard duplicate check resutt node
+	}
+	if (BUPDupCkeck.IsSet())
+	{
+		foreach (var res in BUPDupCkeck.Result)
+		{
+			if (res.IsSet())
+			{
+				if (res.BusinessPartnerLifeCycleStatusCode == "2")//take only the active customers from the std duplicate result set
+				{
+					Duplicate_Std_Node.DupStd_Customer_ID = res.BusinessPartnerInternalID;
+					Duplicate_Std_Node.DupStd_Customer_SimilarityPercent = res.RoundedSimilarityPercent;
+					var res_BusinessPartner = res.BusinessPartner;
+					if (res_BusinessPartner.IsSet())
+					{
+						BP_CurrCommon = res_BusinessPartner.CurrentCommon;
+						if (BP_CurrCommon.IsSet())
+						{
+							Duplicate_Std_Node.DupStd_Customer_FName = BP_CurrCommon.Person.Name.GivenName; //First Name
+							Duplicate_Std_Node.DupStd_Customer_LName = BP_CurrCommon.Person.Name.FamilyName;//Last Name
+						}
+						BP_DefaultAddr = res_BusinessPartner.CurrentDefaultAddressInformation;
+						if (BP_DefaultAddr.IsSet())
+						{
+							BP_DefaultAddr_Addr = BP_DefaultAddr.Address;
+							if (BP_DefaultAddr_Addr.IsSet())
+							{
+								BP_DefaultAddr_Addr_postaladdr = BP_DefaultAddr_Addr.DefaultPostalAddressRepresentation;
+								if (BP_DefaultAddr_Addr_postaladdr.IsSet())
+								{
+									Duplicate_Std_Node.DupStd_Customer_Country = BP_DefaultAddr_Addr_postaladdr.CountryCode;//Country code
+									Duplicate_Std_Node.DupStd_Customer_PostCode = BP_DefaultAddr_Addr_postaladdr.StreetPostalCode;//Postal code
+								}
+								BP_DefaultAddr_Addr_email = BP_DefaultAddr_Addr.DefaultEMail;
+								if (BP_DefaultAddr_Addr_email.IsSet())
+								{
+									Duplicate_Std_Node.DupStd_Customer_Email = BP_DefaultAddr_Addr_email.URI.content;//Email
+								}
+								BP_DefaultAddr_Addr_phone = BP_DefaultAddr_Addr.DefaultMobilePhone;
+								if (BP_DefaultAddr_Addr_phone.IsSet())
+								{
+									Duplicate_Std_Node.DupStd_Customer_Phone = BP_DefaultAddr_Addr_phone.NormalisedNumberDescription;//Phone
+								}
+							} 
+						}
+						BP_System_Data = res_BusinessPartner.PartialSystemAdministrativeData;
+						if (!BP_System_Data.IsInitial())
+						{
+					  
+							Duplicate_Std_Node.DupStd_Last_Updated_Date = BP_System_Data.LastChangeDateTime.ConvertToDate();
+							Duplicate_Std_Node.DupStd_CreatedOn = BP_System_Data.CreationDateTime.ConvertToDate();
+						}
+						BP_SCIID_Node = res_BusinessPartner.DefaultObjectIdentifierMapping;
+						if (BP_SCIID_Node.IsSet())
+						{
+							Duplicate_Std_Node.DupStd_Customer_SCIID = BP_SCIID_Node.RemoteObjectID.content;
+						}
+					}//if (res_BusinessPartner.IsSet())
+					item.Duplicate_Customers_Standard.Create(Duplicate_Std_Node);
+				}
+			}//if (res.IsSet())
+		}//foreach (var res in BUPDupCkeck.Result)
+
+	}//if (BUPDupCkeck.IsSet())
+	
+	foreach (var Std_Dup_Node in item.Duplicate_Customers_Standard)
+	{
+		if (Std_Dup_Node.DupStd_Customer_SimilarityPercent > 60)
+		{
+			if (!item.Customer_Country.IsInitial() && !Std_Dup_Node.DupStd_Customer_Country.IsInitial() && (item.Customer_Country == Std_Dup_Node.DupStd_Customer_Country))
+			{
+				if (!item.Customer_Email.IsInitial() && !Std_Dup_Node.DupStd_Customer_Email.IsInitial())
+				{
+					if (item.Customer_Email.ToUpperCase() == Std_Dup_Node.DupStd_Customer_Email.ToUpperCase())
+					{
+						//create entry in the duplicate customer node
+						Dup_Customer_Custom.Dup_Customer_ID = Std_Dup_Node.DupStd_Customer_ID;
+						Dup_Customer_Custom.Dup_Customer_Email = Std_Dup_Node.DupStd_Customer_Email;
+						Dup_Customer_Custom.Dup_Customer_FName = Std_Dup_Node.DupStd_Customer_FName;
+						Dup_Customer_Custom.Dup_Customer_LName = Std_Dup_Node.DupStd_Customer_LName;
+						Dup_Customer_Custom.Dup_Customer_Phone = Std_Dup_Node.DupStd_Customer_Phone;
+						Dup_Customer_Custom.Dup_Customer_PostCode = Std_Dup_Node.DupStd_Customer_PostCode;
+						Dup_Customer_Custom.Dup_Customer_Country = Std_Dup_Node.DupStd_Customer_Country;
+						Dup_Customer_Custom.Dup_CreatedOn = Std_Dup_Node.DupStd_CreatedOn;
+						Dup_Customer_Custom.Dup_Last_Updated_Date = Std_Dup_Node.DupStd_Last_Updated_Date;
+						Dup_Customer_Custom.Dup_Customer_SCIID = Std_Dup_Node.DupStd_Customer_SCIID;
+						if (!Dup_Customer_Custom.Dup_Customer_SCIID.IsInitial() && Master_Record.IsInitial())
+						{
+							Master_Record = Dup_Customer_Custom.Dup_Customer_ID.RemoveLeadingZeros();
+							Master_atRoot = false;
+						}
+						item.Duplicate_Customers.Create(Dup_Customer_Custom);
+					}
+					else
+					{
+						//ignore
+					}
+				}
+				else
+				{
+					if (!item.Customer_LName.IsInitial() && !Std_Dup_Node.DupStd_Customer_LName.IsInitial())
+					{
+						if (item.Customer_LName.ToUpperCase() == Std_Dup_Node.DupStd_Customer_LName.ToUpperCase())
+						{
+							if (!item.Customer_Phone.IsInitial() && !Std_Dup_Node.DupStd_Customer_Phone.IsInitial())
+							{	
+								if (item.Customer_Phone == Std_Dup_Node.DupStd_Customer_Phone)
+								{
+									//create entry in the duplicate customer node
+									Dup_Customer_Custom.Dup_Customer_ID = Std_Dup_Node.DupStd_Customer_ID;
+									Dup_Customer_Custom.Dup_Customer_Email = Std_Dup_Node.DupStd_Customer_Email;
+									Dup_Customer_Custom.Dup_Customer_LName = Std_Dup_Node.DupStd_Customer_LName;
+									Dup_Customer_Custom.Dup_Customer_Phone = Std_Dup_Node.DupStd_Customer_Phone;
+									Dup_Customer_Custom.Dup_Customer_PostCode = Std_Dup_Node.DupStd_Customer_PostCode;
+									Dup_Customer_Custom.Dup_Customer_Country = Std_Dup_Node.DupStd_Customer_Country;
+									Dup_Customer_Custom.Dup_CreatedOn = Std_Dup_Node.DupStd_CreatedOn;
+									Dup_Customer_Custom.Dup_Last_Updated_Date = Std_Dup_Node.DupStd_Last_Updated_Date;
+									Dup_Customer_Custom.Dup_Customer_SCIID = Std_Dup_Node.DupStd_Customer_SCIID;
+									if (!Dup_Customer_Custom.Dup_Customer_SCIID.IsInitial() && Master_Record.IsInitial())
+									{
+										Master_Record = Dup_Customer_Custom.Dup_Customer_ID.RemoveLeadingZeros();
+										Master_atRoot = false;
+									}
+									item.Duplicate_Customers.Create(Dup_Customer_Custom);
+								}
+								else
+								{
+									//ignore
+								}
+							}
+						}
+
+					}
+				  
+				}
+			}
+		}
+	}//foreach (var Std_Dup_Node in item.Duplicate_Customers_Standard)
+
+	var Dup1;
+	var Dup2;
+	var ScenarioName = "MergeProposal_CS";
+	var ServiceName = "MergeProposal";
+	var Duplicate_customer = item.Duplicate_Customers;
+	var count;
+	if (Duplicate_customer.Count() > 0)
+	{
+		count = Duplicate_customer.Count();
+	}
+	//getting the csrf token
+	var HttpMethod = "GET";
+	var ContentType = "";
+	var Body = "";
+	var HttpResource = "";
+	var URLParameter : collectionof NameAndValue;
+	var HeaderParameter : collectionof NameAndValue;
+	var HeaderParameterEntry : NameAndValue;
+	HeaderParameterEntry.Name = "x-csrf-token";
+	HeaderParameterEntry.Value = "fetch";
+	HeaderParameter.Add(HeaderParameterEntry);
+	var wsResult = WebServiceUtilities.ExecuteRESTService(ScenarioName, ServiceName, HttpMethod, HttpResource, URLParameter, HeaderParameter, ContentType, Body);
+	var code : collectionof Indicator; 
+	while (count > 0)
+	//foreach(var duplicates in item.Duplicate_Customers)
+	{
+		if (count > 1)
+		{
+			Dup1 = Duplicate_customer.GetByIndex(count).Dup_Customer_ID.RemoveLeadingZeros();
+			Dup2 = Duplicate_customer.GetByIndex(count - 1).Dup_Customer_ID.RemoveLeadingZeros();
+			count = count - 2;
+			if (Master_atRoot == false)
+			{
+				if (Dup1 == Master_Record)
+				{
+					Dup1 = item.Customer_ID.RemoveLeadingZeros();
+				}
+				if (Dup2 == Master_Record)
+				{
+					Dup2 = item.Customer_ID.RemoveLeadingZeros();
+				}
+			}
+			//post code
+			HttpMethod = "POST";
+			ContentType = "application/json";
+			Body = "{";
+			Body = Body + "\"Name\":\"Merge Proposal for : " + Master_Record + "\"" + ",";
+			Body = Body + "\"CategoryCode\":\"1\",";
+			Body = Body + "\"MasterBusinessPartnerID\":\"" + Master_Record + "\"" + ",";
+			Body = Body + "\"FirstDuplicateBusinessPartnerID\":\"" + Dup1 + "\"" + ",";
+			Body = Body + "\"SecondDuplicateBusinessPartnerID\":\"" + Dup2 + "\"";
+			Body = Body + "}";
+		
+			HeaderParameter.Clear();
+			HeaderParameterEntry.Name = "x-csrf-token";
+			if (!wsResult.IsInitial())
+			{
+				HeaderParameterEntry.Value = wsResult.HeaderParameters.Where(n => n.Name == "x-csrf-token").GetFirst().Value;
+			}
+			HeaderParameter.Add(HeaderParameterEntry);
+			var setCookies = wsResult.Cookies;
+			var PostResult = WebServiceUtilities.ExecuteRESTService(ScenarioName, ServiceName, HttpMethod, HttpResource, URLParameter, HeaderParameter, ContentType, Body, setCookies);
+		
+			if (!PostResult.IsInitial())
+			{
+				if (PostResult.Code == "201 ")
+				{
+					code.Add(true);
+				}
+				else
+				{
+					code.Add(false);
+				}
+			}
+		}
+		else if (count == 1)
+		{
+			Dup1 = Duplicate_customer.GetByIndex(count).Dup_Customer_ID.RemoveLeadingZeros();
+			count = 0;
+			if (Master_atRoot == false)
+			{
+				if (Dup1 == Master_Record)
+				{
+					Dup1 = item.Customer_ID.RemoveLeadingZeros();
+				}
+			}
+			//odata with root customer and the last one duplicate customer
+			//post code
+			HttpMethod = "POST";
+			ContentType = "application/json";
+			Body = "{";
+			Body = Body + "\"Name\":\"Merge Proposal for : " + Master_Record + "\"" + ",";
+			Body = Body + "\"CategoryCode\":\"1\",";
+			Body = Body + "\"MasterBusinessPartnerID\":\"" + Master_Record + "\"" + ",";
+			Body = Body + "\"FirstDuplicateBusinessPartnerID\":\"" + Dup1 + "\"";
+			Body = Body + "}";
+		
+			HeaderParameter.Clear();
+			HeaderParameterEntry.Name = "x-csrf-token";
+			if (!wsResult.IsInitial())
+			{
+				HeaderParameterEntry.Value = wsResult.HeaderParameters.Where(n => n.Name == "x-csrf-token").GetFirst().Value;
+			}
+			HeaderParameter.Add(HeaderParameterEntry);
+			var setCookies = wsResult.Cookies;
+			var PostResult = WebServiceUtilities.ExecuteRESTService(ScenarioName, ServiceName, HttpMethod, HttpResource, URLParameter, HeaderParameter, ContentType, Body, setCookies);//, elemcookie);
+			//var code;  
+		
+			if (!PostResult.IsInitial())
+			{
+				if (PostResult.Code == "201 ")
+				{
+					code.Add(true);
+				}
+				else
+				{
+					code.Add(false);
+				}
+			}
+		}
+
+	}
+	var total = code.Count();
+	var processed_count = code.Where(n => n == true).Count();
+	var failed_count = code.Where(n => n == false).Count();
+	if (total == processed_count)
+	{
+		//processing flag = completed
+		item.Processing_Status = "C";
+	}
+	else if (total == failed_count)
+	{
+		//processing flag = failed
+		item.Processing_Status = "F";
+	}
+	else if ((total != processed_count) && (total != failed_count))
+	{
+		//processing flag = Partially processed
+		item.Processing_Status = "PP";
+	}
+
+}//foreach (var item in this)
+

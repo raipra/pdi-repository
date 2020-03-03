@@ -1,0 +1,63 @@
+/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Item
+		Event: AfterModify 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script if:
+		- the value of any field in the node in which this script is contained is modified.
+		- the node itself is modified by another business object within the same solution.
+*/
+
+import ABSL;
+import AP.FO.BusinessPartner.Global;
+ 
+foreach (var inst in this)
+{
+	var Emp_ID;
+	var Hifen_position;
+	if (inst.LX_TKT_SKILLS == "04" || inst.LX_TKT_SKILLS == "05")
+	{
+		var Service_Tech = inst.ZSDK_Preferred_Tech.content.RemoveLeadingZeros();
+		if (!Service_Tech.IsInitial())
+		{
+			if (Service_Tech.Contains("-"))
+			{
+				Hifen_position = Service_Tech.FindRegex("-");
+				if(!Hifen_position.IsInitial())
+				{
+				Emp_ID = Service_Tech.Substring(0, Hifen_position);
+				inst.LX_TKT_PREFTEC = Emp_ID;
+				}
+			}
+			else 
+			{
+				inst.LX_TKT_PREFTEC = Service_Tech;
+			}
+		}
+		var Employee_Query = Employee.Identification.QueryByEmployeeAttributes;
+		var Employee_selParam = Employee_Query.CreateSelectionParams();
+		Employee_selParam.Add(Employee_Query.EmployeeID.content, "I", "EQ", Service_Tech);
+		var Employee_Details = Employee_Query.Execute(Employee_selParam).GetFirst();
+		if (Employee_Details.IsSet())
+		{
+			if (Employee_Details.ToRoot.CurrentCommon.IsSet())
+			{
+				inst.ZSDK_Preferred_Tech.content = inst.LX_TKT_PREFTEC + "-" + Employee_Details.ToRoot.CurrentCommon.BusinessPartnerFormattedName;
+			}
+		}
+	}
+	else if (inst.LX_TKT_SKILLS == "01" || inst.LX_TKT_SKILLS == "02" || inst.LX_TKT_SKILLS == "03")
+	{
+		inst.ZSDK_Preferred_Tech.content.Clear();
+		inst.LX_TKT_PREFTEC.Clear();
+
+	}
+	
+}

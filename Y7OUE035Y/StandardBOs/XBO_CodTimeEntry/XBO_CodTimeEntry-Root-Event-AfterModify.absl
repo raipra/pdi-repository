@@ -1,0 +1,67 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: CodTimeEntry
+		Node: Root
+		Event: AfterModify 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script if:
+		- the value of any field in the node in which this script is contained is modified.
+		- the node itself is modified by another business object within the same solution.
+*/
+
+import ABSL;
+import AP.Common.GDT as commongdt;
+import AP.PC.IdentityManagement.Global;
+
+foreach(var inst in this)
+{
+	if(inst.IsSet())
+	{
+		//****************************************** Automatically Create Time Item Entry *********************************************************************
+
+		//Default Service Line Item to the Latest Scheduling line Item in New Time Entry Window
+		var StandardTechTimeGeneral = inst.ServiceRequest.Item.Where(n=>n.UserServiceTransactionProcessingTypeCode == "ZMR1");  //Processing Type = Technician Scheduling (ZMR1)
+		if(StandardTechTimeGeneral.Count() > 0)
+		{
+			var LatestLineItem = StandardTechTimeGeneral.OrderByDescending(n=>n.ID).GetFirst();
+			if(LatestLineItem.IsSet())
+			{
+				inst.ItemReferenceUUID.content = LatestLineItem.UUID.content;
+			}
+		}
+		 //Execute only for Start and Stop Recording
+		if(inst.AutoTimeRecordingIndicator)
+		{
+			var TicketID				:BusinessTransactionDocumentID;
+			var ProductID				:ProductInternalID;
+			var ServiceRequestItemUUID  :UUID;
+		
+			var Duration = inst.Duration.ToString();
+			if(Duration != "PT0M")
+			{
+				if(inst.ServiceRequest.IsSet())
+				{
+					if(inst.ServiceRequest.Item.Count() > 0)
+					{
+						TicketID				=inst.ServiceRequest.ID;	//Ticket ID
+						ProductID.content		="30011"; //Technician Recorded Time // inst.ServiceRequest.Item.Where(n=>n.UUID.content == inst.ItemReferenceUUID.content).GetFirst().ItemProduct.ProductInternalID; //Product ID			
+					}
+				}
+				ServiceRequestItemUUID.content	=inst.ItemReferenceUUID.content; //Ticket Item UUID
+			
+				if(!TicketID.IsInitial() && !ServiceRequestItemUUID.IsInitial() && !ProductID.IsInitial())
+				{
+					inst.AddTimeItem(TicketID,ProductID,ServiceRequestItemUUID); //Standard Time Item action
+				}
+			
+			}
+		}	
+		//****************************************** End of Automatically Create Time Item Entry *******************************************************************
+	}
+}

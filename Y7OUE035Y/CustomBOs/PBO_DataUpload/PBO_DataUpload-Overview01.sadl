@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sadl:definition xmlns:ass="http://sap.com/sap.nw.f.sadl/association" date="20190925" time="192006" uuid="D22FBE4E02F3467EACD33C537B89ED09" xmlns:sadl="http://sap.com/sap.nw.f.sadl">
+  <sadl:conversions>
+    <sadl:conversion type="ALPHA" />
+  </sadl:conversions>
+  <sadl:modes>
+    <sadl:mode type="QUERY" />
+  </sadl:modes>
+  <sadl:dataSource name="DS" binding="Y7OUE035Y_PBADA72E8F2EEBB88F4E/ass:FILEINTANCE7784AA4E5DC34109" type="BusinessObjectNode" d2p1:mdrsBinding="PBO_DataUpload.FileInstance" xmlns:d2p1="http://sap.com/xi/AP/PDI" />
+  <sadl:resultSet>
+    <sadl:structure name="Y7OUE035Y_PBADA72E8F2EEBB88F4E" dataSource="DS" d3p1:mdrsName="PBO_DataUpload.FileInstance" xmlns:d3p1="http://sap.com/xi/AP/PDI">
+      <sadl:attribute name="Y7OUE035Y_UNCE7A8ED1DAACC039E6" binding="UNIQUEIDEE623BCD2261352E" d3p1:mdrsName="UniqueID" />
+      <sadl:attribute name="Y7OUE035Y_ISCE3CF99FBF97E4616A" binding="ISPIDAFAF4295C545F7F0" d3p1:mdrsName="ISPID" />
+      <sadl:attribute name="Y7OUE035Y_ITCE48A1C94E2DA77B39" binding="ITEMTYPEF6573DDCEE4AA454" d3p1:mdrsName="ItemType" />
+      <sadl:attribute name="Y7OUE035Y_PRCEAEECE3E2858DCF5C" binding="PROCESTATUS2AC0963E9C4702B0" d3p1:mdrsName="ProcessingStatus" />
+      <sadl:attribute name="Y7OUE035Y_FICE039B1B59DF5DCF95" binding="FILEINNCEID38210B55DB35A899" d3p1:mdrsName="FileInstanceID" />
+    </sadl:structure>
+  </sadl:resultSet>
+  <sadl:query bo="Y7OUE035Y_PBADA72E8F2EEBB88F4E" name="QUERY_BY_ELEMENTS" node="OVERVIEW01FD6765E04180CBFE" type="ESI_QUERY">
+    <sadl:inputStructure>
+      <sadl:inputParameter name="UNIQUETANCE9EE8DCC1AD81EA93">
+        <sadl:attribute binding="Y7OUE035Y_UNCE7A8ED1DAACC039E6" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="ISPIDTANCE76978D215A0BD804">
+        <sadl:attribute binding="Y7OUE035Y_ISCE3CF99FBF97E4616A" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="ITEMTYTANCEE1EE624E91527AA1">
+        <sadl:attribute binding="Y7OUE035Y_ITCE48A1C94E2DA77B39" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="PROCESTANCE530F003884C820AA">
+        <sadl:attribute binding="Y7OUE035Y_PRCEAEECE3E2858DCF5C" />
+      </sadl:inputParameter>
+      <sadl:inputParameter name="FILEINTANCE308C907247A522C2">
+        <sadl:attribute binding="Y7OUE035Y_FICE039B1B59DF5DCF95" />
+      </sadl:inputParameter>
+    </sadl:inputStructure>
+    <sadl:outputStructure>
+      <sadl:attribute name="UNIQUETANCE9EE8DCC1AD81EA93" binding="Y7OUE035Y_UNCE7A8ED1DAACC039E6" />
+      <sadl:attribute name="ISPIDTANCE76978D215A0BD804" binding="Y7OUE035Y_ISCE3CF99FBF97E4616A" />
+      <sadl:attribute name="ITEMTYTANCEE1EE624E91527AA1" binding="Y7OUE035Y_ITCE48A1C94E2DA77B39" />
+      <sadl:attribute name="PROCESTANCE530F003884C820AA" binding="Y7OUE035Y_PRCEAEECE3E2858DCF5C" />
+      <sadl:attribute name="FILEINTANCE308C907247A522C2" binding="Y7OUE035Y_FICE039B1B59DF5DCF95" />
+    </sadl:outputStructure>
+  </sadl:query>
+</sadl:definition>

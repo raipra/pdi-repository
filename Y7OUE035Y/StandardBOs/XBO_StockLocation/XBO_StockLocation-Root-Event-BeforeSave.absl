@@ -1,0 +1,50 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: StockLocation
+		Node: Root
+		Event: BeforeSave 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script when:
+		- the instance of the business object is being saved.
+		- the instance of the business object is created from other sources like web services, preview screen, and so on.
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SDK31.0
+//Author: Arya Manmadan (SDK3)
+//Description: Code clearance to improve system performance
+//Change Date: 02 Dec 2019
+//****************************************************************************************************************************//
+
+
+import ABSL;
+import AP.FO.ProductDataMaintenance.Global;
+
+var MatInst;
+var Mat_Common;//added for SDK31.0
+foreach (var inst in this)
+{
+	if(inst.IsSet())
+	{
+		foreach (var item in inst.Item)
+		{
+		    
+			MatInst = item.Material;//added for SDK31.0
+			if(MatInst.IsSet())
+			{
+			    Mat_Common = MatInst.Common;//added for SDK31.0
+				//if(MatInst.Common.IsSet())
+				if(Mat_Common.IsSet())//commented above and added for SDK31.0
+				{
+					//item.LX_STK_REXNO = MatInst.Common.LX_PRD_MI;
+					item.LX_STK_REXNO = Mat_Common.LX_PRD_MI;//commented above and added for SDK31.0
+				}
+			}
+		}	
+	}
+}

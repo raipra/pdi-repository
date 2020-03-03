@@ -1,0 +1,472 @@
+/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: InstallationPoint
+		Node: Root
+		Event: BeforeSave 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script when:
+		- the instance of the business object is being saved.
+		- the instance of the business object is created from other sources like web services, preview screen, and so on.
+*/
+
+
+import ABSL;
+import AP.FO.BusinessPartner.Global;
+
+//Picking up every instance in Installation Point BO.
+foreach (var inst in this)
+{  
+	if (inst.IsSet())
+	{
+		// Checking whether the Retailer list is already populated.
+		if (!inst.LX_PRD_RET.IsInitial())
+		{
+			if (inst.LX_PRD_RET.GetDescription() != "Other (Please Specify)")
+			{
+				inst.LX_PRD_RE1 = inst.LX_PRD_RET.GetDescription();
+			}
+		}
+		///***********Start of changes for purchase date - Time population******************			
+			
+		if (inst.ZSDK_PurDateCalcIndi == false)
+		{
+			if (inst.PrimaryInstalledObject.IsSet())
+			{
+				var InstallIndvProd = inst.PrimaryInstalledObject.InstalledObjectIndividualProduct;
+				if (InstallIndvProd.IsSet())
+				{
+					if (InstallIndvProd.IndividualProduct.IsSet())
+					{
+						var SrvProcInfo = InstallIndvProd.IndividualProduct.ServiceProcessInformation;
+						if (SrvProcInfo.IsSet())
+						{
+							var UIPurDateTime = SrvProcInfo.PurchaseDateTime;									// Purchase datetime
+							if (!UIPurDateTime.IsInitial())
+							{
+								var Lc_PurchaseTime = Time.ParseFromString("120101").ToString();				// Purchase Time Hardcoded to 12.01 PM to avoid time/Date shift
+								var UIPurDate = UIPurDateTime.ToString().Substring(0, 10);					// Purchase Date
+								var DBPurDateTime = UIPurDate.Concatenate(Lc_PurchaseTime);						
+
+								if (!DBPurDateTime.IsInitial())
+								{
+									SrvProcInfo.PurchaseDateTime.content = DBPurDateTime;							// Populating the time in DB field 
+									inst.ZSDK_PurDateCalcIndi = true;
+								}
+							}
+						}													
+					}					
+				}					
+			}
+		}			
+		///***********End of changes for purchase date - Time population******************
+
+	
+		//**********************************Start of changes to Update Product Location for Integration scenarios******************************//
+		if (!inst.AddressInformation.IsSet()) //Check for Addressinfo node is set or to be created
+		{
+			inst.AddressInformation.Create();
+		}
+		//*************** CC_21: Start of change to capture the customer country in dummy Backend Country SDK field for Code list restriction for Retailer dropdown ***************//
+		else
+		{
+			if (inst.CustodianPartyInformation.IsSet() && inst.ZSDK_Country.IsInitial())  //get the customer details from which address details are to be captured
+			{
+				var Custodian_party = inst.CustodianPartyInformation;
+				if (Custodian_party.CustodianPartyInformationParty.IsSet())
+				{
+					var custpartyInfo = Custodian_party.CustodianPartyInformationParty;
+					if (custpartyInfo.Party.IsSet())
+					{
+						var custInfo = custpartyInfo.Party;
+						if (custInfo.Customer.IsSet())
+						{
+							var customer = custInfo.Customer;
+							if (customer.AddressInformation.Address.GetFirst().IsSet())
+							{
+								var cust_addr = customer.AddressInformation.Address;
+								if (cust_addr.GetFirst().DefaultPostalAddressRepresentation.IsSet())
+								{
+									var custAdd = cust_addr.GetFirst().DefaultPostalAddressRepresentation;
+									inst.ZSDK_Country = custAdd.CountryCode;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		//*************** CC_21: End of change to capture the customer country in dummy Backend Country SDK field for Code list restriction for Retailer dropdown ***************//
+		if (!inst.AddressInformation.Address.IsSet())//Check for Addressinfo.Address node is set or to be created
+		{
+			inst.AddressInformation.Address.Create();
+		}
+		if (!inst.AddressInformation.Address.DefaultPostalAddressRepresentation.IsSet())
+		{
+			if (inst.CustodianPartyInformation.IsSet())  //get the customer details from which address details are to be captured
+			{
+				if (inst.CustodianPartyInformation.CustodianPartyInformationParty.IsSet())
+				{
+					var custpartyInfo = inst.CustodianPartyInformation.CustodianPartyInformationParty;
+					if (custpartyInfo.Party.IsSet())
+					{
+						var custInfo = custpartyInfo.Party;
+						if (custInfo.Customer.IsSet())
+						{
+							if (custInfo.Customer.AddressInformation.Address.GetFirst().IsSet())
+							{
+								if (custInfo.Customer.AddressInformation.Address.GetFirst().DefaultPostalAddressRepresentation.IsSet())
+								{
+									var custAdd = custInfo.Customer.AddressInformation.Address.GetFirst().DefaultPostalAddressRepresentation;
+
+									//****** creation of DefaultPostalAddressRepresentation node which is missing from Integration ***************//
+									var DfltAddInst = inst.AddressInformation.Address.DefaultPostalAddressRepresentation.Create();
+									if (DfltAddInst.IsSet())
+									{
+										DfltAddInst.StreetName = custAdd.StreetName; 
+										DfltAddInst.CityName = custAdd.CityName;
+										DfltAddInst.CountryCode = custAdd.CountryCode;
+										DfltAddInst.HouseID = custAdd.HouseID;
+										DfltAddInst.RegionCode = custAdd.RegionCode;
+										DfltAddInst.BuildingID = custAdd.BuildingID;
+										DfltAddInst.FloorID = custAdd.FloorID;
+										DfltAddInst.RoomID = custAdd.RoomID;
+										DfltAddInst.StreetPostalCode = custAdd.StreetPostalCode;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		//**********************************End of changes to Update Product Location for Integration scenarios******************************//	
+		
+		//***********Start of changes for ML code and Serial Number******************
+		//if (inst.LX_PRD_ML1.IsInitial() || inst.LX_PRD_SN1.IsInitial())
+		//{
+		var SrlNum1 = inst.LX_PRD_SN1;
+		var SrlNum1Len = SrlNum1.Length();
+		var IsNumericSN1 = Numeric.IsNumeric(SrlNum1);
+		var ML1 = inst.LX_PRD_ML1;
+		var ML1Len = ML1.Length();
+		var IsNumericML1 = Numeric.IsNumeric(ML1);
+
+		//copy SN to SN1 if conditions satisfy
+		if(SrlNum1Len != 8 || IsNumericSN1 == false)
+		{
+			var PriInstObj = inst.PrimaryInstalledObject;
+			if (PriInstObj.IsSet())
+			{
+				var InstObjInd = PriInstObj.InstalledObjectIndividualProduct;
+				if (InstObjInd.IsSet())
+				{
+					var IndProd = InstObjInd.IndividualProduct;
+					if (IndProd.IsSet())
+					{
+						var ServProcInfo = IndProd.ServiceProcessInformation;
+						if (ServProcInfo.IsSet())
+						{
+							var SerNum = ServProcInfo.LX_PRD_SN;
+						    if (!SerNum.IsInitial())
+							{
+								inst.LX_PRD_SN1 = SerNum;
+							}
+														
+						}
+					}
+				}
+			}
+
+		}
+
+		//copy ML to ML1 if conditions satisfies
+		if(ML1Len != 2 || IsNumericML1 ==false)
+		{
+			var PriInstObj = inst.PrimaryInstalledObject;
+			if (PriInstObj.IsSet())
+			{
+				var InstObjInd = PriInstObj.InstalledObjectIndividualProduct;
+				if (InstObjInd.IsSet())
+				{
+					var IndProd = InstObjInd.IndividualProduct;
+					if (IndProd.IsSet())
+					{
+						var ServProcInfo = IndProd.ServiceProcessInformation;
+						if (ServProcInfo.IsSet())
+						{		
+							var MlCode = ServProcInfo.LX_PRD_ML;				    
+							if (!MlCode.IsInitial())
+							{
+								inst.LX_PRD_ML1 = MlCode;
+							}
+							
+						}
+					}
+				}
+			}
+			}
+		//}
+		//***********End of changes for ML code and Serial Number******************
+		
+	}
+}
+
+
+
+////**************************************** Performance Improvement is disabled due to high processing time ***************************************************
+//
+////****************************************************************************************************************************//
+////Change Request ID: SAGARAKA_PI1.0
+////Author: Akanksha Sagar (SAGARAKA)
+////Description: Code clearance to improve system performance
+////Change Date: 02 Dec 2019
+////****************************************************************************************************************************//
+//
+//import ABSL;
+//import AP.FO.BusinessPartner.Global;
+//
+////Picking up every instance in Installation Point BO.
+//foreach (var inst in this)
+//{  
+	//if (inst.IsSet())
+	//{
+//
+		////Start of Global declaration of instances for sub-node by SAGARAKA_PI1.0
+		//var lv_Addr;
+		//var lv_AddrDefPostalRep;
+		//var lv_AddrInfo = inst.AddressInformation;
+		//if (lv_AddrInfo.IsSet())
+		//{
+			//lv_Addr = lv_AddrInfo.Address;
+			//if (lv_Addr.IsSet())
+			//{
+				//lv_AddrDefPostalRep = lv_Addr.DefaultPostalAddressRepresentation;
+			//}
+		//}
+		////End of Global declaration of instances for sub-node by SAGARAKA_PI1.0
+//
+		//// Checking whether the Retailer list is already populated.
+		//if (!inst.LX_PRD_RET.IsInitial())
+		//{
+			//if (inst.LX_PRD_RET.GetDescription() != "Other (Please Specify)")
+			//{
+				//inst.LX_PRD_RE1 = inst.LX_PRD_RET.GetDescription();
+			//}
+		//}
+		/////***********Start of changes for purchase date - Time population******************			
+			//
+		//if (inst.ZSDK_PurDateCalcIndi == false)
+		//{
+			//var lv_primaryInstlObj = inst.PrimaryInstalledObject;
+			////if (inst.PrimaryInstalledObject.IsSet())
+			//if (lv_primaryInstlObj.IsSet())
+			//{
+				//var InstallIndvProd = lv_primaryInstlObj.InstalledObjectIndividualProduct;
+				//if (InstallIndvProd.IsSet())
+				//{
+					//var lv_IndiProd = InstallIndvProd.IndividualProduct;
+					//if (lv_IndiProd.IsSet())
+					//{
+						//var SrvProcInfo = lv_IndiProd.ServiceProcessInformation;
+						//if (SrvProcInfo.IsSet())
+						//{
+							//var UIPurDateTime = SrvProcInfo.PurchaseDateTime;									// Purchase datetime
+							//if (!UIPurDateTime.IsInitial())
+							//{
+								//var Lc_PurchaseTime = Time.ParseFromString("120101").ToString();				// Purchase Time Hardcoded to 12.01 PM to avoid time/Date shift
+								//var UIPurDate = UIPurDateTime.ToString().Substring(0, 10);					// Purchase Date
+								//var DBPurDateTime = UIPurDate.Concatenate(Lc_PurchaseTime);						
+//
+								//if (!DBPurDateTime.IsInitial())
+								//{
+									//SrvProcInfo.PurchaseDateTime.content = DBPurDateTime;							// Populating the time in DB field 
+									//inst.ZSDK_PurDateCalcIndi = true;
+								//}
+							//}
+						//}													
+					//}					
+				//}					
+			//}
+		//}			
+		/////***********End of changes for purchase date - Time population******************
+//
+	//
+		////**********************************Start of changes to Update Product Location for Integration scenarios******************************//
+		////if(!inst.AddressInformation.IsSet())  //Check for Addressinfo node is set or to be created
+		//if (!lv_AddrInfo.IsSet()) //commented above and added for SAGARAKA_PI1.0, no modification required since no data is being passed later
+		//{
+			//inst.AddressInformation.Create();
+		//}
+		////*************** CC_21: Start of change to capture the customer country in dummy Backend Country SDK field for Code list restriction for Retailer dropdown ***************//
+		//else
+		//{
+			//var Custodian_party = inst.CustodianPartyInformation; //add for SAGARAKA_PI1.0
+			//if (Custodian_party.IsSet() && inst.ZSDK_Country.IsInitial())  //get the customer details from which address details are to be captured
+			//{
+				//var custpartyInfo = Custodian_party.CustodianPartyInformationParty; //add for SAGARAKA_PI1.0
+				//if (custpartyInfo.IsSet())
+				//{
+					//var custInfo = custpartyInfo.Party; //add for SAGARAKA_PI1.0
+					//if (custInfo.IsSet())
+					//{
+						//var customer = custInfo.Customer; //add for SAGARAKA_PI1.0
+						//if (customer.IsSet())
+						//{
+							//var cust_addr = customer.AddressInformation.Address;
+							//if (cust_addr.GetFirst().IsSet())
+							//{
+								//var custAdd = cust_addr.GetFirst().DefaultPostalAddressRepresentation;
+								//if (custAdd.IsSet())
+								//{
+									//inst.ZSDK_Country = custAdd.CountryCode;
+								//}
+							//}
+						//}
+					//}
+				//}
+			//}
+			////Start of moving below code in else for SAGARAKA_PI1.0
+			////*************** CC_21: End of change to capture the customer country in dummy Backend Country SDK field for Code list restriction for Retailer dropdown ***************//
+			////if (!lv_Addr.IsSet())//Check for Addressinfo.Address node is set or to be created //commented for SAGARAKA_PI1.0
+			////{
+			////inst.AddressInformation.Create();
+			////}
+			//if (!lv_AddrDefPostalRep.IsSet())
+			//{
+				//var lv_CustPartyInfo = inst.CustodianPartyInformation; //add for SAGARAKA_PI1.0	
+				//if (lv_CustPartyInfo.IsSet())  //get the customer details from which address details are to be captured
+				//{
+					//var custpartyInfo = lv_CustPartyInfo.CustodianPartyInformationParty; //add for SAGARAKA_PI1.0
+					//if (custpartyInfo.IsSet())
+					//{
+						//var custInfo = custpartyInfo.Party; //add for SAGARAKA_PI1.0
+						//if (custInfo.IsSet())
+						//{
+							//var customer = custInfo.Customer; //add for SAGARAKA_PI1.0
+							//if (customer.IsSet())
+							//{
+								//var lv_CustomerInfo = custInfo.Customer.AddressInformation; //add for SAGARAKA_PI1.0
+								//if (lv_CustomerInfo.Count() > 0)
+								//{
+									//var lv_CustAddrInfo = lv_CustomerInfo.Address;
+									//if (lv_CustAddrInfo.Count() > 0)
+									//{
+										//var lv_CustomerAddr = lv_CustAddrInfo.GetFirst(); //add for SAGARAKA_PI1.0
+										//if (lv_CustomerAddr.IsSet())
+										//{
+											//var custAdd = lv_CustomerAddr.DefaultPostalAddressRepresentation;
+											//if (custAdd.IsSet())
+											//{
+												////****** creation of DefaultPostalAddressRepresentation node which is missing from Integration ***************//
+												////var DfltAddInst = inst.AddressInformation.Address.DefaultPostalAddressRepresentation.Create();
+												//var DfltAddInst = lv_AddrInfo.Address.DefaultPostalAddressRepresentation.Create(); //comment and add for SAGARAKA_PI1.0										
+												//if (DfltAddInst.IsSet())
+												//{
+													//DfltAddInst.StreetName = custAdd.StreetName; 
+													//DfltAddInst.CityName = custAdd.CityName;
+													//DfltAddInst.CountryCode = custAdd.CountryCode;
+													//DfltAddInst.HouseID = custAdd.HouseID;
+													//DfltAddInst.RegionCode = custAdd.RegionCode;
+													//DfltAddInst.BuildingID = custAdd.BuildingID;
+													//DfltAddInst.FloorID = custAdd.FloorID;
+													//DfltAddInst.RoomID = custAdd.RoomID;
+													//DfltAddInst.StreetPostalCode = custAdd.StreetPostalCode;
+												//}
+											//}	
+										//}
+									//}
+								//}
+							//}
+						//}
+					//}
+				//}
+			//}
+			////End of moving below code in else for SAGARAKA_PI1.0
+		//}
+		//////*************** CC_21: End of change to capture the customer country in dummy Backend Country SDK field for Code list restriction for Retailer dropdown ***************//
+		////if (!inst.AddressInformation.Address.IsSet())//Check for Addressinfo.Address node is set or to be created
+		////{
+		////inst.AddressInformation.Address.Create();
+		////}
+		////if (!inst.AddressInformation.Address.DefaultPostalAddressRepresentation.IsSet())
+		////{
+		////if (inst.CustodianPartyInformation.IsSet())  //get the customer details from which address details are to be captured
+		////{
+		////if (inst.CustodianPartyInformation.CustodianPartyInformationParty.IsSet())
+		////{
+		////var custpartyInfo = inst.CustodianPartyInformation.CustodianPartyInformationParty;
+		////if (custpartyInfo.Party.IsSet())
+		////{
+		////var custInfo = custpartyInfo.Party;
+		////if (custInfo.Customer.IsSet())
+		////{
+		////if (custInfo.Customer.AddressInformation.Address.GetFirst().IsSet())
+		////{
+		////if (custInfo.Customer.AddressInformation.Address.GetFirst().DefaultPostalAddressRepresentation.IsSet())
+		////{
+		////var custAdd = custInfo.Customer.AddressInformation.Address.GetFirst().DefaultPostalAddressRepresentation;
+		////
+		//////****** creation of DefaultPostalAddressRepresentation node which is missing from Integration ***************//
+		////var DfltAddInst = inst.AddressInformation.Address.DefaultPostalAddressRepresentation.Create();
+		////if (DfltAddInst.IsSet())
+		////{
+		////DfltAddInst.StreetName = custAdd.StreetName; 
+		////DfltAddInst.CityName = custAdd.CityName;
+		////DfltAddInst.CountryCode = custAdd.CountryCode;
+		////DfltAddInst.HouseID = custAdd.HouseID;
+		////DfltAddInst.RegionCode = custAdd.RegionCode;
+		////DfltAddInst.BuildingID = custAdd.BuildingID;
+		////DfltAddInst.FloorID = custAdd.FloorID;
+		////DfltAddInst.RoomID = custAdd.RoomID;
+		////DfltAddInst.StreetPostalCode = custAdd.StreetPostalCode;
+		////}
+		////}
+		////}
+		////}
+		////}
+		////}
+		////}
+		////}
+		////**********************************End of changes to Update Product Location for Integration scenarios******************************//	
+		//
+		////***********Start of changes for ML code and Serial Number******************
+		//if (inst.LX_PRD_ML1.IsInitial() || inst.LX_PRD_SN1.IsInitial())
+		//{
+			//var InstallObj = inst.PrimaryInstalledObject;
+			//if (InstallObj.IsSet()) //comment for SAGARAKA_PI1.0
+			//{
+				//var InstallIndvProd = InstallObj.InstalledObjectIndividualProduct;
+				//if (InstallIndvProd.IsSet())
+				//{
+					//var IndividualProd = InstallIndvProd.IndividualProduct;
+					//if (IndividualProd.IsSet())
+					//{
+						//var SrvProcInfo = IndividualProd.ServiceProcessInformation;
+						//if (SrvProcInfo.IsSet())
+						//{
+							//if (!SrvProcInfo.LX_PRD_SN.IsInitial())
+							//{
+								////inst.LX_PRD_SN1 = inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct.ServiceProcessInformation.LX_PRD_SN;
+								//inst.LX_PRD_SN1 = SrvProcInfo.LX_PRD_SN;
+							//}
+							////if (!inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct.ServiceProcessInformation.LX_PRD_ML.IsInitial())
+							//if (!SrvProcInfo.LX_PRD_ML.IsInitial())
+							//{
+								////inst.LX_PRD_ML1 = inst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct.ServiceProcessInformation.LX_PRD_ML;
+								//inst.LX_PRD_ML1 = SrvProcInfo.LX_PRD_ML;
+							//}
+						//}
+					//}
+				//}
+			//}
+		//}
+		////***********End of changes for ML code and Serial Number******************
+		//
+	//}
+//}

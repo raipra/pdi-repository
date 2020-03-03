@@ -1,0 +1,23 @@
+﻿import ABSL;
+import AP.Common.GDT;
+import AP.CRM.Global;
+
+var result : DataType::LANGUAGEINDEPENDENT_MEDIUM_Name;
+result = "No Duplicate Found";
+
+//Contract Duplicate Check with 3rd Party Contract ID & Customer ID
+var ContractQuery		= Contract.QueryByElements;
+var ContractExternalID	= ContractQuery.CreateSelectionParams();
+ContractExternalID.Add(ContractQuery.LX_SRC_DG_BEXP7SFQ8A7RZGOV25G2XILXP,"I","EQ", ThirdPartyContractID);
+var ResultContract = ContractQuery.Execute(ContractExternalID);
+
+if(ResultContract.Count() == 0)
+{
+	 result = "No Duplicate Found"; //no contract exists for the given 3rd party contract ID & Customer ID
+}
+else
+{
+	result = ResultContract.GetFirst().ID;
+}
+
+return result;

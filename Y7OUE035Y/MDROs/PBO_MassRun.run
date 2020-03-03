@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MassDataRunObject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://sap.com/ByD/PDI/MassDataRunObjectDefinition">
+  <MdroEsrNameSpace xmlns="">http://0003581030-one-off.sap.com/Y7OUE035Y_</MdroEsrNameSpace>
+  <MdroEsrName xmlns="">PBO_MassRun</MdroEsrName>
+  <MdroPrxName xmlns="">Y7OUE035Y_PBUNB4EA7054A8FBB532</MdroPrxName>
+  <ParallelProcessing xmlns="" />
+  <ApplicationLogDetailLevelCode xmlns="">5</ApplicationLogDetailLevelCode>
+  <ApplicationLogRetentionTimeCode xmlns="">P1D</ApplicationLogRetentionTimeCode>
+  <AccessControlledBoList xmlns="">
+    <AccessControlledBo>
+      <ActionEntity>
+        <BoEsrNameSpace>http://0003581030-one-off.sap.com/Y7OUE035Y_</BoEsrNameSpace>
+        <BoEsrName>PBO_MassDataRun</BoEsrName>
+        <BoPrxName>Y7OUE035Y_PBUN3EF52FC45FDDA20E</BoPrxName>
+        <BoEsrNodeName>Root</BoEsrNodeName>
+        <BoPrxNodeName>ROOT4F903855210031B0</BoPrxNodeName>
+        <BoEsrEntityName>RunMDRO</BoEsrEntityName>
+        <BoPrxEntityName>RUNMDRO97BD4B4BED902D24</BoPrxEntityName>
+      </ActionEntity>
+      <ActionPath>\TO_PARENT</ActionPath>
+      <QueryEntity>
+        <BoEsrNameSpace>http://0003581030-one-off.sap.com/Y7OUE035Y_</BoEsrNameSpace>
+        <BoEsrName>PBO_MassDataRun</BoEsrName>
+        <BoPrxName>Y7OUE035Y_PBUN3EF52FC45FDDA20E</BoPrxName>
+        <BoEsrNodeName>MassDataRunQuery</BoEsrNodeName>
+        <BoPrxNodeName>MASSDAQUERYA7CBD91719BD5A3D</BoPrxNodeName>
+        <BoEsrEntityName>QueryByElements</BoEsrEntityName>
+        <BoPrxEntityName>QUERY_BY_ELEMENTS</BoPrxEntityName>
+      </QueryEntity>
+      <QueryParameterList>
+        <QueryParameter>
+          <QueryEsrParameterName>MDRORunObject</QueryEsrParameterName>
+          <QueryPrxParameterName>MDRORUROOTBFA71C754A982378</QueryPrxParameterName>
+          <QueryPrxParameterDataType>APC_V_LANGIND_ENC_MED_NAME</QueryPrxParameterDataType>
+          <MdroEsrNodeName>SelectByMDRORunObject</MdroEsrNodeName>
+          <MdroPrxNodeName>SEL_BY_MDCT5791BAC1D8EDDD1A</MdroPrxNodeName>
+        </QueryParameter>
+        <QueryParameter>
+          <QueryEsrParameterName>DataUploadISPID</QueryEsrParameterName>
+          <QueryPrxParameterName>DATAUPROOT6193C223ADB03492</QueryPrxParameterName>
+          <QueryPrxParameterDataType>APC_V_LANGUAGEINDEP_SHORT_NAME</QueryPrxParameterDataType>
+          <MdroEsrNodeName>SelectByDataUploadISPID</MdroEsrNodeName>
+          <MdroPrxNodeName>SEL_BY_DATSCBD1D81E13D4C8F5</MdroPrxNodeName>
+        </QueryParameter>
+      </QueryParameterList>
+    </AccessControlledBo>
+  </AccessControlledBoList>
+</MassDataRunObject>

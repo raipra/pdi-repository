@@ -1,0 +1,63 @@
+﻿import AP.Common.GDT as apCommonGDT;
+import AP.FO.BusinessPartner.Global;
+
+[DeploymentUnit(Foundation)] businessobject PBO_MergeCustomerBO {
+
+        // Root node must not be specified, it is created implicitly
+        //
+        // Add elements here. 
+        // 
+        // To declare an element as alternative key, use the [AlternativeKey] annotation.
+        // Please note:
+        // - An alternative key of type UUID exists implicitly for each node, enabling the node
+        //   to be used as an association target.
+        // - The QueryByElements query is created automatically for each node.
+        // - Code completion is available with CTRL + SPACE.
+		[Label("Customer ID")] [AlternativeKey] element	Customer_ID		:BusinessPartnerInternalID;
+	    [Label("Customer UUID")]		element Customer_UUID	:UUID;
+	    [Label("Customer First Name")]  element Customer_FName  :LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+	    [Label("Customer Last Name")]	element Customer_LName	:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+		[Label("Customer Email")]       element Customer_Email : LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Phone")]       element Customer_Phone : LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Country")]     element Customer_Country : LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer SCIID")]       element Customer_SCIID : LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Customer Postal Code")] element Customer_PostCode : LANGUAGEINDEPENDENT_MEDIUM_Name;
+		[Label("Processing Status")]     element Processing_Status : DataUploadProcessingStatusCode;
+		[Label("Created On")]			element CreatedOn		:Date;
+		[Label("Last Updated Date")]    element Last_Updated_Date  :Date;
+
+		node Duplicate_Customers_Standard[0,n]
+		{
+		    [Label("Duplicate Customer ID")]		  element DupStd_Customer_ID		:BusinessPartnerInternalID;
+			[Label("Duplicate Customer UUID")]		  element DupStd_Customer_UUID	:UUID;
+			[Label("Duplicate Customer First Name")]  element DupStd_Customer_FName  :LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+			[Label("Duplicate Customer Last Name")]	  element DupStd_Customer_LName	:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+			[Label("Duplicate Customer Email")]       element DupStd_Customer_Email : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Phone")]       element DupStd_Customer_Phone : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Country")]     element DupStd_Customer_Country : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer SCIID")]       element DupStd_Customer_SCIID : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Postal Code")] element DupStd_Customer_PostCode : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Similarity%")] element DupStd_Customer_SimilarityPercent : SMALLNONNEGATIVE_Percent; //SMALLNONNEGATIVEINTEGER_Percent
+			[Label("Duplicate Created On")]			  element DupStd_CreatedOn		:Date;
+		    [Label("Duplicate Last Updated Date")]    element DupStd_Last_Updated_Date  :Date;
+		}
+		node Duplicate_Customers[0,n]
+		{
+		    [Label("Duplicate Customer ID")]		  element	Dup_Customer_ID		:BusinessPartnerInternalID;
+			[Label("Duplicate Customer UUID")]		  element Dup_Customer_UUID	:UUID;
+			[Label("Duplicate Customer First Name")]  element Dup_Customer_FName  :LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+			[Label("Duplicate Customer Last Name")]	  element Dup_Customer_LName	:LANGUAGEINDEPENDENT_ENCRYPTED_MEDIUM_Name;
+			[Label("Duplicate Customer Email")]       element Dup_Customer_Email : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Phone")]       element Dup_Customer_Phone : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Country")]     element Dup_Customer_Country : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer SCIID")]       element Dup_Customer_SCIID : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Customer Postal Code")] element Dup_Customer_PostCode : LANGUAGEINDEPENDENT_MEDIUM_Name;
+			[Label("Duplicate Created On")]			  element Dup_CreatedOn		:Date;
+		    [Label("Duplicate Last Updated Date")]    element Dup_Last_Updated_Date  :Date;
+		}
+
+		action MergeDuplicate_CustomerAction;
+		action Delete_ProcessedRecords;
+		association ToCustomer to Customer;
+
+}

@@ -1,0 +1,105 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: Contract
+		Node: Root
+		Event: BeforeSave 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script when:
+		- the instance of the business object is being saved.
+		- the instance of the business object is created from other sources like web services, preview screen, and so on.
+*/
+
+import ABSL;
+import AP.FO.BusinessPartner.Global;
+import AP.FO.IBase.Global;
+import BASIS.Global;
+import AP.Common.GDT;
+
+foreach(var inst in this)
+{
+	if(!inst.LX_CON_DATAUPLOAD_CUUID.IsInitial() || !inst.LX_CON_DATAUPLOAD_RPUUID.IsInitial())
+	{
+		var BuyerParty = inst.Party.Where(n=>n.RoleCode == "1001");
+	
+		if((BuyerParty.Count() == 0 || inst.CoveredObject.Count() == 0))
+		{
+			inst.MapPartyInstance();
+		}
+		else
+		{
+			//Link New Registered Product created via PBO_DataUpload BO
+			if (!inst.LX_CON_DATAUPLOAD_RPUUID.IsInitial())
+			{
+				var RegPdtUUID : DataType::UUID;
+				RegPdtUUID.content = Library::UUID.ParseFromString(inst.LX_CON_DATAUPLOAD_RPUUID);
+
+				var RPInstance = InstallationPoint.Retrieve(RegPdtUUID); 
+		
+				if (RPInstance.IsSet())
+				{
+					var Installed_Obj = RPInstance.PrimaryInstalledObject;
+					if(Installed_Obj.IsSet())
+					{
+						var InstalledIndvProduct = Installed_Obj.InstalledObjectIndividualProduct;
+						if(InstalledIndvProduct.IsSet())
+						{
+							var IndividualProd = InstalledIndvProduct.IndividualProduct;
+							if(IndividualProd.IsSet())
+							{
+								var ServiceProcessInfo = IndividualProd.ServiceProcessInformation;
+								if(ServiceProcessInfo.IsSet())
+								{
+									if (inst.CoveredObject.Count() > 0)
+									{
+										var ExistingCoveredObject = inst.CoveredObject.Where(n => n.InstallationPointID.content == RPInstance.ID.content);
+										if (ExistingCoveredObject.Count() == 0)
+										{
+											var Contract_CoveredObj : elementsof Contract.CoveredObject;
+											Contract_CoveredObj.IndividualProductSerialIDKey.SerialID = ServiceProcessInfo.SerialID;
+											inst.CoveredObject.Create(Contract_CoveredObj);
+										}
+										else
+										{
+											ExistingCoveredObject.GetFirst().IndividualProductSerialIDKey.SerialID = ServiceProcessInfo.SerialID;
+										}
+									}
+									else
+									{
+										var Contract_CoveredObj : elementsof Contract.CoveredObject;
+										Contract_CoveredObj.InstallationPointID.content = RPInstance.ID.content;
+										inst.CoveredObject.Create(Contract_CoveredObj);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if(inst.BillToParty.IsSet()) //Contract status can be set only if data is consistent
+		{
+			if(!inst.ValidityStartDate.IsInitial() && !inst.ValidityEndDate.IsInitial()) //Contract Status is determined based on validity dates
+			{
+				if(Context.GetCurrentSystemDate().LessThan(inst.ValidityEndDate))
+				{
+					inst.ReleaseToActivate();	//Set Contract to Active
+				}
+				else
+				{
+					inst.FlagAsObsolete();		//Set Contract to Obsolete
+				}
+			}
+			else
+			{
+				inst.SetBackInPreparation();		// Set Contract to In Preparation
+			}
+		}
+	}
+}

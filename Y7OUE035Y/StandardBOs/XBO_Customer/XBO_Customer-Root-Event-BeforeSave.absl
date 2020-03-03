@@ -1,0 +1,153 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: Customer
+		Node: Root
+		Event: BeforeSave 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script when:
+		- the instance of the business object is being saved.
+		- the instance of the business object is created from other sources like web services, preview screen, and so on.
+*/
+
+import ABSL;
+
+foreach (var cust in this)
+{
+	if (cust.IsSet())
+	{
+		//***************************** Derive Territory Workflow is replaced by Code ************************** //
+		cust.DeriveTerritories(); 
+
+		//CC_06 : Merge Proposal start
+		if (cust.Status.LifeCycleStatusCode == "2" && cust.CategoryCode == "1")//only if its an active and person category record,create entry into custom bo
+		{
+			var result;
+			var dupid;
+			var Customer_Inst;
+			//var Query_MergeCust = .QueryByElements;
+			//var Query_SelParams = Query_MergeCust.CreateSelectionParams();
+			//Query_SelParams.Add(Query_MergeCust.Customer_ID, "I", "EQ", cust.InternalID);
+			Customer_Inst = PBO_MergeCustomerBO.Retrieve(cust.InternalID);
+
+			var Current_Common_Node = cust.CurrentCommon;
+			var Current_Default_Add_Info = cust.CurrentDefaultAddressInformation;
+			var Current_Default_Address;
+			var Current_Default_email;
+			var Current_Default_phone;
+			var Current_Default_postaladdr;
+			var Customer_System_Admin_data;
+			var SCIID_Node;
+			if (Current_Default_Add_Info.IsSet())
+			{
+				Current_Default_Address = Current_Default_Add_Info.Address;
+				if (Current_Default_Address.IsSet())
+				{
+					Current_Default_postaladdr = Current_Default_Address.DefaultPostalAddressRepresentation;
+					Current_Default_email = Current_Default_Address.DefaultEMail;
+					Current_Default_phone = Current_Default_Address.DefaultMobilePhone;
+				}
+			}
+			Customer_System_Admin_data = cust.PartialSystemAdministrativeData;
+			SCIID_Node = cust.DefaultObjectIdentifierMapping;
+			if (Customer_Inst.IsSet())
+			{
+				//update the entry in mergecustomerbo
+				Customer_Inst.Customer_ID = cust.InternalID;
+				Customer_Inst.Customer_UUID = cust.UUID;
+				Customer_Inst.ToCustomer = cust;
+				if (Current_Common_Node.IsSet())
+				{
+					Customer_Inst.Customer_LName = Current_Common_Node.Person.Name.FamilyName;
+					Customer_Inst.Customer_FName = Current_Common_Node.Person.Name.GivenName;
+				}
+				if (Current_Default_Add_Info.IsSet())
+				{
+					if (Current_Default_Address.IsSet())
+					{
+						if (Current_Default_email.IsSet())
+						{
+							Customer_Inst.Customer_Email = Current_Default_email.URI.content;
+						}
+						if (Current_Default_phone.IsSet())
+						{
+							Customer_Inst.Customer_Phone = Current_Default_phone.NormalisedNumberDescription;
+						}
+						if (Current_Default_postaladdr.IsSet())
+						{
+							Customer_Inst.Customer_Country = Current_Default_postaladdr.CountryCode;
+							Customer_Inst.Customer_PostCode = Current_Default_postaladdr.StreetPostalCode;
+						}
+
+					}
+				}
+				if (!Customer_System_Admin_data.IsInitial())
+				{
+					Customer_Inst.Last_Updated_Date = Customer_System_Admin_data.LastChangeDateTime.GetDate();
+					Customer_Inst.CreatedOn = Customer_System_Admin_data.CreationDateTime.GetDate();
+				}
+				Customer_Inst.Processing_Status = "O";
+			
+				if (SCIID_Node.IsSet())
+				{
+					Customer_Inst.Customer_SCIID = SCIID_Node.RemoteObjectID.content; 
+				}
+			}
+			else
+			{
+				//create new entry in the mergecustomerbo
+				var Merge : elementsof PBO_MergeCustomerBO;
+				Merge.Customer_ID = cust.InternalID;
+				Merge.Customer_UUID = cust.UUID;
+				if (Current_Common_Node.IsSet())
+				{
+					Merge.Customer_LName = Current_Common_Node.Person.Name.FamilyName;
+					Merge.Customer_FName = Current_Common_Node.Person.Name.GivenName;
+				}
+				if (Current_Default_Add_Info.IsSet())
+				{
+					if (Current_Default_Address.IsSet())
+					{
+						if (Current_Default_email.IsSet())
+						{
+							Merge.Customer_Email = Current_Default_email.URI.content;
+						}
+						if (Current_Default_phone.IsSet())
+						{
+							Merge.Customer_Phone = Current_Default_phone.NormalisedNumberDescription;
+						}
+						if (Current_Default_postaladdr.IsSet())
+						{
+							Merge.Customer_Country = Current_Default_postaladdr.CountryCode;
+							Merge.Customer_PostCode = Current_Default_postaladdr.StreetPostalCode;
+						}
+
+					}
+				}
+			
+				if (SCIID_Node.IsSet())
+				{
+					Merge.Customer_SCIID = SCIID_Node.RemoteObjectID.content;
+				}
+				if (!Customer_System_Admin_data.IsInitial())
+				{
+					Merge.Last_Updated_Date = Customer_System_Admin_data.LastChangeDateTime.GetDate();
+					Merge.CreatedOn = Customer_System_Admin_data.CreationDateTime.GetDate();
+				}
+				Merge.Processing_Status = "O";
+				var Merge_entry = PBO_MergeCustomerBO.Create(Merge);
+				if (Merge_entry.IsSet())
+				{
+					Merge_entry.ToCustomer = cust;
+				}
+			}
+		}
+		//CC_06 : Merge Proposal end
+		
+	}
+}

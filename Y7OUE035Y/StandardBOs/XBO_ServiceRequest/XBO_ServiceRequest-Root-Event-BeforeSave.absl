@@ -1,0 +1,1843 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Event: BeforeSave 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	  - The solution uses this script when:
+		- the instance of the business object is being saved.
+		- the instance of the business object is created from other sources like web services, preview screen, and so on.
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SDK31.0
+//Author: Arya Manmadan (SDK3)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+
+import ABSL as absl;
+import AP.FO.ProductDataMaintenance.Global;
+import AP.FO.IBase.Global;
+import AP.FO.BusinessPartner.Global;
+import BASIS.Global;
+
+
+var POPDocTypeCode;
+//Item with Processing Code
+//"Central WH to Technician", 
+var CWHPrCode = "ZCW1";
+//"Local WH Reservation", 
+var LOWHPrCode = "ZLW1";
+//"Technician Van Stock Reservation" 
+var TechVanStock = "ZTE1";
+// Reserved Status
+var ResrvStatus = "3";
+
+POPDocTypeCode = "ZPOP";
+
+foreach (var inst in this) //Foreach(1)
+{ 	
+	if (inst.IsSet())  //If(1)
+	{
+		////************Start of Local variable declaration*************
+		var lv_SrvLoc;
+		var lv_SrvLocAddr;
+		var lv_SrvLocDefAddr;
+		var lv_SrvLoc_CountryCode;
+		////************End of Local variable declaration*************
+
+		//************Start of Global declaration of instances for sub-node*************
+		var srvPointLoc = inst.ServicePointLocation;
+		var srvPointLoc_Usedaddr;
+		var srvPointLoc_Usedaddr_DefAddrRep;
+		var buyer_Party = inst.BuyerParty;
+		var SrvSupportTeam = inst.ServiceSupportTeamParty;
+		var MaterialRef = inst.MainServiceReferenceObject;
+		var MaterialRef_InstPoint; 
+		//added for SDK31.0
+		var MainServiceIssueCat = inst.MainActivityServiceIssueCategory;
+		var AttachmentFolder = inst.AttachmentFolder;
+		var AttachmentFolder_Document;
+		var Instance_Item = inst.Item;
+		var ServiceTerms_Node = inst.ServiceTerms;
+		var Party = inst.Party;
+		var Buyer_PartyDetails;
+		var BP_Customer;
+		var BP_taxNumber;
+		
+		//added for SDK31.0
+		if (buyer_Party.IsSet())
+		{
+			Buyer_PartyDetails = buyer_Party.Party;
+			if (Buyer_PartyDetails.IsSet())
+			{
+				BP_Customer = Buyer_PartyDetails.Customer;
+
+				if (BP_Customer.IsSet())
+				{
+				    ////arya
+				    //if(BP_Customer.CurrentCommon.IsSet())
+					//{
+				    //Cust_CurrentCommon =  BP_Customer.CurrentCommon;
+					//}
+					////arya
+					BP_taxNumber = BP_Customer.TaxNumber;
+				}
+			}
+		}
+		if (srvPointLoc.IsSet())
+		{
+			srvPointLoc_Usedaddr = srvPointLoc.UsedAddress;
+			if (srvPointLoc_Usedaddr.IsSet())
+			{
+				srvPointLoc_Usedaddr_DefAddrRep = srvPointLoc_Usedaddr.DefaultPostalAddressRepresentation;
+			}
+		}
+		if (MaterialRef.IsSet())
+		{
+			MaterialRef_InstPoint = MaterialRef.InstallationPoint;
+		}
+		if (AttachmentFolder.IsSet())
+		{
+			AttachmentFolder_Document = AttachmentFolder.Document;
+		}
+		var ResolvedOnTimePoint_Var = inst.ResolvedOnTimePoint;
+		var ServiceRequestInteraction_Var = inst.ServiceRequestInteraction;
+		var techLine;
+		var DocInst;
+		var POPAttachment;
+		var RegisteredProd;
+		var RegPdt_InstallationPoint;
+		var RegisteredProductInst;
+		var RegisteredProductAttachment;
+		var RegPdt_PrimaryInstalledObject;
+		var RegPdt_InstalledObjectIndividualProduct;
+		var RegisteredProductIndividual;
+		var WarrantyStartDate;
+		var RegPdt_ServiceInformation;
+		var RegisteredProdAttachment;
+		var RegPdtAttachment_DocumentNode;
+		var Party_CurrDefaultAddrInfo;
+		var Party_CurrDefaultAddrInfo_Address;
+		//added for SDK31.0
+		//************End of Global declaration of instances for sub-node***************
+
+		//// Start of Defining Country code global declaration from service point location, since it is used in multiple places				
+		////Get Country
+
+		//if (inst.ServicePointLocation.IsSet())
+		if (srvPointLoc.IsSet())
+		{
+			//lv_SrvLoc = inst.ServicePointLocation;
+			//if (lv_SrvLoc.UsedAddress.IsSet())
+			if (srvPointLoc_Usedaddr.IsSet())
+			{
+				//lv_SrvLocAddr = lv_SrvLoc.UsedAddress;
+				//if (lv_SrvLocAddr.DefaultPostalAddressRepresentation.IsSet())
+				if (srvPointLoc_Usedaddr_DefAddrRep.IsSet())
+				{ 
+					//lv_SrvLocDefAddr = lv_SrvLocAddr.DefaultPostalAddressRepresentation;
+					//if (!lv_SrvLocDefAddr.CountryCode.IsInitial())
+					if (!srvPointLoc_Usedaddr_DefAddrRep.CountryCode.IsInitial())
+					{
+						//lv_SrvLoc_CountryCode = lv_SrvLocDefAddr.CountryCode;
+						lv_SrvLoc_CountryCode = srvPointLoc_Usedaddr_DefAddrRep.CountryCode;
+					}
+				}
+			}
+		}
+		// End of Defining Country code global declaration from service point location, since it is used in multiple places
+
+		////CC-51 : restrict status field when country = uk and promised start date is not blank
+	//
+		//if (lv_SrvLoc_CountryCode == "GB" && !inst.promstrtdateWF.IsInitial())
+		//{
+			//inst.LX_TKT_STFL = true; //status flag
+		//}
+		//else
+		//{
+			//inst.LX_TKT_STFL = false;
+		//}
+			//
+		////CC-51 : restrict status field when country = uk and promised start date is not blank
+		//Start of Set item status as not work relevant for cancelled tickets.
+		if (ServiceTerms_Node.IsSet())//added for SDK31.0
+		{
+			//if (inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z2")
+			if (ServiceTerms_Node.ServiceRequestUserLifeCycleStatusCode == "Z2")//commented above and added for SDK31.0
+			{
+				if (Instance_Item.Count() > 0)//added for SDK31.0
+				{
+					//var techLine = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZMR1");
+					techLine = Instance_Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZMR1");
+					foreach (var lineitem in techLine)
+					{
+						if (lineitem.Status.ServiceRequestExecutionLifeCycleStatusCode == "1" || lineitem.Status.ServiceRequestExecutionLifeCycleStatusCode == "2" || lineitem.Status.ServiceRequestExecutionLifeCycleStatusCode == "3")
+						{
+							lineitem.FlagFulfilmentProcessingAsNotRelevant();
+						}
+					}
+				}
+			}
+		}		
+		//End of Set item status as not work relevant for cancelled tickets.
+
+		//*******************************visit start/end date and promised start/end date assignment *********************************//
+		if (!inst.LX_TKT_ASTDT.IsInitial())
+		{
+			inst.LX_TKT_REPVSD = inst.LX_TKT_ASTDT.GetDate();//visit start date (report)
+		}
+		if (!inst.LX_TKT_AENDT.IsInitial())
+		{
+			inst.LX_TKT_REPVED = inst.LX_TKT_AENDT.GetDate();//visit end date (report)
+		}
+		if (!inst.promstrtdateWF.IsInitial())
+		{
+			inst.LX_TKT_REPPSD = inst.promstrtdateWF.GetDate();//promised started date (report)
+		}
+		if (!inst.PromEndWF.IsInitial())
+		{
+			inst.LX_TKT_REPPED = inst.PromEndWF.GetDate();//promised end date (report)
+		}
+		//******************************* end visit start/end date and promised start/end date assignment *********************************//
+		//******************************* update of mlcode and serial number to reg pdt(FO_04)**********************************//
+		//if (inst.ServiceTerms.IsSet())
+		//{
+		//if (inst.ServiceTerms.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content.RemoveLeadingZeros() == "1" && inst.Status.ServiceRequestLifeCycleStatusCode == "3")
+		//{
+		//var ServiceRefObjNode = inst.MainServiceReferenceObject;////commented for SDK31.0
+		//if (ServiceRefObjNode.IsSet())//inst.MainServiceReferenceObject.IsSet())
+		if (MaterialRef.IsSet())//commented above and added for SDK31.0
+		{
+			//if (ServiceRefObjNode.InstallationPoint.IsSet())//inst.MainServiceReferenceObject.InstallationPoint.IsSet())
+			if (MaterialRef_InstPoint.IsSet())//inst.MainServiceReferenceObject.InstallationPoint.IsSet())//commented above and added for SDK31.0
+			{
+				if (!inst.LX_PRD_ML1.IsInitial()) 
+				{
+					//ServiceRefObjNode.InstallationPoint.LX_PRD_ML1 = inst.LX_PRD_ML1;
+					//MaterialRef.InstallationPoint.LX_PRD_ML1 = inst.LX_PRD_ML1;//commented above and added for SDK31.0
+					MaterialRef_InstPoint.LX_PRD_ML1 = inst.LX_PRD_ML1;//commented above and added for SDK31.0
+				}
+				if (!inst.LX_PRD_SN1.IsInitial())
+				{
+					//ServiceRefObjNode.InstallationPoint.LX_PRD_SN1 = inst.LX_PRD_SN1;
+					//MaterialRef.InstallationPoint.LX_PRD_SN1 = inst.LX_PRD_SN1;//commented above and added for SDK31.0
+					MaterialRef_InstPoint.LX_PRD_SN1 = inst.LX_PRD_SN1;//commented above and added for SDK31.0
+				}
+				if (!inst.LX_PRD_PV1.IsInitial())
+				{
+					//ServiceRefObjNode.InstallationPoint.LX_PRD_PV1 = inst.LX_PRD_PV1;
+					//MaterialRef.InstallationPoint.LX_PRD_PV1 = inst.LX_PRD_PV1;//commented above and added for SDK31.0
+					MaterialRef_InstPoint.LX_PRD_PV1 = inst.LX_PRD_PV1;//commented above and added for SDK31.0
+				}
+				//CC_21: Start of change to Flow Retailer text and Retailer list to Registered Product, if not blank
+				if (!inst.LX_PRD_RET.IsInitial()) // Retailer List
+				{
+					//ServiceRefObjNode.InstallationPoint.LX_PRD_RET = inst.LX_PRD_RET;
+					//MaterialRef.InstallationPoint.LX_PRD_RET = inst.LX_PRD_RET;//commented above and added for SDK31.0
+					MaterialRef_InstPoint.LX_PRD_RET = inst.LX_PRD_RET;//commented above and added for SDK31.0
+				}
+				if (!inst.LX_PRD_RE1.IsInitial()) // Retailer Text
+				{
+					//ServiceRefObjNode.InstallationPoint.LX_PRD_RE1 = inst.LX_PRD_RE1;
+					//MaterialRef.InstallationPoint.LX_PRD_RE1 = inst.LX_PRD_RE1;//commented above and added for SDK31.0
+					MaterialRef_InstPoint.LX_PRD_RE1 = inst.LX_PRD_RE1;//commented above and added for SDK31.0
+				}
+				//CC_21: End of change to Flow Retailer text and Retailer list to Registered Product, if not blank
+			}
+		}
+		//}
+		//}
+		//******************************* update of mlcode and serial number to reg pdt(FO_04)**********************************//
+		
+		//****************************** Start of Graphical Signature Requirement ***************************************//
+		
+	    
+		//Start of change to remove the signature attachments from attachment folder once revisit scenario is triggered
+		//if (inst.ServiceTerms.IsSet()) //If(1.1)
+		if (ServiceTerms_Node.IsSet()) //If(1.1)//commented above and added for SDK31.0
+		{
+			//var SRUsrcodeInst = inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode;
+			var SRUsrcodeInst = ServiceTerms_Node.ServiceRequestUserLifeCycleStatusCode;//commented above and added for SDK31.0
+			var SRUsrCompltStat = "5"; //Completed Status 
+
+			if (!SRUsrcodeInst.IsInitial()) //If(1.2)
+			{
+				if (SRUsrcodeInst == SRUsrCompltStat) //|| SRUsrcodeInst == "6" || SRUsrcodeInst == "Z1") //If(1.3)
+				{
+					//if (inst.AttachmentFolder.IsSet()) //If(1.4)
+					if (AttachmentFolder.IsSet()) //If(1.4)//commented above and added for SDK31.0
+					{
+						//var DocInst = inst.AttachmentFolder.Document;
+						//DocInst = AttachmentFolder.Document;//commented above and added for SDK31.0
+						DocInst = AttachmentFolder_Document;//commented above and added for SDK31.0
+						var GrpSigBuyer = "10087";
+						var GrpSigAgent = "10094";
+						var GrpSigTech = "10095";
+
+						if (DocInst.Count() > 0) //If(1.5)
+						{
+							var GrpSigBuyerInst = DocInst.Where(n => n.TypeCode.content == GrpSigBuyer);
+							if (GrpSigBuyerInst.Count() > 0)
+							{
+								GrpSigBuyerInst.Delete();
+							}
+							var GrpSigAgentInst = DocInst.Where(n => n.TypeCode.content == GrpSigAgent);
+							if (GrpSigAgentInst.Count() > 0)
+							{
+								GrpSigAgentInst.Delete();
+							}
+							var GrpSigTechInst = DocInst.Where(n => n.TypeCode.content == GrpSigTech);
+							if (GrpSigTechInst.Count() > 0)
+							{
+								GrpSigTechInst.Delete();
+							}
+						} //If(1.5)
+					} //If(1,4)
+				} //If(1.3)
+			} //If(1.2)
+		} //If(1.1)
+	    
+		//FO_12 -- Assign fault code key from product to ticket
+		//Material.Common.LX_PRD_FCK
+		if (MaterialRef.IsSet())
+		{
+			var MateriaRef_V1 = MaterialRef.Material_V1;
+			//if (MaterialRef.Material_V1.IsSet())
+			if (MateriaRef_V1.IsSet())
+			{
+				var MateriaRef_V1_common = MateriaRef_V1.Common;
+				if (MateriaRef_V1_common.IsSet())
+				{
+					//var pdt_FCK = MaterialRef.Material_V1.Common.LX_PRD_FCK; 
+					var pdt_FCK = MateriaRef_V1_common.LX_PRD_FCK;
+					if (inst.LX_TXT_FCK.IsInitial())
+					{
+						inst.LX_TXT_FCK = pdt_FCK;
+					}
+				}
+			}
+		}
+		//FO_12 -- Assign fault code key from product to ticket
+		//End of change to remove the signature attachments from attachment folder once revisit scenario is triggered
+
+		//****************************** End of Graphical Signature Requirement ***************************************//
+		
+		//****************************** Proof of Purchase Validation ***************************************
+		//var AttachmentFolder = inst.AttachmentFolder;//commented and in global declaration for SDK31.0
+
+		//Enable POPAttachmentExists Flag once POP Attachment is added, enabling the Purchase Validated Flag
+		if (inst.LX_TKT_ISPTYP != "111" && inst.LX_TKT_SCEN != "102") //Skip Validation for ISP Type "ISP2" & Claims Type "External" If(2)
+		{			
+			if (AttachmentFolder.IsSet()) //If(2.1)
+			{
+				//var POPAttachment = AttachmentFolder.Document.Where(n => n.TypeCode.content == POPDocTypeCode);
+				POPAttachment = AttachmentFolder_Document.Where(n => n.TypeCode.content == POPDocTypeCode);//commented above and added for SDK31.0
+				if (POPAttachment.Count() > 0)
+				{
+					inst.LX_TKT_ATT_POP = true;		//Purchase Validated Flag is write-enabled
+
+				}
+				else
+				{
+					inst.LX_TKT_ATT_POP = false;	//Purchase Validated Flag is read-only
+					inst.LX_PRD_PD1 = false;		//Purchase Validation Flag is removed
+				}
+			} //If(2.1)
+			else
+			{
+				inst.LX_TKT_ATT_POP = false;	//Purchase Validated Flag is read-only
+				inst.LX_PRD_PD1 = false;		//Purchase Validation Flag is removed
+			}
+		}	//IF(2)
+		//******************************End of Proof of Purchase Validation *******************************
+		//******************************************************* Defect code validation******************************************************************
+		//var defectcodeindicator = true;
+		//if (inst.MainActivityServiceIssueCategory.IsSet())
+		if (MainServiceIssueCat.IsSet())//commented above and added for SDK31.0
+		{
+			//if (!inst.MainActivityServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.IsInitial())
+			if (!MainServiceIssueCat.ServiceIssueCategoryCatalogueCategoryKey.IsInitial())//commented above and added for SDK31.0
+			{
+				//if (!inst.MainActivityServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.IsInitial())
+				if (!MainServiceIssueCat.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.IsInitial())//commented above and added for SDK31.0
+				{
+					//if (inst.MainActivityServiceIssueCategory.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content == "1.1.1.1.8")//resolution category == Exchange needed
+					if (MainServiceIssueCat.ServiceIssueCategoryCatalogueCategoryKey.ServiceIssueCategoryID.content == "1.1.1.1.8")//resolution category == Exchange needed//commented above and added for SDK31.0
+					{
+						//Commented as a UI Validation is written for the Defect Code Validation. Changed by: Ruchika
+						//inst.ZSDK_DefectCodeInd = false;
+						//switch (inst.LX_TXT_FCK) //Component & Defect Codes
+						//{							
+						//case "A10" //Vaccum cleaner household
+						//{
+						//if (inst.A10DefectCode != "60" && inst.A10DefectCode != "61" && inst.A10DefectCode != "62" && inst.A10DefectCode != "63" && inst.A10DefectCode != "64" && inst.A10DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "A15" //Steam Cleaner with Ironer
+						//{
+						//if (inst.A15DefectCode != "60" && inst.A15DefectCode != "61" && inst.A15DefectCode != "62" && inst.A15DefectCode != "63" && inst.A15DefectCode != "64" && inst.A15DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "A16" //High Pressure Cleaner
+						//{
+						//if (inst.A16DefectCode != "60" && inst.A16DefectCode != "61" && inst.A16DefectCode != "62" && inst.A16DefectCode != "63" && inst.A16DefectCode != "64" && inst.A16DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "B26" //Commercian Vaccum Cleaner
+						//{
+						//if (inst.B26DefectCode != "60" && inst.B26DefectCode != "61" && inst.B26DefectCode != "62" && inst.B26DefectCode != "63" && inst.B26DefectCode != "64" && inst.B26DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "B31" //Turbocleaner
+						//{
+						//if (inst.B31DefectCode != "60" && inst.B31DefectCode != "61" && inst.B31DefectCode != "62" && inst.B31DefectCode != "63" && inst.B31DefectCode != "64" && inst.B31DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "B32" //Air Cleaner, commercial
+						//{
+						//if (inst.B32DefectCode != "60" && inst.B32DefectCode != "61" && inst.B32DefectCode != "62" && inst.B32DefectCode != "63" && inst.B32DefectCode != "64" && inst.B32DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "B35" //Automatic Scrubber-Dryer
+						//{
+						//if (inst.B35DefectCode != "60" && inst.B35DefectCode != "61" && inst.B35DefectCode != "62" && inst.B35DefectCode != "63" && inst.B35DefectCode != "64" && inst.B35DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "B36" //Sweepers, Commercial
+						//{
+						//if (inst.B36DefectCode != "60" && inst.B36DefectCode != "61" && inst.B36DefectCode != "62" && inst.B36DefectCode != "63" && inst.B36DefectCode != "64" && inst.B36DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "C10" //Refrigeration
+						//{
+						//if (inst.LX_TXT_C10DC != "60" && inst.LX_TXT_C10DC != "61" && inst.LX_TXT_C10DC != "62" && inst.LX_TXT_C10DC != "63" && inst.LX_TXT_C10DC != "64" && inst.LX_TXT_C10DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "C11" //Air Conditioner
+						//{
+						//if (inst.LX_TXT_C11DC != "60" && inst.LX_TXT_C11DC != "61" && inst.LX_TXT_C11DC != "62" && inst.LX_TXT_C11DC != "63" && inst.LX_TXT_C11DC != "64" && inst.LX_TXT_C11DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "D10" //Cookers
+						//{
+						//if (inst.LX_TXT_D10DC != "60" && inst.LX_TXT_D10DC != "61" && inst.LX_TXT_D10DC != "62" && inst.LX_TXT_D10DC != "63" && inst.LX_TXT_D10DC != "64" && inst.LX_TXT_D10DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "D11" //Combi kitchen
+						//{
+						//if (inst.LX_TXT_D11DC != "60" && inst.LX_TXT_D11DC != "61" && inst.LX_TXT_D11DC != "62" && inst.LX_TXT_D11DC != "63" && inst.LX_TXT_D11DC != "64" && inst.LX_TXT_D11DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "D12" //Kitchen Media/Entertainment
+						//{
+						//if (inst.D12DefectCode != "60" && inst.D12DefectCode != "61" && inst.D12DefectCode != "62" && inst.D12DefectCode != "63" && inst.D12DefectCode != "64" && inst.D12DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "D20" //Cookers hoods
+						//{
+						//if (inst.LX_TXT_D20DC != "60" && inst.LX_TXT_D20DC != "61" && inst.LX_TXT_D20DC != "62" && inst.LX_TXT_D20DC != "63" && inst.LX_TXT_D20DC != "64" && inst.LX_TXT_D20DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "D50" //Microwave ovens
+						//{
+						//if (inst.LX_TXT_D50DC != "60" && inst.LX_TXT_D50DC != "61" && inst.LX_TXT_D50DC != "62" && inst.LX_TXT_D50DC != "63" && inst.LX_TXT_D50DC != "64" && inst.LX_TXT_D50DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "F10" //Dishwashers
+						//{
+						//if (inst.LX_TXT_F10DC != "60" && inst.LX_TXT_F10DC != "61" && inst.LX_TXT_F10DC != "62" && inst.LX_TXT_F10DC != "63" && inst.LX_TXT_F10DC != "64" && inst.LX_TXT_F10DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "G10" //Washing Machine
+						//{
+						//if (inst.LX_TXT_G10DC != "60" && inst.LX_TXT_G10DC != "61" && inst.LX_TXT_G10DC != "62" && inst.LX_TXT_G10DC != "63" && inst.LX_TXT_G10DC != "64" && inst.LX_TXT_G10DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "G40" //Dry Cabinet & Wash-Basin
+						//{
+						//if (inst.LX_TXT_G40DC != "60" && inst.LX_TXT_G40DC != "61" && inst.LX_TXT_G40DC != "62" && inst.LX_TXT_G40DC != "63" && inst.LX_TXT_G40DC != "64" && inst.LX_TXT_G40DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "G45" //Tumble & spin dryer
+						//{
+						//if (inst.LX_TXT_G45DC != "60" && inst.LX_TXT_G45DC != "61" && inst.LX_TXT_G45DC != "62" && inst.LX_TXT_G45DC != "63" && inst.LX_TXT_G45DC != "64" && inst.LX_TXT_G45DC != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "G50" //Mangles, Household
+						//{
+						//if (inst.G50DefectCode != "60" && inst.G50DefectCode != "61" && inst.G50DefectCode != "62" && inst.G50DefectCode != "63" && inst.G50DefectCode != "64" && inst.G50DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "J20" //Toilets
+						//{
+						//if (inst.J20DefectCode != "60" && inst.J20DefectCode != "61" && inst.J20DefectCode != "62" && inst.J20DefectCode != "63" && inst.J20DefectCode != "64" && inst.J20DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "J22" //Water Purifier
+						//{
+						//if (inst.J22DefectCode != "60" && inst.J22DefectCode != "61" && inst.J22DefectCode != "62" && inst.J22DefectCode != "63" && inst.J22DefectCode != "64" && inst.J22DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "J23" //Food Waste Disposer
+						//{
+						//if (inst.J23DefectCode != "60" && inst.J23DefectCode != "61" && inst.J23DefectCode != "62" && inst.J23DefectCode != "63" && inst.J23DefectCode != "64" && inst.J23DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "J25" //Hot Water Appliances / Heaters
+						//{
+						//if (inst.J25DefectCode != "60" && inst.J25DefectCode != "61" && inst.J25DefectCode != "62" && inst.J25DefectCode != "63" && inst.J25DefectCode != "64" && inst.J25DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "J26" //Storage Heaters
+						//{
+						//if (inst.J26DefectCode != "60" && inst.J26DefectCode != "61" && inst.J26DefectCode != "62" && inst.J26DefectCode != "63" && inst.J26DefectCode != "64" && inst.J26DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "M17" //Small Electric Appliances
+						//{
+						//if (inst.M17DefectCode != "60" && inst.M17DefectCode != "61" && inst.M17DefectCode != "62" && inst.M17DefectCode != "63" && inst.M17DefectCode != "64" && inst.M17DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "N50" //Open Fire Heaters Wood Stoves
+						//{ 
+						//if (inst.N50DefectCode != "60" && inst.N50DefectCode != "61" && inst.N50DefectCode != "62" && inst.N50DefectCode != "63" && inst.N50DefectCode != "64" && inst.N50DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "N60" //Central Ventilation / Heating
+						//{
+						//if (inst.N60DefectCode != "60" && inst.N60DefectCode != "61" && inst.N60DefectCode != "62" && inst.N60DefectCode != "63" && inst.N60DefectCode != "64" && inst.N60DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "X90" //RAD Damages
+						//{
+						//if (inst.X90DefectCode != "60" && inst.X90DefectCode != "61" && inst.X90DefectCode != "62" && inst.X90DefectCode != "63" && inst.X90DefectCode != "64" && inst.X90DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "Z14" //Generator for Caravans / Boats
+						//{
+						//if (inst.Z14DefectCode != "60" && inst.Z14DefectCode != "61" && inst.Z14DefectCode != "62" && inst.Z14DefectCode != "63" && inst.Z14DefectCode != "64" && inst.Z14DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "Z15" //Water Pumps for Marine Purpose
+						//{
+						//if (inst.Z15DefectCode != "60" && inst.Z15DefectCode != "61" && inst.Z15DefectCode != "62" && inst.Z15DefectCode != "63" && inst.Z15DefectCode != "64" && inst.Z15DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "Z16" //Battery Chargers
+						//{
+						//if (inst.Z16DefectCode != "60" && inst.Z16DefectCode != "61" && inst.Z16DefectCode != "62" && inst.Z16DefectCode != "63" && inst.Z16DefectCode != "64" && inst.Z16DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "Z17" //Marine Air Conditioner
+						//{
+						//if (inst.Z17DefectCode != "60" && inst.Z17DefectCode != "61" && inst.Z17DefectCode != "62" && inst.Z17DefectCode != "63" && inst.Z17DefectCode != "64" && inst.Z17DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//case "Z35" //Safes / Minisafes
+						//{
+						//if (inst.Z35DefectCode != "60" && inst.Z35DefectCode != "61" && inst.Z35DefectCode != "62" && inst.Z35DefectCode != "63" && inst.Z35DefectCode != "64" && inst.Z35DefectCode != "65")
+						//{
+						//inst.ZSDK_DefectCodeInd = true;
+						//}
+						//}
+						//}
+						
+						//// **************************Start of change for Ship-To involved Party from Account ISP External number for Italy rollout ******************************
+						//var lv_SrvLoc;
+						//var lv_SrvLocAddr;
+						//var lv_SrvLocDefAddr;
+						//var lv_SrvLoc_CountryCode;
+						var lv_SrvTeamParty;
+						var lv_SrvTeamParty_PartyKey;
+						var lv_ServTeamPartyID;
+						var lv_SrvTeamOrgID;
+						var lv_QueryCust_ByISP;
+						var lv_selParamCust_ByISP;
+						var lv_QueryResultCust;
+						var lv_AccResult;
+						var lv_AccShipToID;
+						var lv_SrvShipTo;
+						var lv_SrvBillTo;
+						var lv_RoleCodeInst;
+						var lv_PartyIDInst;
+
+						//End of Local variable decalaration
+						var lv_ShipTIndicator = inst.ZSDK_ShipToDetermination;
+						if (lv_ShipTIndicator == false)
+						{
+							////Get Country
+							//if (inst.ServicePointLocation.IsSet())
+							//{
+							//lv_SrvLoc = inst.ServicePointLocation;
+							//if (lv_SrvLoc.UsedAddress.IsSet())
+							//{
+							//lv_SrvLocAddr = lv_SrvLoc.UsedAddress;
+							//if (lv_SrvLocAddr.DefaultPostalAddressRepresentation.IsSet())
+							//{ 
+							//lv_SrvLocDefAddr = lv_SrvLocAddr.DefaultPostalAddressRepresentation;
+							//if (!lv_SrvLocDefAddr.CountryCode.IsInitial())
+							//{
+							//lv_SrvLoc_CountryCode = lv_SrvLocDefAddr.CountryCode;
+							if (lv_SrvLoc_CountryCode == "IT") //If(2) Country == Italy
+							{
+								//Get Service Technician Team's Org ID
+								lv_SrvTeamParty = inst.ServiceExecutionTeamParty;
+								if (lv_SrvTeamParty.IsSet())
+								{	
+									lv_SrvTeamParty_PartyKey = lv_SrvTeamParty.PartyKey;
+									if (!lv_SrvTeamParty_PartyKey.IsInitial())
+									{
+										lv_ServTeamPartyID = lv_SrvTeamParty_PartyKey.PartyID;
+										if (!lv_ServTeamPartyID.IsInitial())
+										{
+											lv_SrvTeamOrgID = lv_ServTeamPartyID.content;
+										}
+									}
+								}
+
+								//
+								if (!lv_SrvTeamOrgID.IsInitial())
+								{
+									lv_QueryCust_ByISP = Customer.QueryByIdentification;
+									lv_selParamCust_ByISP = lv_QueryCust_ByISP.CreateSelectionParams();
+									lv_selParamCust_ByISP.Add(lv_QueryCust_ByISP.LX_ACC_ISP_EXT_NO_EA8AE8AUBVHCSXVYS0FJ1R3ON, "I", "EQ", lv_SrvTeamOrgID);
+									lv_QueryResultCust = lv_QueryCust_ByISP.Execute(lv_selParamCust_ByISP);
+									if (lv_QueryResultCust.Count() > 0) //IF(3) QueryResultCust
+									{
+										lv_AccResult = lv_QueryResultCust.GetFirst();
+										if (lv_AccResult.IsSet())
+										{
+											lv_AccShipToID = lv_AccResult.InternalID;
+											if (!lv_AccShipToID.IsInitial())
+											{												
+												//Overwrite Ship To Party
+												//if (inst.Party.Count() > 0)
+												if (Party.Count() > 0)
+												{						
+													//lv_SrvShipTo = inst.Party.Where(n => n.RoleCode == "1005"); //Ship-To Party
+													lv_SrvShipTo = Party.Where(n => n.RoleCode == "1005"); //Ship-To Party
+													if (lv_SrvShipTo.Count() > 0)
+													{
+														if (!lv_SrvShipTo.GetFirst().PartyKey.IsInitial())
+														{
+															lv_PartyIDInst = lv_SrvShipTo.GetFirst().PartyKey; 
+															if (!lv_PartyIDInst.IsInitial())
+															{	
+																if (!inst.Status.IsInitial())
+																{
+																	if (!inst.Status.ApprovalStatusCode.IsInitial())
+																	{
+																		var lv_approval_status = inst.Status.ApprovalStatusCode;
+																		if (lv_approval_status != "3")
+																		{
+																			//lv_PartyIDInst.PartyID.content = lv_AccShipToID;
+																			lv_SrvShipTo.GetFirst().PartyKey.PartyID.content = lv_AccShipToID;
+																			inst.ZSDK_ShipToDetermination = true;
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}// 
+						}
+						//}
+						//}
+						//}
+						//}
+						// **************************End of change for Ship-To involved Party from Account ISP External number for Italy rollout ******************************
+					}
+				}
+			}
+		}
+		//****************************** Proof of Purchase (Date, Validation Flag, Attachment) Update to Registered Products ******************************
+		//Check if Serial ID is present
+		//if (inst.MainServiceReferenceObject.IsSet()) //If(2.2)
+		//if (MaterialRef.IsSet()) //If(2.2)//commented above and added for SDK31.0
+		//{
+		//var RegisteredProd = inst.MainServiceReferenceObject;
+		//RegisteredProd = MaterialRef;//commented above and added for SDK31.0
+		//if (RegisteredProd.IsSet()) //If(2.3)
+		if (MaterialRef.IsSet())
+		{
+			//Retrieve Registered Product Instance - Installation Point BO
+			//RegPdt_InstallationPoint = RegisteredProd.InstallationPoint;//added for SDK31.0
+			//RegPdt_InstallationPoint = ionPoint;//added for SDK31.0
+			//if (RegisteredProd.InstallationPoint.IsSet()) //If(2.4)
+			//if (RegPdt_InstallationPoint.IsSet()) //If(2.4)//commented above and added for SDK31.0
+			if (MaterialRef_InstPoint.IsSet())
+			{
+				   
+				//var RegisteredProductInst = InstallationPoint.Retrieve(RegisteredProd.InstallationPoint.ID);
+				RegisteredProductInst = InstallationPoint.Retrieve(MaterialRef_InstPoint.ID);//commented above and added for SDK31.0
+				if (RegisteredProductInst.IsSet()) //If(2.5)
+				{
+					//var RegisteredProductAttachment = RegisteredProductInst.AttachmentFolder;
+					RegPdt_PrimaryInstalledObject = RegisteredProductInst.PrimaryInstalledObject;//added for SDK31.0
+							 
+					//if (RegisteredProductInst.PrimaryInstalledObject.IsSet()) //If(2.6)
+					if (RegPdt_PrimaryInstalledObject.IsSet()) //If(2.6)//commented above and added for SDK31.0
+					{
+						RegPdt_InstalledObjectIndividualProduct = RegPdt_PrimaryInstalledObject.InstalledObjectIndividualProduct;//added for SDK31.0
+
+						//if (RegisteredProductInst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IsSet())
+						if (RegPdt_InstalledObjectIndividualProduct.IsSet())//commented above and added for SDK31.0
+						{
+							//Individual Product Instance
+							//var RegisteredProductIndividual = RegisteredProductInst.PrimaryInstalledObject.InstalledObjectIndividualProduct.IndividualProduct;
+							RegisteredProductIndividual = RegPdt_InstalledObjectIndividualProduct.IndividualProduct;//commented above and added for SDK31.0
+							if (RegisteredProductIndividual.IsSet()) //If(2.7)
+							{   
+								WarrantyStartDate = inst.WarrantyStartReferenceTimePoint;
+								//if (inst.WarrantyStartReferenceTimePoint.IsSet()) //If(2.8)
+								if (WarrantyStartDate.IsSet()) //If(2.8)
+								{
+									RegPdt_ServiceInformation = RegisteredProductIndividual.ServiceProcessInformation;//added for SDK31.0
+									//if (WarrantyStartDate.IsSet()) //If(2.8)
+									if (RegPdt_ServiceInformation.IsSet())
+									{
+										//Default Purchase Date from Registered Product
+										//if (WarrantyStartDate.TimePoint.IsInitial() && !RegisteredProductIndividual.ServiceProcessInformation.PurchaseDateTime.IsInitial())
+										if (WarrantyStartDate.TimePoint.IsInitial() && !RegPdt_ServiceInformation.PurchaseDateTime.IsInitial())//commented above and added for SDK31.0
+										{
+											//inst.WarrantyStartReferenceTimePoint.TimePoint.DateTime.content = RegisteredProductIndividual.ServiceProcessInformation.PurchaseDateTime.content;
+											WarrantyStartDate.TimePoint.DateTime.content = RegPdt_ServiceInformation.PurchaseDateTime.content;//commented above and added for SDK31.0
+										}
+										//Copy Purchase Date from Ticket to Registered Product
+										if (!WarrantyStartDate.TimePoint.IsInitial() && inst.LX_PRD_PD1)
+										{
+											//RegisteredProductIndividual.ServiceProcessInformation.PurchaseDateTime.content = WarrantyStartDate.TimePoint.DateTime.content;
+											RegPdt_ServiceInformation.PurchaseDateTime.content = WarrantyStartDate.TimePoint.DateTime.content;//commented above and added for SDK31.0
+											RegisteredProductInst.LX_PRD_PD1 = inst.LX_PRD_PD1;
+										}
+									}
+								} //If(2.7)
+							} //If(2.6)
+						} //If(2.5)
+						RegisteredProductAttachment = RegisteredProductInst.AttachmentFolder;//commented above and added here for SDK31.0
+						if(RegisteredProductAttachment.IsSet())
+						{
+						  RegPdtAttachment_DocumentNode = RegisteredProductAttachment.Document;//added for SDK31.0
+						}
+						//RegPdtAttachment_DocumentNode = RegisteredProductAttachment.Document;//added for SDK31.0
+						//POP Replication from Registered Product to Ticket
+						if (RegisteredProductAttachment.IsSet() && RegisteredProductInst.LX_PRD_PD1 && !AttachmentFolder.IsSet())
+						{
+							//RegPdtAttachment_DocumentNode = RegisteredProductAttachment.Document;//added for SDK31.0
+							//var POPRegisteredProdAttachment = RegisteredProductAttachment.Document.Where(n => n.TypeCode.content == POPDocTypeCode);
+							var POPRegisteredProdAttachment = RegPdtAttachment_DocumentNode.Where(n => n.TypeCode.content == POPDocTypeCode);//commented above and added for SDK31.0
+							if (POPRegisteredProdAttachment.Count() > 0)
+							{
+								foreach (var POPRPAttachments in POPRegisteredProdAttachment)
+								{
+									//Copy Attachment Contents
+									var binObject;
+									var docName;
+									var docAltName;
+									var docDesc;
+									var docType;
+									var POPRPAttachment_Node = POPRPAttachments.FileContent;//added for SDK31.0
+									//if (POPRPAttachments.FileContent.IsSet()) //If(2.12)
+									if (POPRPAttachment_Node.IsSet()) //If(2.12)//commented above and added for SDK31.0
+									{
+										//var fileContent = POPRPAttachments.FileContent;
+										var fileContent = POPRPAttachment_Node;//commented above and added for SDK31.0
+										if (fileContent.IsSet())
+										{
+											if (!fileContent.BinaryObject.content.IsInitial())
+											{
+												binObject = fileContent.BinaryObject;
+											}
+										}
+									} //If(2.12)
+									if (!POPRPAttachments.Name.IsInitial())
+									{
+										docName = POPRPAttachments.Name;
+									}
+									if (!POPRPAttachments.AlternativeName.IsInitial())
+									{
+										docAltName = POPRPAttachments.AlternativeName;
+									}	
+									if (!POPRPAttachments.Description.content.IsInitial())
+									{
+										docDesc = POPRPAttachments.Description;
+									}
+									if (!POPRPAttachments.TypeCode.content.IsInitial())
+									{
+										docType = POPRPAttachments.TypeCode;
+									}
+									//Copy the Source file contents from Tickets to RegisteredProduct
+
+									//var NewAttachment = inst.AttachmentFolder;
+									var NewAttachment;//commented above and added for SDK31.0
+									//if (NewAttachment.IsSet())
+									if (AttachmentFolder.IsSet())//commented above and added for SDK31.0
+									{
+										//NewAttachment.CreateFile(docType, docName, docAltName, docDesc, binObject); 
+										AttachmentFolder.CreateFile(docType, docName, docAltName, docDesc, binObject); //commented above and added for SDK31.0
+										inst.LX_PRD_PD1 = RegisteredProductInst.LX_PRD_PD1;
+										inst.LX_TKT_ATT_POP = true;
+									}
+									else
+									{
+										//NewAttachment = inst.AttachmentFolder.Create();
+										NewAttachment = inst.AttachmentFolder.Create();
+										if (NewAttachment.IsSet())
+										{
+											NewAttachment.CreateFile(docType, docName, docAltName, docDesc, binObject); 
+											inst.LX_PRD_PD1 = RegisteredProductInst.LX_PRD_PD1;
+											inst.LX_TKT_ATT_POP = true;
+											AttachmentFolder = inst.AttachmentFolder;
+										}
+										
+									}
+								}
+							}
+						}
+
+						//POP Replication from Ticket to Registered Product 
+						//Check if attachment of Type "Proof of Purchase" exists & Purchase Validated flag is "Yes"
+						if (AttachmentFolder.IsSet() && inst.LX_PRD_PD1) //If(2.9)
+						//if (AttachmentFolder_Document.Count() > 0 && inst.LX_PRD_PD1) //If(2.9)//commented above and added for SDK31.0
+						{
+							//var POPAttachment = AttachmentFolder.Document.Where(n => n.TypeCode.content == POPDocTypeCode);
+							AttachmentFolder_Document  = AttachmentFolder.Document;
+							POPAttachment = AttachmentFolder_Document.Where(n => n.TypeCode.content == POPDocTypeCode);//commented above and added for SDK31.0
+							
+							if (POPAttachment.Count() > 0) //If(2.10)
+							{
+								foreach (var document in POPAttachment) //Foreach(2)
+								{
+									//var RegisteredProdAttachment;//commented here and added above for SDK31.0
+									var Document_Content = document.FileContent;//added for SDK31.0
+
+									//Check if the document of "Proof of Purchase" type already exists in Registered Product
+									//if (RegisteredProductInst.AttachmentFolder.IsSet())
+									if (RegisteredProductAttachment.IsSet())//commented above and added for SDK31.0	
+									{
+										//RegisteredProdAttachment = RegisteredProductInst.AttachmentFolder.Document.Where(n => n.Name == document.Name && n.TypeCode.content == POPDocTypeCode);
+										RegisteredProdAttachment = RegPdtAttachment_DocumentNode.Where(n => n.Name == document.Name && n.TypeCode.content == POPDocTypeCode);//commented above and added for SDK31.0
+										
+									}
+
+									if (RegisteredProdAttachment.Count() == 0) //If doesnt exist in Registered Product //If(2.11)
+									{
+										//Copy Attachment Contents
+										var binObject;
+										var docName;
+										var docAltName;
+										var docDesc;
+										var docType;
+		
+										//if (document.FileContent.IsSet()) //If(2.12)
+										if (Document_Content.IsSet()) //If(2.12)//commented above and added for SDK31.0
+										{
+											//var fileContent = document.FileContent;
+											var fileContent = Document_Content;//commented above and added for SDK31.0
+											if (fileContent.IsSet())
+											{
+												if (!fileContent.BinaryObject.content.IsInitial())
+												{
+													binObject = fileContent.BinaryObject;
+												}
+											}
+										} //If(2.12)
+										if (!document.Name.IsInitial())
+										{
+											docName = document.Name;
+										}
+										if (!document.AlternativeName.IsInitial())
+										{
+											docAltName = document.AlternativeName;
+										}	
+										if (!document.Description.content.IsInitial())
+										{
+											docDesc = document.Description;
+										}
+										if (!document.TypeCode.content.IsInitial())
+										{
+											docType = document.TypeCode;
+										}
+										//Copy the Source file contents from Tickets to RegisteredProduct
+
+										//var NewAttachment = RegisteredProductInst.AttachmentFolder;
+										var NewAttachment = RegisteredProductAttachment;//commented above and added for SDK31.0
+										if (NewAttachment.IsSet())
+										{
+											NewAttachment.CreateFile(docType, docName, docAltName, docDesc, binObject); 
+										}
+										else
+										{
+											NewAttachment = RegisteredProductInst.AttachmentFolder.Create();
+											if (NewAttachment.IsSet())
+											{
+												NewAttachment.CreateFile(docType, docName, docAltName, docDesc, binObject); 
+											}
+										}
+									}//If(2.11)
+								}//Foreach (2)
+							}//If(2.10)
+						}//If(2.9)
+					}//If(2.4)
+				}//If(2.3)
+			}//If(2.2)
+		}	
+		//************************************ End of Proof of Purchase (Date, Validation Flag, Attachment) Update to Registered Products ******************************//
+
+		//****************************************Start of changes for setting ATP Check Indicator Requirement ******************************************************//
+		//foreach (var i in inst.Item)
+		foreach (var i in Instance_Item)//commented above and added for SDK31.0
+		{
+			//Retrieve Ticket Item with Processing Code "Central WH to Technician", "Local WH Reservation", "Technician Van Stock Reservation"
+			if ((i.UserServiceTransactionProcessingTypeCode == CWHPrCode || i.UserServiceTransactionProcessingTypeCode == LOWHPrCode  
+				|| i.UserServiceTransactionProcessingTypeCode == TechVanStock))
+			{
+				if (i.FirstRequestedItemScheduleLine.IsSet())
+				{
+					i.LX_TKITM_ATPIND = true;				
+				}
+				else
+				{
+					i.LX_TKITM_ATPIND = false;
+				}
+			}
+		}
+		//********************************************End of changes for setting ATP Check Indicator Requirement****************************************************//	
+	
+		//******************************************Start of Changes for Populating the Retailer List value to Retailer Text field*****************************************************//
+		if (!inst.LX_PRD_RET.IsInitial())
+		{
+			if (inst.LX_PRD_RET.GetDescription() != "Other (Please Specify)")
+			{
+				inst.LX_PRD_RE1 = inst.LX_PRD_RET.GetDescription();
+			}
+		}
+		//******************************************End of Changes for Populating the Retailer List value to Retailer Text field*****************************************************//
+	
+		//******************************************Start of Changes to update ISP 1 and ISP 2 Indicators values to be upadted for Get Appointment Visibility***********************//
+	
+		if (!inst.LX_TKT_SCEN.IsInitial())
+		{
+			var ClaimBuff = inst.LX_TKT_SCEN;
+			if (ClaimBuff == "101")
+			{
+				inst.ZSDK_ISP1Indi = true;
+				inst.ZSDK_ISP2Indi = false;
+			}
+			else if (ClaimBuff == "102")
+			{
+				inst.ZSDK_ISP1Indi = false;
+				inst.ZSDK_ISP2Indi = true;
+			}
+		}
+
+		//******************************************End of Changes to update ISP 1 and ISP 2 Indicators values to be upadted for Get Appointment Visibility***********************//
+
+
+		//**********************************Fetch Visit Start & End Date from Technician Recorded Time (Required for Claims Submission to Service Power)********************************
+		if (inst.LX_TKT_ISPTYP == "101") //ISP1 Tickets
+		{
+			//if (inst.Item.Count() > 0)
+			if (Instance_Item.Count() > 0)//commented above and added for SDK31.0
+			{
+				var InitialTimeRecorded;
+				var LatestTimeRecorded;
+				//
+				//InitialTimeRecorded = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZIS2").OrderByDescending(n => n.ID).GetFirst();
+				//LatestTimeRecorded = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZIS2").OrderByDescending(n => n.ID).GetLast();
+				InitialTimeRecorded = Instance_Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZIS2").OrderByDescending(n => n.ID).GetFirst();//commented above and added for SDK31.0
+				LatestTimeRecorded = Instance_Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZIS2").OrderByDescending(n => n.ID).GetLast();//commented above and added for SDK31.0
+				if (InitialTimeRecorded.IsSet())
+				{
+					var Initial_FirstFullFilledItemSch_Node = InitialTimeRecorded.FirstFulfilledItemScheduleLine;//added for SDK31.0
+					//if (InitialTimeRecorded.FirstFulfilledItemScheduleLine.IsSet())
+					if (Initial_FirstFullFilledItemSch_Node.IsSet())//commented above and added for SDK31.0
+					{
+						//var InitialTimeRecordedStartEndDate = InitialTimeRecorded.FirstFulfilledItemScheduleLine.DateTimePeriod;
+						var InitialTimeRecordedStartEndDate = Initial_FirstFullFilledItemSch_Node.DateTimePeriod;//commented above and added for SDK31.0
+						if (!InitialTimeRecordedStartEndDate.IsInitial())
+						{
+							inst.LX_TKT_ASTDT = InitialTimeRecordedStartEndDate.StartDateTime.content;
+						}
+					}
+				}
+				if (LatestTimeRecorded.IsSet())
+				{
+					var Latest_FirstFullFilledItemSch_Node = LatestTimeRecorded.FirstFulfilledItemScheduleLine;//added for SDK31.0 //both the condition for  InitialTimeRecorded and LatestTimeRecorded are different
+					//if (LatestTimeRecorded.FirstFulfilledItemScheduleLine.IsSet())
+					if (Latest_FirstFullFilledItemSch_Node.IsSet())//commented above and added for SDK31.0
+					{
+						//var LatestTimeRecordedStartEndDate = LatestTimeRecorded.FirstFulfilledItemScheduleLine.DateTimePeriod;
+						var LatestTimeRecordedStartEndDate = Latest_FirstFullFilledItemSch_Node.DateTimePeriod;//commented above and added for SDK31.0
+						if (!LatestTimeRecordedStartEndDate.IsInitial())
+						{
+							inst.LX_TKT_AENDT = LatestTimeRecordedStartEndDate.EndDateTime.content;
+						}
+					}
+				}
+			}
+		}
+		//**********************************End of Fetch Visit Start & End Date from Technician Recorded Time (Required for Claims Submission to Service Power)****************************
+
+		///************************************Start of changes for ML code and Serial Number*********************************************************************************
+		//if (inst.MainServiceReferenceObject.IsSet())
+		if (MaterialRef.IsSet())//commented above and added for SDK31.0
+		{
+			//if (!inst.MainServiceReferenceObject.IndividualProductSerialIDKey.IsInitial())
+			if (!MaterialRef.IndividualProductSerialIDKey.IsInitial())//commented above and added for SDK31.0
+			{
+				if (inst.LX_PRD_ML1.IsInitial() || inst.LX_PRD_SN1.IsInitial())
+				{
+					//var RegPdt_InstallationPT = MaterialRef.InstallationPoint;
+					//if (inst.MainServiceReferenceObject.InstallationPoint.IsSet())
+					//if (RegPdt_InstallationPT.IsSet())//commented above and added for SDK31.0
+					if (MaterialRef_InstPoint.IsSet())
+					{
+						//if (!inst.MainServiceReferenceObject.InstallationPoint.LX_PRD_ML1.IsInitial())
+						//if (!RegPdt_InstallationPT.LX_PRD_ML1.IsInitial())//commented above and added for SDK31.0
+						if (!MaterialRef_InstPoint.LX_PRD_ML1.IsInitial())
+						{
+							//inst.LX_PRD_ML1 = inst.MainServiceReferenceObject.InstallationPoint.LX_PRD_ML1;
+							//inst.LX_PRD_ML1 = RegPdt_InstallationPT.LX_PRD_ML1;//commented above and added for SDK31.0
+							inst.LX_PRD_ML1 = MaterialRef_InstPoint.LX_PRD_ML1;//commented above and added for SDK31.0
+						}
+						//if (!inst.MainServiceReferenceObject.InstallationPoint.LX_PRD_SN1.IsInitial())
+						//if (!RegPdt_InstallationPT.LX_PRD_SN1.IsInitial())//commented above and added for SDK31.0
+						if (!MaterialRef_InstPoint.LX_PRD_SN1.IsInitial())//commented above and added for SDK31.0
+						{
+							//inst.LX_PRD_SN1 = inst.MainServiceReferenceObject.InstallationPoint.LX_PRD_SN1;
+							//inst.LX_PRD_SN1 = RegPdt_InstallationPT.LX_PRD_SN1;//commented above and added for SDK31.0
+							inst.LX_PRD_SN1 = MaterialRef_InstPoint.LX_PRD_SN1;//commented above and added for SDK31.0
+						}
+					}
+				}
+			}
+		}
+		///**********************************************End of changes for ML code and Serial Number******************************************************* 
+
+		//****************************************************** Automate Assign to Me Action ***************************************************************
+		//var SrvSupportTeam;
+		//var AssignedToData;
+		//var AssignToEmp;
+		//Get Service Support Team
+		//if (inst.ServiceSupportTeamParty.IsSet())
+		//{
+		//if (!inst.ServiceSupportTeamParty.PartyKey.IsInitial())
+		//{
+		//if (!inst.ServiceSupportTeamParty.PartyKey.PartyID.IsInitial())
+		//{
+		//SrvSupportTeam = inst.ServiceSupportTeamParty.PartyKey.PartyID;
+		//}
+		//}
+		//}	
+		////Get Assigned to Me
+		//if (inst.ProcessorParty.IsSet())
+		//{
+		//if (!inst.ProcessorParty.PartyKey.IsInitial())
+		//{
+		//if (!inst.ProcessorParty.PartyKey.PartyID.IsInitial())
+		//{
+		//AssignedToData = inst.ProcessorParty.PartyKey.PartyID;
+		//}
+		//}
+		//}
+		//// Run only when ticket is created once
+		//if (!inst.SystemAdministrativeData.IsInitial())
+		//{
+		//if (!inst.SystemAdministrativeData.LastChangeDateTime.IsInitial() && !inst.SystemAdministrativeData.CreationDateTime.IsInitial())
+		//{
+		//if (!inst.SystemAdministrativeData.LastChangeDateTime.Equals(inst.SystemAdministrativeData.CreationDateTime))
+		//{
+		//if (SrvSupportTeam.IsInitial() || AssignedToData.IsInitial())
+		//{
+		//inst.TakeOverForProcessing();  //trigger assign to me action
+		//
+		//if (inst.ProcessorParty.IsSet())
+		//{
+		//AssignToEmp = inst.ProcessorParty.PartyUUID;
+		//if (!AssignToEmp.IsInitial())
+		//{
+		//var EmpInstance = Employee.Retrieve(AssignToEmp); 
+		//if (EmpInstance.IsSet())
+		//{
+		//if (EmpInstance.CurrentOrganisationalUnitAssignment.Count() > 0)
+		//{
+		//var EmpCurrOrg = EmpInstance.CurrentOrganisationalUnitAssignment.GetFirst();
+		//if (EmpCurrOrg.IsSet())
+		//{
+		//if (EmpCurrOrg.ToParent.IsSet())
+		//{
+		//
+		//if (!inst.ServiceSupportTeamParty.IsSet())	//assign Service and Support Team
+		//{
+		//var Lv_SrvSuppTeam = inst.ServiceSupportTeamParty.Create();
+		//if (Lv_SrvSuppTeam.IsSet())
+		//{
+		//Lv_SrvSuppTeam.PartyKey.PartyID.content = EmpCurrOrg.ToParent.ID;
+		//}
+		//}
+		//else
+		//{
+		//inst.ServiceSupportTeamParty.PartyKey.PartyID.content = EmpCurrOrg.ToParent.ID;
+		//}
+		//}
+		//}
+		//}
+		//}
+		//}
+		//}
+		//}
+		//}
+		//}
+		//} 
+		//****************************************************** End of Automate Assign to Me Action ***************************************************************
+		//****************************************************** Start of Italian Roll-Out Development *************************************************************** //
+
+		////****************************************************** Start of CCTPRG-3114 Validation on Codice Fiscale Field *************************************************************** //
+		//
+		//var UsedAdd;
+		//if (!inst.LX_TKT_LEGAL_IDNUM.IsInitial())
+		//{
+		//if (srvPointLoc.IsSet())
+		//{
+		//if (srvPointLoc.UsedAddress.IsSet())
+		//{
+		//UsedAdd = srvPointLoc.UsedAddress;
+		//if (UsedAdd.DefaultPostalAddressRepresentation.IsSet())
+		//{								
+		//var Lv_Cntry = UsedAdd.DefaultPostalAddressRepresentation.CountryCode;
+		//var Result = IdentificationNumValidation.IdentificationNumValidationPerCountry(Lv_Cntry, inst.LX_TKT_LEGAL_IDNUM);
+		//
+		//if (!Result.IsInitial() && Lv_Cntry == "IT")
+		//{						
+		//if (Result == "FieldLengthIssue")
+		//{
+		//raise MSG_Error.Create("E", "Codice Fiscale field Length must be of 16 charaters only, please correct the field length");
+		//inst.ZSDK_IdentiNumValid = true;
+		//}
+		//else if (Result == "PatternInCorrect")
+		//{
+		//raise MSG_Error.Create("E", "Pattern of Field Codice Fiscale is not correct, Please add in format 'CCCCCCNNCNNCNNNC' where C-Character and N-Number");
+		//inst.ZSDK_IdentiNumValid = true;
+		//}						
+		//}
+		//else
+		//{
+		////***************Tax number from Ticket to Customer********//
+		//if (buyer_Party.IsSet())
+		//{			
+		//if (buyer_Party.Party.IsSet())
+		//{
+		//var part = buyer_Party.Party;
+		//if (part.Customer.IsSet())
+		//{
+		//var cust = part.Customer;				
+		//if (cust.TaxNumber.Count() > 0)
+		//{
+		////Getting fiscale code tax number for country IT from customer
+		//var taxnode = cust.TaxNumber.Where(n=>n.CountryCode == Lv_Cntry && n.TaxTypeCode.content == "2");
+		//if(taxnode.Count()>0)
+		//{
+		//if (!taxnode.GetFirst().TaxID.IsInitial() && inst.LX_TKT_LEGAL_IDNUM.IsInitial())
+		//{
+		//inst.LX_TKT_LEGAL_IDNUM = taxnode.GetFirst().TaxID.content;
+		//}
+		//}
+		//else
+		//{
+		//
+		//}
+		//}
+		//}
+		//}
+		//}							
+		//}
+		//}
+		//}
+		//}
+		//}
+		var partyInst;
+		var custInst;
+		var taxnodeInst;
+		var UsedAdd;
+		var ResultReUseLib;
+		var LegIDNumUppCase;
+		
+		if (inst.LX_TKT_LEGAL_IDNUM.IsInitial()) 
+		//Part 1 : If Legal Identification number is empty on ticket, 
+		//         check if consumer has the tax number then copy from consumer
+		{
+			if (buyer_Party.IsSet())
+			{	
+				//if (buyer_Party.Party.IsSet())
+				if (Buyer_PartyDetails.IsSet())
+				{
+					//partyInst = buyer_Party.Party;					
+					//if (partyInst.Customer.IsSet())
+					if (BP_Customer.IsSet())
+					{
+						//custInst = partyInst.Customer;				
+						//if (custInst.TaxNumber.Count() > 0)
+						if (BP_taxNumber.Count() > 0)
+						{
+							//Getting fiscale code tax number for country IT from customer
+							//taxnodeInst = custInst.TaxNumber.Where(n => n.CountryCode == "IT" && n.TaxTypeCode.content == "2");
+							taxnodeInst = BP_taxNumber.Where(n => n.CountryCode == "IT" && n.TaxTypeCode.content == "2");
+							if (taxnodeInst.Count() > 0)
+							{
+								if (!taxnodeInst.GetFirst().TaxID.IsInitial() && inst.LX_TKT_LEGAL_IDNUM.IsInitial())
+								{
+									inst.LX_TKT_LEGAL_IDNUM = taxnodeInst.GetFirst().TaxID.content;
+								}
+							}
+						}		
+					}
+				}
+			}
+		}
+		else 
+		{		
+			LegIDNumUppCase = inst.LX_TKT_LEGAL_IDNUM.ToUpperCase();
+			inst.LX_TKT_LEGAL_IDNUM = LegIDNumUppCase;	
+			if (buyer_Party.IsSet())
+			{			
+				//if (buyer_Party.Party.IsSet())
+				if (Buyer_PartyDetails.IsSet())
+				{
+					//partyInst = buyer_Party.Party;
+					//if (partyInst.Customer.IsSet())
+					if (BP_Customer.IsSet())
+					{
+						//custInst = partyInst.Customer;
+
+						//Part 2 : If Legal Identification number is not empty on ticket, then check if consumer has it. 
+						//		   if yes then check if they are similar dont change on ticket, else copy from consumer on ticket				
+						//if (custInst.TaxNumber.Count() > 0)
+						if (BP_taxNumber.Count() > 0)
+						{
+							//Getting fiscale code tax number for country IT from customer
+							//taxnodeInst = custInst.TaxNumber.Where(n => n.CountryCode == "IT" && n.TaxTypeCode.content == "2");
+							taxnodeInst = BP_taxNumber.Where(n => n.CountryCode == "IT" && n.TaxTypeCode.content == "2");
+							if (taxnodeInst.Count() > 0)
+							{
+								if (!taxnodeInst.GetFirst().TaxID.IsInitial())
+								{
+									if (taxnodeInst.GetFirst().TaxID.content != LegIDNumUppCase)
+									{
+										inst.LX_TKT_LEGAL_IDNUM = taxnodeInst.GetFirst().TaxID.content;
+									}
+								}
+								else
+								{
+									taxnodeInst.GetFirst().TaxID.content = LegIDNumUppCase;
+								}
+							}
+							else
+							{		
+								//Part 3 : If Legal Identification number is not empty on ticket, then check if consumer has it. 
+								//		   if no then check basic rules(field length/pattern) for field on ticket, then copy from ticket to consumer				
+								ResultReUseLib = IdentificationNumValidation.IdentificationNumValidationPerCountry("IT", LegIDNumUppCase);
+						
+								if (!ResultReUseLib.IsInitial())
+								{						
+									if (ResultReUseLib == "FieldLengthIssue")
+									{
+										raise MSG_FieldLength.Create("E");
+										//raise MSG_Error.Create("E", "Codice Fiscale field Length must be of 16 charaters only, please correct the field length");
+										inst.ZSDK_IdentiNumValid = true;
+									}
+									else if (ResultReUseLib == "PatternInCorrect")
+									{
+										raise MSG_Pattern.Create("E");
+										//raise MSG_Error.Create("E", "Pattern of Field Codice Fiscale is not correct, Please add in format 'CCCCCCNNCNNCNNNC' where C-Character and N-Number");
+										inst.ZSDK_IdentiNumValid = true;
+									}						
+								}
+								else
+								{
+									//var TaxNodeEle : elementsof custInst.TaxNumber;
+									var TaxNodeEle : elementsof Customer.TaxNumber;
+									var TaxNodeEleInst;
+
+									TaxNodeEle.CountryCode = "IT";
+									TaxNodeEle.TaxTypeCode.content = "2";
+									TaxNodeEle.TaxID.content = LegIDNumUppCase;
+
+									//TaxNodeEleInst = custInst.TaxNumber.Create(TaxNodeEle);
+									TaxNodeEleInst = BP_Customer.TaxNumber.Create(TaxNodeEle);
+								}											
+							}
+						}
+						else
+						{
+							//Part 3 : If Legal Identification number is not empty on ticket, then check if consumer has it. 
+							//		   if no then check basic rules(field length/pattern) for field on ticket, then copy from ticket to consumer				
+							ResultReUseLib = IdentificationNumValidation.IdentificationNumValidationPerCountry("IT", inst.LX_TKT_LEGAL_IDNUM);
+							inst.ZSDK_IdentiNumValid = false;
+
+							if (!ResultReUseLib.IsInitial())
+							{						
+								if (ResultReUseLib != "PatternCorrect")
+								{
+									if (ResultReUseLib == "FieldLengthIssue")
+									{
+										raise MSG_FieldLength.Create("E");
+										//raise MSG_Error.Create("E", "Codice Fiscale field Length must be of 16 charaters only, please correct the field length");
+										inst.ZSDK_IdentiNumValid = true;
+									}
+									else if (ResultReUseLib == "PatternInCorrect")
+									{
+										raise MSG_Pattern.Create("E");
+										//raise MSG_Error.Create("E", "Pattern of Field Codice Fiscale is not correct, Please add in format 'CCCCCCNNCNNCNNNC' where C-Character and N-Number");
+										inst.ZSDK_IdentiNumValid = true;
+									}						
+								}
+								else
+								{
+									//var TaxNodeEle : elementsof custInst.TaxNumber;
+									var TaxNodeEle : elementsof Customer.TaxNumber;
+									var TaxNodeEleInst;
+
+									TaxNodeEle.CountryCode = "IT";
+									TaxNodeEle.TaxTypeCode.content = "2";
+									TaxNodeEle.TaxID.content = LegIDNumUppCase;
+
+									//TaxNodeEleInst = custInst.TaxNumber.Create(TaxNodeEle);
+									TaxNodeEleInst = BP_Customer.TaxNumber.Create(TaxNodeEle);
+								}
+							}
+						}
+					}
+				}
+			}		
+		}
+
+
+
+		//****************************************************** End of CCTPRG-3114 Validation on Codice Fiscale Field *************************************************************** //
+		//****************************************************** END of Italian Roll-Out Development *************************************************************** //
+	
+		//************************************************** CC_45: Start of Update Country and Language if Source is E-Mail *****************************************************//
+		if (inst.DataOriginTypeCode == "5") //if Source is E-Mail
+		{	
+			var result;
+			//if (inst.ServiceSupportTeamParty.IsSet())
+			if (SrvSupportTeam.IsSet())
+			{
+				//SrvSupportTeam = inst.ServiceSupportTeamParty;
+				if (!SrvSupportTeam.PartyKey.IsInitial())
+				{
+					var srvSupportParty = SrvSupportTeam.PartyKey;
+					if (!srvSupportParty.PartyID.IsInitial())
+					{
+						var CountryLanguage = UPDATECOUNTRYLANGUAGE.QueryByElements;
+						var selParam = CountryLanguage.CreateSelectionParams();
+						selParam.Add(CountryLanguage.SERSUPTEAM, "I", "EQ", srvSupportParty.PartyID.content);
+						result = CountryLanguage.Execute(selParam);
+					}
+				}
+			}
+			//************************************************** Start of Update Country and Language if Source is E-Mail on Ticket *****************************************************//
+			if (result.Count() > 0)
+			{
+				var Lv_Result = result.GetFirst();
+				if (srvPointLoc.IsSet())
+				{
+					//var srvPointLoc_Usedaddr = srvPointLoc.UsedAddress;
+					//if (srvPointLoc.UsedAddress.IsSet())
+					if (srvPointLoc_Usedaddr.IsSet())
+					{
+						//var usedaddr = srvPointLoc.UsedAddress;
+						//var srvPointLoc_Usedaddr_DefAddrRep = srvPointLoc_Usedaddr.DefaultPostalAddressRepresentation;
+						//if (srvPointLoc_Usedaddr.DefaultPostalAddressRepresentation.IsSet()) // if default postal address is set 1
+						if (srvPointLoc_Usedaddr_DefAddrRep.IsSet())
+						{ 
+							//var defusedaddr = usedaddr.DefaultPostalAddressRepresentation;
+							//if (defusedaddr.CountryCode.IsInitial()) //if Service Location Country is Initial then fill the Country from the BC Set 1
+							if (srvPointLoc_Usedaddr_DefAddrRep.CountryCode.IsInitial())
+							{
+								//defusedaddr.CountryCode = Lv_Result.Element::COUNTRY; // Service Location assignment on Ticket
+								srvPointLoc_Usedaddr_DefAddrRep.CountryCode = Lv_Result.Element::COUNTRY; // Service Location assignment on Ticket
+							}
+						}
+						else
+						{
+							//var newdefaultadd = usedaddr.DefaultPostalAddressRepresentation.Create();
+							var newdefaultadd = srvPointLoc_Usedaddr.DefaultPostalAddressRepresentation.Create();
+							if (newdefaultadd.IsSet()) // if default postal address is set 2
+							{
+								if (newdefaultadd.CountryCode.IsInitial()) //if Service Location Country is Initial then fill the Country from the BC Set 2
+								{
+									newdefaultadd.CountryCode = Lv_Result.Element::COUNTRY; // Service Location assignment on Ticket
+								}
+							}
+						}
+					}
+				}
+				else
+				{	//perf improvemnt not done because this is the new node getting created				
+					var newservpoint = inst.ServicePointLocation.Create();
+
+					if (newservpoint.IsSet())
+					{
+						var newusedaddr = newservpoint.UsedAddress; //UsedAddress used only for creation od
+						if (newusedaddr.IsSet())
+						{
+							var defaultaddr = newusedaddr.DefaultPostalAddressRepresentation;
+							if (defaultaddr.IsSet())
+							{
+								if (defaultaddr.CountryCode.IsInitial()) //if Service Location Country is Initial then fill the Country from the BC Set 3
+								{
+									defaultaddr.CountryCode = Lv_Result.Element::COUNTRY; // Service Location assignment on Ticket
+								}
+							}
+							else
+							{
+								var newdefaultaddr = newusedaddr.DefaultPostalAddressRepresentation.Create();
+								if (newdefaultaddr.IsSet()) // if default postal address is set 3
+								{
+									if (newdefaultaddr.CountryCode.IsInitial()) //if Service Location Country is Initial then fill the Country from the BC Set 4
+									{
+										newdefaultaddr.CountryCode = Lv_Result.Element::COUNTRY; // Service Location assignment on Ticket
+									}
+								}
+							}
+						}
+					}
+				}
+				//************************************************* END of Update Country and Language if Source is E-Mail on Ticket **********************************************************//
+				//
+				//************************************************** Start of Update Country and Language if Source is E-Mail on Customer *****************************************************//
+				if (buyer_Party.IsSet()) //IF(1)
+				{
+					//var Party = 
+					//if (buyer_Party.Party.IsSet())//IF(1.1)
+					if (Buyer_PartyDetails.IsSet())
+					{
+						//var party = buyer_Party.Party;
+						//if (party.Customer.IsSet())// if Customer is Set 
+						if (BP_Customer.IsSet())
+						{
+							//var PartyCustomer = party.Customer;
+							var Cust_CurrentCommon = BP_Customer.CurrentCommon;
+							//if (PartyCustomer.CurrentCommon.IsSet()) // if CurrentCommon node is set..
+							if (Cust_CurrentCommon.IsSet())
+							{
+								//var Current_Common = PartyCustomer.CurrentCommon;
+								//var person = Current_Common.Person;
+								//var person = Cust_CurrentCommon.Person;
+								var cust_language : DataType::LanguageCode;
+								cust_language = Library::LanguageCode.ParseFromString(Lv_Result.LANGUAGE);
+								//if (person.NonVerbalCommunicationLanguageCode.IsInitial()) // if Language is Initial then fill the Language from BC Set 1
+								if(Cust_CurrentCommon.Person.NonVerbalCommunicationLanguageCode.IsInitial())
+								{
+									//Current_Common.Person.NonVerbalCommunicationLanguageCode = cust_language;  // Language assignment
+									//person.NonVerbalCommunicationLanguageCode = cust_language;  // Language assignment
+									Cust_CurrentCommon.Person.NonVerbalCommunicationLanguageCode = cust_language;
+								}
+							}
+							else
+							{
+								//var newCurrent_Common = PartyCustomer.CurrentCommon.Create();
+								var newCurrent_Common = BP_Customer.CurrentCommon.Create();
+								if (newCurrent_Common.IsSet())// if CurrentCommon node is set
+								{
+									//var newperson = newCurrent_Common.Person;
+									var cust_language : DataType::LanguageCode;
+									cust_language = Library::LanguageCode.ParseFromString(Lv_Result.LANGUAGE);
+									//if (newperson.NonVerbalCommunicationLanguageCode.IsInitial()) // if Language is Initial then fill the Language from BC Set 2
+									if(newCurrent_Common.Person.NonVerbalCommunicationLanguageCode.IsInitial())
+									{
+										newCurrent_Common.Person.NonVerbalCommunicationLanguageCode = cust_language;  // Language assignment
+									}
+								}
+							}// End of checking CurrentCommon ..
+							//Party_CurrDefaultAddrInfo = PartyCustomer.CurrentDefaultAddressInformation;
+							Party_CurrDefaultAddrInfo = BP_Customer.CurrentDefaultAddressInformation;
+							//if (PartyCustomer.CurrentDefaultAddressInformation.IsSet()) // if Current default address is set
+							if (Party_CurrDefaultAddrInfo.IsSet())
+							{
+								//var cust_defaddr = PartyCustomer.CurrentDefaultAddressInformation;
+								Party_CurrDefaultAddrInfo_Address = Party_CurrDefaultAddrInfo.Address;
+								if (Party_CurrDefaultAddrInfo_Address.IsSet()) // if address node is set
+								{
+									//var cust_address = cust_defaddr.Address;
+									var Party_CurrDefaultAddrInfo_Address_DefAddress = Party_CurrDefaultAddrInfo_Address.DefaultPostalAddressRepresentation;
+									//if (cust_address.DefaultPostalAddressRepresentation.IsSet()) // if default postal address is set 1
+									if (Party_CurrDefaultAddrInfo_Address_DefAddress.IsSet())
+									{
+										//var defpostaladdr = cust_address.DefaultPostalAddressRepresentation;
+										//if (defpostaladdr.CountryCode.IsInitial()) //if Country is Initial then fill the Country from the BC Set 1
+										if (Party_CurrDefaultAddrInfo_Address_DefAddress.CountryCode.IsInitial())
+										{
+											//defpostaladdr.CountryCode = Lv_Result.Element::COUNTRY;  //Country assignment on Customer
+											Party_CurrDefaultAddrInfo_Address_DefAddress.CountryCode = Lv_Result.Element::COUNTRY;  //Country assignment on Customer
+										}
+									}
+									else // if default postal address is not set, create the nodes and set the value 2
+									{
+										//var newdefpostaladdr = cust_address.DefaultPostalAddressRepresentation.Create();
+										var newdefpostaladdr = Party_CurrDefaultAddrInfo_Address.DefaultPostalAddressRepresentation.Create();
+										if (newdefpostaladdr.IsSet())
+										{
+											if (newdefpostaladdr.CountryCode.IsInitial()) //if Country is Initial then fill the Country from the BC Set 2
+											{
+												newdefpostaladdr.CountryCode = Lv_Result.Element::COUNTRY;  //Country assignment on Customer
+											}
+										}
+									} // end of checking the default postal address
+								} 
+								else // if address node is not set, create the nodes and set the value
+								{
+									//var newaddress = cust_defaddr.Address.Create();
+									var newaddress = Party_CurrDefaultAddrInfo.Address.Create();
+									if (newaddress.IsSet()) // if default addres is set 3
+									{
+										var newdefaddr = newaddress.DefaultPostalAddressRepresentation.Create();
+										if (newdefaddr.IsSet())
+										{
+											if (newdefaddr.CountryCode.IsInitial()) //if Country is Initial then fill the Country from the BC Set 3
+											{
+												newdefaddr.CountryCode = Lv_Result.Element::COUNTRY;  //Country assignment on Customer 3
+											}
+										}
+									}
+								}// end of checking address node..
+							}
+							else // if Current default address is not set
+							{
+								//var newcurrdefaddr = PartyCustomer.CurrentDefaultAddressInformation.Create();
+								var newcurrdefaddr = BP_Customer.CurrentDefaultAddressInformation.Create();
+								if (newcurrdefaddr.IsSet()) 
+								{
+									var addr = newcurrdefaddr.Address.Create();
+									if (addr.IsSet()) // if default address is set 4
+									{
+										var defaddr = addr.DefaultPostalAddressRepresentation.Create();
+										if (defaddr.IsSet())
+										{
+											if (defaddr.CountryCode.IsInitial())  //if Country is Initial then fill the Country from the BC Set 4
+											{
+												defaddr.CountryCode = Lv_Result.Element::COUNTRY; //Country assignment on Customer 4
+											}
+										}
+									}
+								}
+							}// end of checking Current default address 
+						}// end of checking Customer
+					}// IF(1.1)
+					
+				}// IF(1)
+				//************************************************* END of Update Country and Language if Source is E-Mail on Customer**********************************************************//
+			}
+		}
+		//************************************************* CC_45: END of Update Country and Language if Source is E-Mail **********************************************************//
+
+		//*************************************************** Claims Data Upload - Call Custom Action to Populate New Customer & Registered Product *************************************************
+		if (inst.LX_TKT_FUPSOURCE == "495" || inst.LX_TKT_FUPSOURCE == "504")	//Execute only for Retailer & ISP Tickets
+		{
+			if ((!inst.LX_TKT_DATAUPLOAD_CUUID.IsInitial() && inst.BuyerID.IsInitial()) || (!inst.LX_TKT_DATAUPLOAD_RPUUID.IsInitial() && !MaterialRef.IsSet()))//!inst.MainServiceReferenceObject.IsSet()))
+			{
+				var FileInstanceRecord = PBO_DataUpload.Retrieve(inst.LX_TKT_FUPID);
+				if (FileInstanceRecord.IsSet())
+				{
+					if (inst.ResolutionCode.IsInitial())
+					{
+						inst.ResolutionCode = FileInstanceRecord.ResolutionCode;
+					}
+					if(inst.LX_REF_PO.IsInitial())
+					{
+						inst.LX_REF_PO		= FileInstanceRecord.PORefrenceNumber;
+					}
+					if(FileInstanceRecord.SourceAsRetailer)
+					{
+						inst.LX_PRD_CH1			= "504";
+						inst.LX_TKT_FUPSOURCE	= "504";
+					}
+					else
+					{
+						inst.LX_PRD_CH1			= "495";
+						inst.LX_TKT_FUPSOURCE	= "495";
+					}
+				}
+				inst.MapPartyInstance();
+			}
+		
+		}
+		//*************************************************** Claims Data Upload - Call Custom Action to Populate New Customer & Registered Product *************************************************
+   
+		//**********************************************************Prevent Ticket status change for Completed Tickets - Fix for FI_07********************************************************************
+		
+		if (inst.Status.ServiceRequestLifeCycleStatusCode == "3") //Copy Completion Date into a KUT field for restoring the same
+		{
+			//if (inst.ResolvedOnTimePoint.IsSet())
+			if (ResolvedOnTimePoint_Var.IsSet()) //commented above and added by SDK31.0
+			{
+				
+				//if (!inst.ResolvedOnTimePoint.TimePoint.IsInitial())
+				if (!ResolvedOnTimePoint_Var.TimePoint.IsInitial())//commented above and added by SDK31.0
+				{
+					var ResolvedOnDate : GLOBAL_DateTime;
+					//ResolvedOnDate = GlobalDateTime.ParseFromString(inst.ResolvedOnTimePoint.TimePoint.DateTime.content.ToString());
+					ResolvedOnDate = GlobalDateTime.ParseFromString(ResolvedOnTimePoint_Var.TimePoint.DateTime.content.ToString());//commented above and added by SDK31.0
+					if (!ResolvedOnDate.IsInitial())
+					{
+						if (ResolvedOnDate != inst.LX_TKT_COMPL_DATE)
+						{
+							inst.LX_TKT_COMPL_DATE = ResolvedOnDate;
+						}
+					}
+				}
+			}
+		}
+		
+
+		//if (inst.ServiceRequestInteraction.Count() > 0)
+		if (ServiceRequestInteraction_Var.Count() > 0)
+		{
+			//var EmailActivities = inst.ServiceRequestInteraction.Where(n => n.ProcessingTypeCode == "0004");	//Interactions of type "Business Email"
+			var EmailActivities = ServiceRequestInteraction_Var.Where(n => n.ProcessingTypeCode == "0004");	//Interactions of type "Business Email"//commented above and added by SDK31.0
+	
+			if (EmailActivities.Count() > 0)
+			{
+				var LatestEmail = EmailActivities.OrderByDescending(n => n.SystemAdministrativeData.CreationDateTime).GetFirst();
+				if (LatestEmail.IsSet())
+				{
+					var MessageFromParty = LatestEmail.MessageFromParty;
+					//if (LatestEmail.MessageFromParty.IsSet())
+					if (MessageFromParty.IsSet())
+					{
+						
+						var ECCEmail;
+
+						if (Context.GetSystemURL().ToLowerCase().Contains("my324697"))		//Test system
+						{
+							//if (inst.ServicePointLocation.IsSet())
+							if (srvPointLoc.IsSet())//commented above and added by SDK31.0
+							{
+								//if (inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.IsSet())
+								//if (srvPointLoc.UsedAddress.IsSet())//added by SDK31.0
+								if (srvPointLoc_Usedaddr.IsSet())
+								{
+									//if (srvPointLoc.UsedAddress.DefaultPostalAddressRepresentation.IsSet())//added by SDK31.0
+									if (srvPointLoc_Usedaddr_DefAddrRep.IsSet())
+									{
+										//if (inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.CountryCode == "BE")
+										//if (srvPointLoc.UsedAddress.DefaultPostalAddressRepresentation.CountryCode == "BE")//commented above and added by SDK31.0
+										if (srvPointLoc_Usedaddr_DefAddrRep.CountryCode == "BE")
+										{
+											ECCEmail = "customerservice.ert@electrolux.be";
+										}
+										//else if (inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.CountryCode == "GB")
+										//else if (srvPointLoc.UsedAddress.DefaultPostalAddressRepresentation.CountryCode == "GB")//commented above and added by SDK31.0
+										else if (srvPointLoc_Usedaddr_DefAddrRep.CountryCode == "GB")//commented above and added by SDK31.0
+										{
+											ECCEmail = "ar_uk@electrolux.de";
+										}
+									}
+								}
+							}
+						}
+						else if (Context.GetSystemURL().ToLowerCase().Contains("my338453")) //QA System
+						{
+							ECCEmail = "BATCH_BE11CC@ELECTROLUX.COM";
+						}
+						else if (Context.GetSystemURL().ToLowerCase().Contains("my339657"))	//Production System
+						{
+							//if (inst.ServicePointLocation.IsSet())
+							if (srvPointLoc.IsSet())//commented above and added by SDK31.0
+							{
+								//if (inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.IsSet())
+								if (srvPointLoc_Usedaddr.IsSet())//added by SDK31.0
+								{
+									if (srvPointLoc_Usedaddr_DefAddrRep.IsSet())//added by SDK31.0
+									{
+										//if (inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.CountryCode == "BE")
+										if (srvPointLoc_Usedaddr_DefAddrRep.CountryCode == "BE")//commented above and added by SDK31.0
+										{
+											ECCEmail = "customerservice.ert@electrolux.be";
+										}
+										//else if (inst.ServicePointLocation.UsedAddress.DefaultPostalAddressRepresentation.CountryCode == "GB")
+										else if (srvPointLoc_Usedaddr_DefAddrRep.CountryCode == "GB")//commented above and added by SDK31.0
+										{
+											ECCEmail = "ar_uk@electrolux.de";
+										}
+									}
+								}
+							}
+						}
+	
+						if ((!ECCEmail.IsInitial() && MessageFromParty.EmailURI == ECCEmail))
+						{
+							if (inst.Status.ServiceRequestLifeCycleStatusCode != "3" && !inst.LX_TKT_COMPL_DATE.IsInitial())	//If the ticket status was completed earlier
+							{
+								//Set Status to Completed
+								//if (inst.ServiceTerms.IsSet())
+								if (ServiceTerms_Node.IsSet())
+								{
+									//inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "5";	
+									ServiceTerms_Node.ServiceRequestUserLifeCycleStatusCode = "5";
+								}
+								else
+								{
+									var serviceterms : elementsof ServiceRequest.ServiceTerms;
+									serviceterms.ServiceRequestUserLifeCycleStatusCode = "5";
+									inst.ServiceTerms.Create(serviceterms);
+								}
+							}		
+						}
+					}
+				}
+			}
+		}
+
+		//**********************************************************Prevent Ticket status change for Completed Tickets - Fix for FI_07********************************************************************
+
+		//*******************************Start of changes for Protocollo Scenario for Italy Rollout by Himanshu**********************//
+		//Check1: Protocollo Logic should run only for country Italy
+		//Check2: 'Cost Estimate Required' field is marked as yes
+		//Check3: 'Estimated Cost' is greater than 250
+		//Check4: To check if Coverage Code: Transport Damage 'ZP'
+
+		var itemProctypeavail;
+		var PropPartItemEle : elementsof inst.Item;
+		var PropPartItemInst;
+		var PNCHeader;
+		var ItmPrcngTerms;
+		if (lv_SrvLoc_CountryCode == "IT")				//Country Italy Check
+		{
+			if (inst.LX_TCK_CE == "101")					//'Cost Estimate Required' field is marked as yes
+			{	
+				if (inst.LX_TCK_ES.content >= 250)		//'Estimated Cost' is greater than value 250
+				{
+					if (inst.LX_TCK_CVRG == "ZP" ||  inst.LX_TCK_CVRG == "ZE")	//To check if Coverage Code: Transport Damage 'ZP' or REP GW Retailer 100 % 'ZE'
+					{
+						if (MaterialRef.IsSet())			// Global Declared variable MaterialRef->inst.MainServiceReferenceObject
+						{
+							PNCHeader = MaterialRef.MaterialKey.ProductID;
+							if (!PNCHeader.IsInitial())
+							{
+								//itemProctypeavail = inst.Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZPRO"); //Proposed part processing type
+								itemProctypeavail = Instance_Item.Where(n => n.UserServiceTransactionProcessingTypeCode == "ZPRO"); //Proposed part processing type
+								if (itemProctypeavail.Count() == 0)
+								{								
+									PropPartItemEle.InvoicingMethodCode.content = "4";										
+									PropPartItemEle.UserServiceTransactionProcessingTypeCode = "ZPRO"; //Proposed part processing type
+									PropPartItemEle.ExternalPricingRelevantIndicator = true;										
+									
+									PropPartItemInst = inst.Item.Create(PropPartItemEle);
+									if (PropPartItemInst.IsSet())
+									{
+										if (PropPartItemInst.ItemProduct.IsSet()) 
+										{
+											PropPartItemInst.ItemProduct.ProductKey.ProductID.content = PNCHeader.content;													
+											PropPartItemEle.ExternalPricingRelevantIndicator = true;
+											ItmPrcngTerms = PropPartItemInst.ItemPricingTerms;
+											if (ItmPrcngTerms.IsSet())
+											{
+												ItmPrcngTerms.WarrantyGoodwillCode.content = inst.LX_TCK_CVRG;				// Header Coverage Code to be passed in Item
+											}
+											//inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z6";				//Status - Action Needed
+											inst.RequestExternalData();														//calling external pricing
+										}
+									}					
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//******************************End of changes for Protocollo Scenario for Italy Rollout by Himanshu************************//
+		//******************************** Italy - Submit claims by changing status to Claims Validation
+
+		if(!inst.LX_TKT_FUPID.IsInitial())
+		{
+			if(inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z7")
+			{
+				inst.SubmitClaimsTicket();
+			}
+		}
+		//******************************** Italy - Submit claims by changing status to Claims Validation
+	}
+}

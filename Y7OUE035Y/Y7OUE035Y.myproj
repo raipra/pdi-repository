@@ -1,0 +1,715 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{c5685d7f-d8b6-46f5-aef5-b3f72f3004e8}</ProjectGuid>
+    <ProjectType>CopernicusProject</ProjectType>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Name>Y7OUE035Y</Name>
+    <RootNamespace>Y7OUE035Y</RootNamespace>
+    <RepositoryNamespace>http://0003581030-one-off.sap.com/Y7OUE035Y_</RepositoryNamespace>
+    <RuntimeNamespacePrefix>Y7OUE035Y_</RuntimeNamespacePrefix>
+    <RepositoryRootFolder>/Y7OUE035Y_MAIN</RepositoryRootFolder>
+    <DefaultProcessComponent>Y7OUE035Y_Y7OUE035Y</DefaultProcessComponent>
+    <DevelopmentPackage>$Y7OUE035Y_DEV</DevelopmentPackage>
+    <XRepSolution>Y7OUE035Y_MAIN</XRepSolution>
+    <BCSourceFolderInXRep>/Y7OUE035Y_BC/SRC</BCSourceFolderInXRep>
+    <ProjectSourceFolderinXRep>/Y7OUE035Y_MAIN/SRC</ProjectSourceFolderinXRep>
+    <DeploymentUnit>CUSTOMER_RELATIONSHIP_MGMT</DeploymentUnit>
+    <CompilerVersion>1302_FP15</CompilerVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>bin</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="BAC" />
+    <Folder Include="BackgroundTaskManager" />
+    <Folder Include="CodeLists" />
+    <Folder Include="CustomBOs" />
+    <Folder Include="CustomBOs\PBO_GeneralConfiguration" />
+    <Folder Include="CustomBOs\PBO_MassDataRun" />
+    <Folder Include="CustomBOs\PBO_DataUpload" />
+    <Folder Include="CustomBOs\PBO_MergeCustomer\" />
+    <Folder Include="CustomBOs\PBO_ReserveParts" />
+    <Folder Include="CustomBOs\PBO_TicketSpareParts" />
+    <Folder Include="DataSources" />
+    <Folder Include="EnhancementImplementations" />
+    <Folder Include="ExternalWebServiceIntegration" />
+    <Folder Include="ExternalWebServiceIntegration\AppointmentSlots" />
+    <Folder Include="ExternalWebServiceIntegration\ClaimsSubmission" />
+    <Folder Include="ExternalWebServiceIntegration\DemandReplication" />
+    <Folder Include="ExternalWebServiceIntegration\EStockTicket" />
+    <Folder Include="ExternalWebServiceIntegration\MergeProposal\" />
+    <Folder Include="ExternalWebServiceIntegration\ProofOfPurchase" />
+    <Folder Include="KUTFields" />
+    <Folder Include="MDROs" />
+    <Folder Include="BusinessConfigurations" />
+    <Folder Include="StandardBOs" />
+    <Folder Include="ReuseLibraries" />
+    <Folder Include="OVS" />
+    <Folder Include="ProcessExtensionScenarios" />
+    <Folder Include="StandardBOs\CustomECs" />
+    <Folder Include="StandardBOs\XBO_Products" />
+    <Folder Include="StandardBOs\XBO_Contract" />
+    <Folder Include="StandardBOs\XBO_Customer" />
+    <Folder Include="StandardBOs\XBO_RegisteredProduct" />
+    <Folder Include="StandardBOs\XBO_StockLocation" />
+    <Folder Include="StandardBOs\XBO_Assignments" />
+    <Folder Include="StandardBOs\XBO_CodTimeEntry" />
+    <Folder Include="StandardBOs\XBO_ServiceRequest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-DataUpload_MDROQuery.qry">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-FileInstance-Action-ProcessDataUpload.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-FileInstance.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-FileInstance.node">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-FileInstanceQuery.qry">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Overview01.qry">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root-Action-DeleteProcessedRecords.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root-Action-DeleteSelectedRecord.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root-Action-ProcessDataUpload.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root-Action-ReProcessDataUpload.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root-Event-BeforeSave.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root-Validation-OnSave.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-Root.node">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-RootLevelQry.qry">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-TicketItems-Event-BeforeSave.absl">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload-TicketItems.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload-TicketItems.node">
+      <DependentUpon>CustomBOs\PBO_DataUpload\PBO_DataUpload.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload.bo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_PTP.PTP.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_QC.QC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_QV.QV.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_TI.TI.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_TT.TT.uidataobject">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_WCF.WCF.uiwoc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_DataUpload\PBO_DataUpload_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_QC.QC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_QV.QV.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_TI.TI.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_TT.TT.uidataobject">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_WCF.WCF.uiwoc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\GeneralConfiguratio_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\PBOGeneralConfigurations.bo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_GeneralConfiguration\PBOGeneralConfiguratio_TT.TT.uidataobject">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MassDataRun\PBO_MassDataRun-MassDataRunQuery.qry">
+      <DependentUpon>CustomBOs\PBO_MassDataRun\PBO_MassDataRun.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MassDataRun\PBO_MassDataRun-Root-Action-RunMDRO.absl">
+      <DependentUpon>CustomBOs\PBO_MassDataRun\PBO_MassDataRun-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MassDataRun\PBO_MassDataRun-Root.node">
+      <DependentUpon>CustomBOs\PBO_MassDataRun\PBO_MassDataRun.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MassDataRun\PBO_MassDataRun.bo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO-MDRO_MergeCustomer.qry">
+      <DependentUpon>CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO-Root-Action-Delete_ProcessedRecords.absl">
+      <DependentUpon>CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO-Root-Action-MergeDuplicate_CustomerAction.absl">
+      <DependentUpon>CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO-Root.node">
+      <DependentUpon>CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO.bo</DependentUpon>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO.bo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_QC.QC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_QV.QV.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_TI.TI.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_TT.TT.uidataobject">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_WCF.WCF.uiwoc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_MergeCustomer\PBO_MergeCustomerBO_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts-Root-Action-RetrieveTicket.absl">
+      <DependentUpon>CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts-Root-Event-AfterModify.absl">
+      <DependentUpon>CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts-Root.node">
+      <DependentUpon>CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_ReserveParts\PBO_AssignmentReserveParts.bo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts-Root-Action-FetchPartsDetails.absl">
+      <DependentUpon>CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts-Root-Event-AfterModify.absl">
+      <DependentUpon>CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts-Root.node">
+      <DependentUpon>CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts.bo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="CustomBOs\PBO_TicketSpareParts\PBO_TicketSpareParts.bo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="DataSources\DataUpload_FileInstance.ds">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="DataSources\DataUpload_ProcessLogs.ds">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="DataSources\DS_DataUpload.ds">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="DataSources\DS_DataUploadCustomerDuplicates.ds">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="DataSources\DS_DataUploadLogs.ds">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\AppointmentSlots\ReqAppSlotExtSys.csd">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\AppointmentSlots\ReqAppSlotFixZone.csd">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\AppointmentSlots\RequestAppointmentOfferSlotsfromExtSys-RequestAppointmentSlot.wsdl">
+      <DependentUpon>ExternalWebServiceIntegration\AppointmentSlots\RequestAppointmentOfferSlotsfromExtSys.wsid</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\AppointmentSlots\RequestAppointmentOfferSlotsfromExtSys.wsid">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\ClaimsSubmission\SP_ClaimsSubmission-SI_Claim_Submission_Sync_V1.wsdl">
+      <DependentUpon>ExternalWebServiceIntegration\ClaimsSubmission\SP_ClaimsSubmission.wsid</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\ClaimsSubmission\SP_ClaimsSubmission.wsid">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\ClaimsSubmission\SubmitClaims_SP.csd">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\DemandReplication\BookNowCallAppointment_FZ-C4C_BookReservation_Sync.wsdl">
+      <DependentUpon>ExternalWebServiceIntegration\DemandReplication\BookNowCallAppointment_FZ.wsid</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\DemandReplication\BookNowCallAppointment_FZ.wsid">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\EStockTicket\EStockTicket_Sce.csd">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\EStockTicket\Ext_EStockTicket-ZC4C_service.wsdl">
+      <DependentUpon>ExternalWebServiceIntegration\EStockTicket\Ext_EStockTicket.wsid</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\EStockTicket\Ext_EStockTicket.wsid">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\MergeProposal\MergeProposal.wsid">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\MergeProposal\MergeProposal_CS.csd">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\ProofOfPurchase\ExtClaim_POP-SI_SERVICEPOWER_Attachemnt_Sync.wsdl">
+      <DependentUpon>ExternalWebServiceIntegration\ProofOfPurchase\ExtClaim_POP.wsid</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\ProofOfPurchase\ExtClaim_POP.wsid">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ExternalWebServiceIntegration\ProofOfPurchase\ExtClaim_POP_CS.csd">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="KUTFields\CustomerObjectReferences.ref">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_DataUpload_Run.run">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_DataUpload_Run_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_DataUpload_Run_QA.QA.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_DataUpload_Run_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Delete_Merge.run">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Delete_Merge_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Delete_Merge_QA.QA.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Delete_Merge_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_FUPDelEntries.run">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_FUPDelEntries_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_FUPDelEntries_QA.QA.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_FUPDelEntries_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_MassRun.run">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_MassRun_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_MassRun_QA.QA.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_MassRun_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Merge_Customer.run">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Merge_Customer_OWL.OWL.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Merge_Customer_QA.QA.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="MDROs\PBO_Merge_Customer_WCView.WCVIEW.uiwocview">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ProcessExtensionScenarios\PES_CountryRegProd2Ticket.xs">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ProcessExtensionScenarios\PRODAPPS.xs">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\DataUpload_ReuseLibrary-Function-DataUpload_Contract_DupCheck.absl">
+      <DependentUpon>ReuseLibraries\DataUpload_ReuseLibrary.library</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\DataUpload_ReuseLibrary-Function-DataUpload_Customer_DupCheck.absl">
+      <DependentUpon>ReuseLibraries\DataUpload_ReuseLibrary.library</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\DataUpload_ReuseLibrary-Function-DataUpload_RegPdt_DupCheck.absl">
+      <DependentUpon>ReuseLibraries\DataUpload_ReuseLibrary.library</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\DataUpload_ReuseLibrary-Function-DataUpload_Translate_Errorlog.absl">
+      <DependentUpon>ReuseLibraries\DataUpload_ReuseLibrary.library</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\DataUpload_ReuseLibrary-Function-DataUpload_UniqueID_Generate.absl">
+      <DependentUpon>ReuseLibraries\DataUpload_ReuseLibrary.library</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\DataUpload_ReuseLibrary.library">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\IdentificationNumValidation-Function-IdentificationNumValidationPerCountry.absl">
+      <DependentUpon>ReuseLibraries\IdentificationNumValidation.library</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ReuseLibraries\IdentificationNumValidation.library">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\CustomECs\EC_AppointmentButtonCall.EC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\CustomECs\EC_AppointmentCall.EC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\CustomECs\EC_EStockTicket.EC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\CustomECs\EC_ReserveParts_Assignments.EC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\CustomECs\EC_TicketSpareParts_QVAdditionalField.EC.uicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Assignments\COD_Assignment_TI.TI.xuicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension-Root-Action-SetToComplete.absl">
+      <DependentUpon>StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension-Root-Action-SetToInProcess.absl">
+      <DependentUpon>StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension-Root.node">
+      <DependentUpon>StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Assignments\XBO_BusinessActivityIndustryExtension.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry-Root-Event-AfterModify.absl">
+      <DependentUpon>StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry-Root.node">
+      <DependentUpon>StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_CodTimeEntry\XBO_CodTimeEntry.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Contract\XBO_Contract-Root-Action-MapPartyInstance.absl">
+      <DependentUpon>StandardBOs\XBO_Contract\XBO_Contract-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Contract\XBO_Contract-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_Contract\XBO_Contract-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Contract\XBO_Contract-Root.node">
+      <DependentUpon>StandardBOs\XBO_Contract\XBO_Contract.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Contract\XBO_Contract.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Customer\XBO_Customer-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_Customer\XBO_Customer-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Customer\XBO_Customer-Root.node">
+      <DependentUpon>StandardBOs\XBO_Customer\XBO_Customer.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Customer\XBO_Customer.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Products\Products-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_Products\Products-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Products\Products-Root.node">
+      <DependentUpon>StandardBOs\XBO_Products\Products.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_Products\Products.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-PartyInformationParty-Event-AfterModify.absl">
+      <DependentUpon>StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-PartyInformationParty.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-PartyInformationParty.node">
+      <DependentUpon>StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root-Event-AfterModify.absl">
+      <DependentUpon>StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root-Validation-OnSave.absl">
+      <DependentUpon>StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct-Root.node">
+      <DependentUpon>StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_RegisteredProduct\XBO_RegisteredProduct.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\COD_SR_TI.TI.xuicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\COD_Ticket_QV.QV.xuicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\SEOD_ServiceRequest_QC.QC.xuicomponent">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-AppointmentSlots-Action-BookNowCall.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-AppointmentSlots.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-AppointmentSlots.node">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-BusinessTransactionDocumentReference-Event-AfterModify.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-BusinessTransactionDocumentReference.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-BusinessTransactionDocumentReference-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-BusinessTransactionDocumentReference.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-BusinessTransactionDocumentReference.node">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Item-Event-AfterModify.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Item.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Item-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Item.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Item.node">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-CalcOfferApptDates.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-ClearData.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-ClearEStockTicket.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-FaultCodeDetermination.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-FetchAttachment.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-GetAppointment.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-MapPartyInstance.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-ReleaseTicket.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-RetriveEStockTicket.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-SecondVisit.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-SubmitClaimsTicket.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Action-SubmitTicket.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Event-AfterModify.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root-Validation-OnSave.absl">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest-Root.node">
+      <DependentUpon>StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_ServiceRequest\XBO_ServiceRequest.xbo">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_StockLocation\XBO_StockLocation-Item-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_StockLocation\XBO_StockLocation-Item.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_StockLocation\XBO_StockLocation-Item.node">
+      <DependentUpon>StandardBOs\XBO_StockLocation\XBO_StockLocation.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_StockLocation\XBO_StockLocation-Root-Event-BeforeSave.absl">
+      <DependentUpon>StandardBOs\XBO_StockLocation\XBO_StockLocation-Root.node</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_StockLocation\XBO_StockLocation-Root.node">
+      <DependentUpon>StandardBOs\XBO_StockLocation\XBO_StockLocation.xbo</DependentUpon>
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="StandardBOs\XBO_StockLocation\XBO_StockLocation.xbo">
+      <SubType>Content</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <BCSet Include="..\Y7OUE035Y_BC\BAC\CustomSolutionScoping.bac">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\COUNTRYBASED_FIELDMAPPINGS.bco">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\COUNTRYMAP.bcc">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\Country_Based_Field_Mappings.QA.uicomponent">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\COUNTRY_LANG.bcc">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\DATAUPLOADTRANSLATIONS.bco">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\DataUpload_ErrorText_Translations.QA.uicomponent">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\DATAUPTRNS.bcc">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\UPDATECOUNTRYLANGUAGE.bco">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\BusinessConfigurations\Update_Country_and_Language.QA.uicomponent">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\CodeLists\ApptOffSlotType.codelist">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\CodeLists\CLAPPSKILL.codelist">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\CodeLists\DataUploadItemType.codelist">
+      <SubType>BCSet</SubType>
+    </BCSet>
+    <BCSet Include="..\Y7OUE035Y_BC\CodeLists\DataUploadProcessingStatus.codelist">
+      <SubType>BCSet</SubType>
+    </BCSet>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>

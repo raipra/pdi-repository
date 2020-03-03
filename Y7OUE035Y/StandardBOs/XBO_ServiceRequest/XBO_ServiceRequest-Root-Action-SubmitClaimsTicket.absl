@@ -1,0 +1,1749 @@
+﻿/*
+	Add your SAP Business ByDesign scripting language implementation for:
+		Business Object: ServiceRequest
+		Node: Root
+		Action: SubmitClaimsTicket 
+		
+	Note: 
+	  - To access the elements of the business object node, 
+	    use path expressions, for example, this.<element name>. 
+	  - To use code completion, press CTRL+J. 
+	  - This script file is mass-enabled, i.e. the keyword "this" 
+	    refers to a collection of node instances.
+	   
+*/
+//****************************************************************************************************************************//
+//Change Request ID: SDK31.0
+//Author: Arya Manmadan (SDK3)
+//Description: Code clearance to improve system performance
+//Change Date: 03 Dec 2019
+//****************************************************************************************************************************//
+
+import ABSL;
+import DocumentServices.Global;
+import AP.Common.GDT;
+import AP.FO.ProductDataMaintenance.Global;
+
+foreach (var inst in this)
+{
+	if (inst.IsSet()) //If(1)
+	{
+		var ErrorMessageCollection	: collectionof Text;
+		var ErrorMessages :Text;
+
+		//Claims Ticket will be replicated to Service Power only for ISP1 & ISP2 scenarios
+		//For ISP1, Claim Status Should be "Sent" or "Empty"
+		//For ISP2, Ticket Status Should be Claims Validation, Claims Status "Sent" or "Empty"
+		//added for SDK31.0
+		var ServiceTerms = inst.ServiceTerms;
+		
+		//added for SDK31.0
+		//if (inst.ServiceTerms.IsSet()) //If(1) Service Terms
+		if (ServiceTerms.IsSet()) //If(1) Service Terms//commented above and added for SDK31.0
+		{
+			//if ((inst.LX_TKT_ISPTYP == "101" && (inst.LX_TKT_CLMSTS.IsInitial() || inst.LX_TKT_CLMSTS == "Z1")) || (inst.LX_TKT_ISPTYP == "111" && inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z7" && (inst.LX_TKT_CLMSTS.IsInitial() || inst.LX_TKT_CLMSTS == "Z1"))) //If(1.1)
+			if ((inst.LX_TKT_ISPTYP == "101" && (inst.LX_TKT_CLMSTS.IsInitial() || inst.LX_TKT_CLMSTS == "Z1")) || (inst.LX_TKT_ISPTYP == "111" && ServiceTerms.ServiceRequestUserLifeCycleStatusCode == "Z7" && (inst.LX_TKT_CLMSTS.IsInitial() || inst.LX_TKT_CLMSTS == "Z1"))) //If(1.1)//commented above and added for SDK31.0
+			{
+				if(inst.Item.Count() > 0)
+				{
+					var lineitems = inst.Item;
+
+					if(lineitems.Where(n=>n.UserServiceTransactionProcessingTypeCode == "ZCLM" || n.UserServiceTransactionProcessingTypeCode == "ZPAR").Count() > 0)
+					{
+						var FieldValidation : Indicator;
+						FieldValidation = true;
+
+						var BuyerPartyInstance		= inst.BuyerParty;							//Customer Instance
+						var RegisteredProdInstance	= inst.MainServiceReferenceObject;			//RegisteredProduct Instance
+						var WarrantyNode			= inst.WarrantyStartReferenceTimePoint;		//Warranty Node
+						var SalesArea				= inst.SalesAndServiceBusinessArea;			//Sales Org Information
+						var ItemInstances			= inst.Item;								//Ticket Item
+						var SystemAdminstrativeData = inst.SystemAdministrativeData;			//Ticket Timeline
+						var ResolvedTimePoint		= inst.ResolvedOnTimePoint;					//Ticket Resolution Timeline
+						var ServiceExecutionParty	= inst.ServiceExecutionTeamParty;			//Service Technician
+						var RequestedStartDate		= inst.RequestedFulfillmentPeriod;			//Requested Date
+						var attachmentfolder		= inst.AttachmentFolder;					//Attachment folder
+						var serviceloc				= inst.ServicePointLocation;				//ServiceLocation
+						var attachmentfolder_Doc;
+				
+				
+						//added for SDK31.0
+						var Req_InitialRecieptTimepoint = inst.RequestInitialReceiptTimePoint;
+						var CustomerInstance;
+						var CustomerInstance_CurrCommon;
+						var CustomerAddress;
+						var CustomerAddress_address;
+						var CustomerMobilePhone;
+						var CustomerEmailAddress;
+						var SPLocAdd;
+						var DfltPost;
+						var RegPdt_Indvpdt;
+						var RegisteredProdServiceProcessInfo;
+						var RegisteredProdWarranty;
+						var warranty_details;
+						var IOLineItem_ItemPdt;
+						var Customer_Party;
+						if (BuyerPartyInstance.IsSet())
+						{
+							Customer_Party = BuyerPartyInstance.Party;
+							if (Customer_Party.IsSet())
+							{
+								CustomerInstance = Customer_Party.Customer;
+							}
+						}
+						if (attachmentfolder.IsSet())
+						{
+							attachmentfolder_Doc = attachmentfolder.Document;				//Attachment folder
+						}
+						//added for SDK31.0
+
+
+						//********************************************************Header Level Field Validation *****************************************************************
+						if (inst.LX_TKT_ISPTYP == "101") //If(1.2) - Field Validation only for ISP1
+						{
+							if (inst.LX_TCK_CVRG.IsInitial()) //Header Coverage code
+							{
+								FieldValidation = false;
+								raise ClaimsReplicationValidation.Create("E", "Coverage is mandatory for Claim Submission");
+
+								ErrorMessages.content =  "Coverage is mandatory for Claim Submission";
+								ErrorMessageCollection.Add(ErrorMessages);
+							}
+							if (RegisteredProdInstance.IsSet())
+							{
+								if (RegisteredProdInstance.MaterialKey.ProductID.IsInitial()) //PNC/New ID
+								{
+									FieldValidation = false;
+									raise ClaimsReplicationValidation.Create("E", "PNC/New ID is mandatory for Claim Submission");
+
+									ErrorMessages.content =  "66";
+									ErrorMessageCollection.Add(ErrorMessages);
+								}
+							}
+							if (inst.LX_PRD_SN1.IsInitial()) //Serial Number
+							{
+								FieldValidation = false;
+								raise ClaimsReplicationValidation.Create("E", "Serial Number is mandatory for Claim Submission");	
+
+								ErrorMessages.content =  "65";
+								ErrorMessageCollection.Add(ErrorMessages);
+							}
+							else
+							{
+								if (inst.LX_PRD_SN1.Length() != 8) // 8 Char Long Serial Number
+								{
+									FieldValidation = false;
+									raise ClaimsReplicationValidation.Create("E", "Serial Number should be 8 char long");
+
+									ErrorMessages.content =  "64";
+									ErrorMessageCollection.Add(ErrorMessages);
+								}
+							}
+							if (inst.LX_PRD_ML1.IsInitial()) //ML Code
+							{
+								FieldValidation = false;
+								raise ClaimsReplicationValidation.Create("E", "ML Code is mandatory for Claim Submission");
+
+								ErrorMessages.content =  "63";
+								ErrorMessageCollection.Add(ErrorMessages);
+							}
+							if (inst.LX_TCK_CVRG == "Z1" || inst.LX_TCK_CVRG == "Z2" || inst.LX_TCK_CVRG == "Z3" || inst.LX_TCK_CVRG == "Z4" || inst.LX_TCK_CVRG == "ZF" || inst.LX_TCK_CVRG == "ZG" || inst.LX_TCK_CVRG == "ZH" || inst.LX_TCK_CVRG == "ZI" || inst.LX_TCK_CVRG == "ZJ" || inst.LX_TCK_CVRG == "ZN" || inst.LX_TCK_CVRG == "ZO" || inst.LX_TCK_CVRG == "ZP" || inst.LX_TCK_CVRG == "ZQ" || inst.LX_TCK_CVRG == "ZR" || inst.LX_TCK_CVRG == "ZS" || inst.LX_TCK_CVRG == "ZU" || inst.LX_TCK_CVRG == "ZV" || inst.LX_TCK_CVRG == "ZW")
+							{
+								if (!inst.LX_PRD_PD1) //Purchase Validation
+								{
+									FieldValidation = false;
+									raise ClaimsReplicationValidation.Create("E", "Purchase Validation is mandatory for Claim Submission");
+
+									ErrorMessages.content =  "62";
+									ErrorMessageCollection.Add(ErrorMessages);
+								}
+							}
+							if (inst.LX_TCK_CVRG == "Z5") //Coverage Code = REP EW 3rd Party warranty
+							{
+								if (inst.LX_TCK_DG.IsInitial()) // D&G Authority Number
+								{
+									raise ClaimsReplicationValidation.Create("E", "D&G Authority Number is mandatory for Claim Submission");
+
+									ErrorMessages.content =  "61";
+									ErrorMessageCollection.Add(ErrorMessages);
+								}
+							}
+							if (WarrantyNode.IsSet()) //Product Purchase Date
+							{
+								if (WarrantyNode.TimePoint.IsInitial())
+								{
+									FieldValidation = false;
+									raise ClaimsReplicationValidation.Create("E", "Product Purchase Date is mandatory for Claim Submission");
+									
+									ErrorMessages.content =  "60";
+									ErrorMessageCollection.Add(ErrorMessages);
+
+								}
+								else
+								{
+									if (WarrantyNode.TimePoint.DateTime.content.IsInitial())
+									{
+										FieldValidation = false;
+										raise ClaimsReplicationValidation.Create("E", "Product Purchase Date is mandatory for Claim Submission");
+
+										ErrorMessages.content =  "60";
+										ErrorMessageCollection.Add(ErrorMessages);
+									}
+								}
+							}
+							if (SalesArea.IsSet()) 
+							{
+								if (SalesArea.SalesOrganisationID == "GB10") //Sales Organisation
+								{
+									if (inst.LX_PRD_RET.IsInitial())
+									{
+										FieldValidation = false;
+										raise ClaimsReplicationValidation.Create("E", "Retailer is mandatory for UK Claim Submission");
+
+										ErrorMessages.content =  "59";
+										ErrorMessageCollection.Add(ErrorMessages);
+									}
+								}
+							}
+						} //If(1.2)
+
+						//******************************************************End of Field Validation *************************************************************
+
+						if (FieldValidation) //Validation IF
+						{
+							//inst.ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z7"; //Set Ticket Status to Claims Validation
+							ServiceTerms.ServiceRequestUserLifeCycleStatusCode = "Z7"; //Set Ticket Status to Claims Validation//commented above and added for SDK31.0
+							//Create IO (Internal Order) line item to release to ERP
+							var DummyLineItem;
+
+							if (ItemInstances.Count() > 0)
+							{
+								var item_Product_Inst = ItemInstances.ItemProduct; 
+								//if (ItemInstances.ItemProduct.Count() > 0)
+								if (item_Product_Inst.Count() > 0)
+								{
+									//var ItemProductInstance = ItemInstances.ItemProduct;
+
+									//DummyLineItem = ItemProductInstance.Where(n => n.ProductKey.ProductID.content == "30014"); //Check if there is already a Dummy Line Item created
+									DummyLineItem = item_Product_Inst.Where(n => n.ProductKey.ProductID.content == "30014"); //Check if there is already a Dummy Line Item created
+								}
+							}
+
+							if (DummyLineItem.Count() == 0) //If no duplicate exists, then create a new dummy line item
+							{
+								var ItemInstance : elementsof inst.Item;
+								ItemInstance.InvoicingMethodCode.content = "4";
+								ItemInstance.ExternalPricingRelevantIndicator = false;
+				
+								var IOLineItem = inst.Item.Create(ItemInstance);
+								if (IOLineItem.IsSet())
+								{
+									var IOLine_ItemProduct = IOLineItem.ItemProduct;
+									//if (IOLineItem.ItemProduct.IsSet()) //Assign UK Service Item Product for Dummy Line Item
+									if (IOLine_ItemProduct.IsSet()) //Assign UK Service Item Product for Dummy Line Item
+									{
+										var UKServiceItem : ProductInternalID;
+										UKServiceItem.content = "30014"; 
+
+										var RetrieveProdInstance = Material.Retrieve(UKServiceItem.AddLeadingZeros());
+										if (RetrieveProdInstance.IsSet())
+										{
+											//IOLineItem.ItemProduct.ProductKey.ProductID = RetrieveProdInstance.InternalID;	//Dummy Line Item Product (DEV)
+											IOLine_ItemProduct.ProductKey.ProductID = RetrieveProdInstance.InternalID;	//Dummy Line Item Product (DEV)
+											IOLineItem.FinishFulfilmentProcessing();										//Call Finish Work before releasing to ERP
+											IOLineItem.ReleaseToExternalFollowUpProcessing();								//Release Dummy Line item to ECC for IO creation
+										}
+									}
+								}
+							}
+
+							//Finish Work for All Work Relevant Line Items
+							inst.FinishFulfilmentProcessingOfAllItems();
+
+							var Request : Library::SP_ClaimsSubmission.SI_Claim_Submission_Sync.Request;
+							var ClaimDetails : Library::SP_ClaimsSubmission.SI_Claim_Submission_Sync.Request.MT_SERVICEPOWER_REQ.claims;
+							var PartDetails : Library::SP_ClaimsSubmission.SI_Claim_Submission_Sync.Request.MT_SERVICEPOWER_REQ.claims.parts;
+							var Authentication : Library::SP_ClaimsSubmission.SI_Claim_Submission_Sync.Request.MT_SERVICEPOWER_REQ.authentication;
+
+							//Populate the Claim Request Message to be sent to Service Power
+
+							if (inst.LX_TKT_ISPTYP == "101") //ISP1 
+							{
+								ClaimDetails.claimNumber = inst.ID.content.RemoveLeadingZeros();				//C4C Ticket ID
+							}
+							else if (inst.LX_TKT_ISPTYP == "111") //ISP2
+							{	
+								ClaimDetails.claimNumber = inst.LX_REF_PO;									//Claims PO Reference Number
+							}
+							if (inst.Name.content.Length() > 150)
+							{
+								ClaimDetails.defectOrComplaintDescription = inst.Name.content.Substring(0, 151);				//Ticket Subject
+							}
+							else
+							{
+								ClaimDetails.defectOrComplaintDescription = inst.Name.content;								//Ticket Subject
+							}								
+							ClaimDetails.servicePerformedDescription = inst.LX_TCK_AT;									//Action Taken
+							ClaimDetails.eiaRepairCode2 = inst.LX_TXT_FCK;									//Fault Code
+							ClaimDetails.callNumber = inst.ID.content.RemoveLeadingZeros();				//C4C Ticket ID
+							ClaimDetails.serialNumber = inst.LX_PRD_SN1;									//Serial Number
+							if (inst.LX_PRD_RE1.Length() > 30)
+							{					
+								ClaimDetails.dealerName = inst.LX_PRD_RE1.Substring(0, 31);				//Retailer Name
+							}
+							else
+							{
+								ClaimDetails.dealerName = inst.LX_PRD_RE1;									//Retailer Name
+							}									
+							ClaimDetails.authorizationNumber = inst.LX_TCK_GA;									//Generic Authorization Code (Exchange)	
+							ClaimDetails.warrantySKU = inst.LX_PRD_ML1;									//ML Code
+							ClaimDetails.tpaContractSKUDescription = inst.LX_SRC_DG;									//3rd Party Contract ID
+							ClaimDetails.tpaContractNumber = inst.LX_TKT_DGCTRNR;								//D&G Contract Number
+							ClaimDetails.authorizationNumber = inst.LX_TCK_DG;									//D&G Authority Number
+							ClaimDetails.tpaClaimNumber = inst.LX_TKT_DGCLMNR;								//D&G Claim Number
+							//ClaimDetails.dateStarted = inst.LX_TKT_ASTDT.ConvertToDate().ToString();		//Assignment changed to Reported On //Appointment Start Date
+							ClaimDetails.dateCompleted = inst.LX_TKT_AENDT.ConvertToDate().ToString();		//Appointment End Date
+							ClaimDetails.type = "00"; //inst.LX_TKT_ISPTYP;						//ISP Type - Original Claim 
+							ClaimDetails.laborSchematicLocation2 = inst.LX_TCK_CVRG;									//Header Coverage Code
+							ClaimDetails.eiaRepairCode3 = inst.ResolutionCode;								//Resolution Code
+							ClaimDetails.glAccountNumber = inst.LX_TKT_EXW_PRV;								//Addition for Italy Rollout- Extended Warranty Provider
+
+							if (inst.LX_PRD_PD1)
+							{					
+								ClaimDetails.laborSchematicLocation1 = "X";													//Purchase Validated Flag
+							}
+							else
+							{
+								ClaimDetails.laborSchematicLocation1 = " ";												//Purchase Validated Flag
+							}
+
+							switch (inst.LX_TXT_FCK) //Component & Defect Codes
+							{	
+						
+								case "A10" //Vaccum cleaner household
+								{
+									ClaimDetails.eiaRepairCode1 = inst.A10ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.A10DefectCode;		//Defect Code
+								}
+								case "A15" //Steam Cleaner with Ironer
+								{
+									ClaimDetails.eiaRepairCode1 = inst.A15ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.A15DefectCode;		//Defect Code
+								}
+								case "A16" //High Pressure Cleaner
+								{
+									ClaimDetails.eiaRepairCode1 = inst.A16ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.A16DefectCode;		//Defect Code
+								}
+								case "B26" //Commercian Vaccum Cleaner
+								{
+									ClaimDetails.eiaRepairCode1 = inst.B26ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.B26DefectCode;		//Defect Code
+								}
+								case "B31" //Turbocleaner
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.B31DefectCode;		//Defect Code
+								}
+								case "B32" //Air Cleaner, commercial
+								{
+									ClaimDetails.eiaRepairCode1 = inst.B32ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.B32DefectCode;		//Defect Code
+								}
+								case "B35" //Automatic Scrubber-Dryer
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.B35DefectCode;		//Defect Code
+								}
+								case "B36" //Sweepers, Commercial
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.B36DefectCode;		//Defect Code
+								}
+								case "C10" //Refrigeration
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_C10CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_C10DC;		//Defect Code
+								}
+								case "C11" //Air Conditioner
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_C11CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_C11DC;		//Defect Code
+								}
+								case "D10" //Cookers
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_D10CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_D10DC;		//Defect Code
+								}
+								case "D11" //Combi kitchen
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_D11CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_D11DC;		//Defect Code
+								}
+								case "D12" //Kitchen Media/Entertainment
+								{
+									ClaimDetails.eiaRepairCode1 = inst.D12ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.D12DefectCode;		//Defect Code
+								}
+								case "D20" //Cookers hoods
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_D20CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_D20DC;		//Defect Code
+								}
+								case "D50" //Microwave ovens
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_D50CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_D50DC;		//Defect Code
+								}
+								case "F10" //Dishwashers
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_F10CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_F10DC;		//Defect Code
+								}
+								case "G10" //Washing Machine
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_G10CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_G10DC;		//Defect Code
+								}
+								case "G40" //Dry Cabinet & Wash-Basin
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_G40CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_G40DC;		//Defect Code
+								}
+								case "G45" //Tumble & spin dryer
+								{
+									ClaimDetails.eiaRepairCode1 = inst.LX_TXT_G45CC;		//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_G45DC;		//Defect Code
+								}
+								case "G50" //Mangles, Household
+								{
+									ClaimDetails.eiaRepairCode1 = inst.G50ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.G50DefectCode;		//Defect Code
+								}
+								case "J20" //Toilets
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.J20DefectCode;		//Defect Code
+								}
+								case "J22" //Water Purifier
+								{
+									ClaimDetails.eiaRepairCode1 = inst.J22ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.J22DefectCode;		//Defect Code
+								}
+								case "J23" //Food Waste Disposer
+								{
+									ClaimDetails.eiaRepairCode1 = inst.J23ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.J23DefectCode;		//Defect Code
+								}
+								case "J25" //Hot Water Appliances / Heaters
+								{
+									ClaimDetails.eiaRepairCode1 = inst.J25ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.J25DefectCode;		//Defect Code
+								}
+								case "J26" //Storage Heaters
+								{
+									ClaimDetails.eiaRepairCode1 = inst.J26ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.J26DefectCode;		//Defect Code
+								}
+								case "M17" //Small Electric Appliances
+								{
+									ClaimDetails.eiaRepairCode1 = inst.M17ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.M17DefectCode;		//Defect Code
+								}
+								case "N50" //Open Fire Heaters Wood Stoves
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.N50DefectCode;		//Defect Code
+								}
+								case "N60" //Central Ventilation / Heating
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.N60DefectCode;		//Defect Code
+								}
+								case "X90" //RAD Damages
+								{
+									ClaimDetails.eiaRepairCode1 = inst.X90ComponentCode;	//Component Code
+									ClaimDetails.eiaDefectOrComplaintCode = inst.X90DefectCode;		//Defect Code
+								}
+								case "Z14" //Generator for Caravans / Boats
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.Z14DefectCode;		//Defect Code
+								}
+								case "Z15" //Water Pumps for Marine Purpose
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.Z15DefectCode;		//Defect Code
+								}
+								case "Z16" //Battery Chargers
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.Z16DefectCode;		//Defect Code
+								}
+								case "Z17" //Marine Air Conditioner
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.Z17DefectCode;		//Defect Code
+								}
+								case "Z35" //Safes / Minisafes
+								{
+									ClaimDetails.eiaDefectOrComplaintCode = inst.Z35DefectCode;		//Defect Code
+								}
+								//Newly added fault coade keys
+								case "Axx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.AxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.AxxDefectCode;		//Defect Code
+								}
+								case "Bxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.BxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.BxxDefectCode;		//Defect Code
+								}
+								case "Cxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.CxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.CxxDefectCode;		//Defect Code
+								}
+								case "Dxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.DxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.DxxDefectCode;		//Defect Code
+								}
+								case "Exx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.ExxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.ExxDefectCode;		//Defect Code
+								}
+								case "Fxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.FxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.FxxDefectCode;		//Defect Code
+								}
+								case "Gxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.GxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.GxxDefectCode;		//Defect Code
+								}
+								case "H11"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H11ComponentCode1;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H11DefectCode;		//Defect Code
+								}
+								case "H12"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H12ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H12DefectCode;		//Defect Code
+								}
+								case "H13"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H13ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H13Defectcode;		//Defect Code
+								}
+								case "H15"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H15ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H15DefectCode;		//Defect Code
+								}
+								case "H18"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H18ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H18DefectCode;		//Defect Code
+								}
+								case "H20"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H20ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H20DefectCode;		//Defect Code
+								}
+								case "H21"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H21ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H21DefectCode;		//Defect Code
+								}
+								case "H22"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H22ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H22DefectCode;		//Defect Code
+								}
+								case "H23"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H23ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H23DefectCode;		//Defect Code
+								}
+								case "H24"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H24ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H24DefectCode;		//Defect Code
+								}
+								case "H25"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.H25ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.H25DefectCode;		//Defect Code
+								}
+								case "Hxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.HxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.HxxDefectCode;		//Defect Code
+								}
+								case "Ixx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.IxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.IxxDefectCode;		//Defect Code
+								}
+								case "Jxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.JxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.JxxDefectCode;		//Defect Code
+								}
+								case "Kxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.KxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.KxxDefectCode;		//Defect Code
+								}
+								case "L03"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.L03ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.L03DefectCode;		//Defect Code
+								}
+								case "L08"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.L08ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.L08DefectCode;		//Defect Code
+								}
+								case "L17"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.L17ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.L17DefectCode;		//Defect Code
+								}
+								case "L18"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.L18ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.L18DefectCode;		//Defect Code
+								}
+								case "L19"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.L19ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.L19DefectCode;		//Defect Code
+								}
+								case "L20"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.L20ComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.L20DefectCode;		//Defect Code
+								}
+								case "Nxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.NxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.NxxDefectCode;		//Defect Code
+								}
+								case "Xxx"
+								{
+								   ClaimDetails.eiaRepairCode1 = inst.XxxComponentCode;//Component Code
+								   ClaimDetails.eiaDefectOrComplaintCode = inst.XXXDefectcode;		//Defect Code
+								}
+								//Newly added fault coade keys
+							}
+
+							//If Fault Specific Defect, Component fields are empty then pick from generic fields (directly mapped with Fixzone)
+							if (ClaimDetails.eiaRepairCode1.IsInitial() || ClaimDetails.eiaDefectOrComplaintCode.IsInitial())
+							{
+								ClaimDetails.eiaRepairCode1 = inst.LX_TXT_CC;				//Component Code
+								ClaimDetails.eiaDefectOrComplaintCode = inst.LX_TXT_DC;				//Defect Code
+							}
+					
+							//Code commented as we need customer address details from service location of Ticket and not customer
+
+							//Consumer Information
+							//if(BuyerPartyInstance.IsSet()) //If(2)
+							//{
+							//if(BuyerPartyInstance.RoleCode == "1001") //If(3)
+							//{
+							//var CustomerInstance = BuyerPartyInstance.Party.Customer;
+							//if(CustomerInstance.IsSet()) //If(4)
+							//{
+							//ClaimDetails.customerFirstName	= CustomerInstance.CurrentCommon.Person.Name.GivenName;		//Customer First name
+							//ClaimDetails.customerLastName	= CustomerInstance.CurrentCommon.Person.Name.FamilyName;	//Customer Last name
+							//if(CustomerInstance.CurrentDefaultAddressInformation.IsSet()) //If(5)
+							//{
+							//var CustomerAddress = CustomerInstance.CurrentDefaultAddressInformation;
+							//if(CustomerAddress.Address.IsSet()) //If(6)
+							//{
+							//var CustomerPostalAddress	= CustomerAddress.Address.DefaultPostalAddressRepresentation;
+							//var CustomerEmailAddress	= CustomerAddress.Address.DefaultEMail;
+							//var CustomerPhone			= CustomerAddress.Address.DefaultConventionalPhone;
+							//
+							//if(CustomerPostalAddress.IsSet())
+							//{
+							//ClaimDetails.customerAddress1		= CustomerPostalAddress.StreetName;			//Customer Address Line 1
+							//ClaimDetails.customerAddress2		= CustomerPostalAddress.StreetPrefixName;	//Customer Address Line 2
+							//ClaimDetails.customerCity			= CustomerPostalAddress.CityName;			//Customer City
+							//if(!CustomerPostalAddress.RegionCode.IsInitial())
+							//{
+							//ClaimDetails.customerState		= CustomerPostalAddress.RegionCode.content; //Customer State
+							//}
+							//if(!CustomerPostalAddress.CountryCode.IsInitial())
+							//{
+							//ClaimDetails.customerCountryCode= CustomerPostalAddress.CountryCode;		//Customer Country
+							//}
+							//ClaimDetails.customerZipCode		= CustomerPostalAddress.StreetPostalCode;	//Customer Postal Code
+							//}
+							//if(CustomerEmailAddress.IsSet())
+							//{
+							//ClaimDetails.customerEmail			= CustomerEmailAddress.URI.content;			//Customer Email
+							//}
+							//} //If(6)
+							//} //If(5)
+							//} //If(4)
+							//} //If(3)
+							//} //If(2)
+
+							//Consumer Information
+							if (BuyerPartyInstance.IsSet()) //If(2)
+							{
+								if (BuyerPartyInstance.RoleCode == "1001") //If(3)
+								{
+									if (Customer_Party.IsSet())
+									{
+										if (CustomerInstance.IsSet()) //If(4)
+										{
+											CustomerInstance_CurrCommon = CustomerInstance.CurrentCommon;
+											//ClaimDetails.customerFirstName = CustomerInstance.CurrentCommon.Person.Name.GivenName;		//Customer First name
+											//ClaimDetails.customerLastName = CustomerInstance.CurrentCommon.Person.Name.FamilyName;	//Customer Last name
+											//commented above and added for SDK31.0
+											if (CustomerInstance_CurrCommon.IsSet())
+											{
+												ClaimDetails.customerFirstName = CustomerInstance_CurrCommon.Person.Name.GivenName;		//Customer First name
+												ClaimDetails.customerLastName = CustomerInstance_CurrCommon.Person.Name.FamilyName;	//Customer Last name
+											}
+											//commented above and added for SDK31.0
+											CustomerAddress = CustomerInstance.CurrentDefaultAddressInformation;
+											//if (CustomerInstance.CurrentDefaultAddressInformation.IsSet()) //If(5)
+											if (CustomerAddress.IsSet()) //If(5)//commented above and added for SDK31.0
+											{
+												//var CustomerAddress = CustomerInstance.CurrentDefaultAddressInformation;
+												CustomerAddress_address = CustomerAddress.Address;//commented above and added for SDK31.0
+
+												//if (CustomerAddress.Address.IsSet()) //If(6)
+												if (CustomerAddress_address.IsSet()) //If(6)//commented above and added for SDK31.0
+												{				
+													//var CustomerMobilePhone = CustomerAddress.Address.DefaultMobilePhone;	
+													CustomerMobilePhone = CustomerAddress_address.DefaultMobilePhone;//commented above and added for SDK31.0
+													//var CustomerEmailAddress = CustomerAddress.Address.DefaultEMail;	
+													CustomerEmailAddress = CustomerAddress_address.DefaultEMail;//commented above and added for SDK31.0
+													if (CustomerMobilePhone.IsSet())
+													{
+														var space = CustomerMobilePhone.FormattedNumberDescription.Find(" ");
+														var start = space + 1;
+														var length = CustomerMobilePhone.FormattedNumberDescription.Length();
+														var act_length = length - start;
+														if (act_length < 10)
+														{
+															ClaimDetails.customerPhone = CustomerMobilePhone.FormattedNumberDescription.Substring(start, act_length);// Mobile number less than 10 digits without Country Code
+														}
+														else
+														{
+															ClaimDetails.customerPhone = CustomerMobilePhone.FormattedNumberDescription.Substring(start, 10);// 10-digit mobile number without Country Code. This will truncate the number when greater than 10-digit
+														}
+													}
+													if (CustomerEmailAddress.IsSet())
+													{
+														ClaimDetails.customerEmail = CustomerEmailAddress.URI.content;			//Customer Email
+													}
+												}
+											}
+										}
+									}
+								}//If(3)
+							}//If(2)
+										
+							//if (inst.ServicePointLocation.IsSet())					//checking for ServicePoint Location Details
+							if (serviceloc.IsSet())
+							{
+								//var SPLocAdd = inst.ServicePointLocation.UsedAddress;
+								SPLocAdd = serviceloc.UsedAddress;//commented above and added for SDK31.0
+								if (SPLocAdd.IsSet())
+								{
+									DfltPost = SPLocAdd.DefaultPostalAddressRepresentation;
+									if (DfltPost.IsSet())
+									{
+										ClaimDetails.customerAddress1 = DfltPost.StreetName;						//Customer Address Line 1
+										ClaimDetails.customerAddress2 = DfltPost.AdditionalStreetPrefixName;		//Customer Address Line 2
+										ClaimDetails.customerCity = DfltPost.CityName;						//Customer City
+										ClaimDetails.customerZipCode = DfltPost.StreetPostalCode;				//Customer Postal Code
+								
+										if (!DfltPost.RegionCode.IsInitial())
+										{
+											ClaimDetails.customerState = DfltPost.RegionCode.content;				//Customer State
+										}
+										if (!DfltPost.CountryCode.IsInitial())
+										{
+											ClaimDetails.customerCountryCode = DfltPost.CountryCode;						//Customer Country	
+											//Start of changes to fix the issue reported in Incident INC4373206. Changed by: Ruchika Soni
+											//Code will send the Reported On in Date Started for GB and Appointment Start Date in Date Started for other countries.
+											if (DfltPost.CountryCode == "GB")
+											{
+												//if (inst.RequestInitialReceiptTimePoint.IsSet())
+												if (Req_InitialRecieptTimepoint.IsSet())
+												{
+													//var ReqInitial = inst.RequestInitialReceiptTimePoint;
+													var ReqInitial = Req_InitialRecieptTimepoint;
+													if (!ReqInitial.TimePoint.IsInitial())
+													{
+														var Reqtimepoint = ReqInitial.TimePoint;
+														if (!Reqtimepoint.Date.IsInitial())
+														{
+															var ReqDate = Reqtimepoint.Date;
+															ClaimDetails.dateStarted = ReqDate.ToString(); //Reported On 
+														}
+													}
+												}
+											}
+											else
+											{
+												ClaimDetails.dateStarted = inst.LX_TKT_ASTDT.ConvertToDate().ToString();//Appointment Start Date for other countries. For example: Italy.
+											}	
+											//End of changes to fix the issue reported in Incident INC4373206
+								
+											//*******************************Start of changes for Protocollo Scenario for Italy Rollout by Himanshu**********************//
+											//Check1: Protocollo Logic should run only for country Italy
+											//Check2: 'Cost Estimate Required' field is marked as yes
+											//Check3: 'Estimated Cost' is greater than 250
+											//Check4: To check if Coverage Code: Transport Damage 'ZP'
+											if (DfltPost.CountryCode == "IT")												//Country Italy Check
+											{
+												if (inst.LX_TCK_CE == "101")													//'Cost Estimate Required' field is marked as yes
+												{	
+													if (inst.LX_TCK_ES.content >= 250)										//'Estimated Cost' is greater than value 250
+													{
+														if (inst.LX_TCK_CVRG == "ZP")										// To check if Coverage Code: Transport Damage 'ZP'
+														{
+															ClaimDetails.tpaEquipmentRetailPrice = inst.LX_TCK_ES.content.ToString();  // passing Estimated Cost data to SP
+															if (!inst.Status.IsInitial())
+															{
+																var ApprCode = inst.Status.ApprovalStatusCode;
+																if (!ApprCode.IsInitial())
+																{
+																	if (ApprCode == "4")										// If approved send flag as Y to SP
+																	{													
+																		ClaimDetails.tpaResubmittedFlag = "Y";
+																	}
+																	else													// If Rejected send flag as N to SP							
+																	{
+																		ClaimDetails.tpaResubmittedFlag = "N";
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+											//*******************************End of changes for Protocollo Scenario for Italy Rollout by Himanshu**********************//
+										}					
+									}
+								}
+							}
+
+
+							//Registered Product Details
+							if (RegisteredProdInstance.IsSet()) //If(7)
+							{
+								if (!RegisteredProdInstance.MaterialKey.IsInitial())
+								{
+									ClaimDetails.modelNumber = RegisteredProdInstance.MaterialKey.ProductID.content.RemoveLeadingZeros(); //Ticket PNC Number
+								}
+								RegPdt_Indvpdt = RegisteredProdInstance.IndividualProduct;//added for SDK31.0
+								//if (RegisteredProdInstance.IndividualProduct.IsSet()) //If(7.1)
+								if (RegPdt_Indvpdt.IsSet()) //If(7.1)//commented above and added for SDK31.0
+								{
+									//var RegisteredProdServiceProcessInfo = RegisteredProdInstance.IndividualProduct.ServiceProcessInformation;
+									RegisteredProdServiceProcessInfo = RegPdt_Indvpdt.ServiceProcessInformation;//commented above and added for SDK31.0
+									if (RegisteredProdServiceProcessInfo.IsSet()) //If(7.2)
+									{
+										RegisteredProdWarranty = RegisteredProdServiceProcessInfo.ServiceProcessInformationWarrantyAssignment;
+										if (RegisteredProdWarranty.IsSet()) //If(7.3)
+										{
+											warranty_details = RegisteredProdWarranty.Warranty;//added for SDK31.0
+											//if (RegisteredProdWarranty.Warranty.IsSet()) //If(7.4)
+											if (warranty_details.IsSet()) //If(7.4)//commented above and added for SDK31.0
+											{
+												//ClaimDetails.tpaClaimType = RegisteredProdWarranty.Warranty.ProductInternalID.content.RemoveLeadingZeros();		//Product Warranty ID
+												ClaimDetails.tpaClaimType = warranty_details.ProductInternalID.content.RemoveLeadingZeros();		//Product Warranty ID //commented above and added for SDK31.0
+												ClaimDetails.tpaContractStartDate = RegisteredProdWarranty.ValidityPeriod.StartDate.ToString();							//Product Warranty Start Date
+												ClaimDetails.tpaContractEndDate = RegisteredProdWarranty.ValidityPeriod.EndDate.ToString();								//Product Warranty End Date
+
+												//if (RegisteredProdWarranty.Warranty.Description.Count() > 0)
+												if (warranty_details.Description.Count() > 0)//commented above and added for SDK31.0
+												{
+													//ClaimDetails.tpaProductDescription = RegisteredProdWarranty.Warranty.Description.GetFirst().Description.content;			//Product Warranty Description
+													ClaimDetails.tpaProductDescription = warranty_details.Description.GetFirst().Description.content;			//Product Warranty Description //commented above and added for SDK31.0
+												}
+											}//If(7.4)
+										}//If(7.3)
+									} //If(7.2)
+								}//If(7.1)
+							} //If(7)
+
+							if (WarrantyNode.IsSet()) //If(8)
+							{
+								ClaimDetails.datePurchased = WarrantyNode.TimePoint.DateTime.content.ToString();  //Product Purchase Date
+							} //If(8)
+							else
+							{
+								if (RegisteredProdInstance.IsSet())
+								{
+									//if (RegisteredProdInstance.IndividualProduct.IsSet())
+									if (RegPdt_Indvpdt.IsSet())
+									{
+										//if (RegisteredProdInstance.IndividualProduct.ServiceProcessInformation.IsSet())
+										if (RegisteredProdServiceProcessInfo.IsSet())
+										{
+											//if (!RegisteredProdInstance.IndividualProduct.ServiceProcessInformation.PurchaseDateTime.IsInitial())
+											if (!RegisteredProdServiceProcessInfo.PurchaseDateTime.IsInitial())
+											{
+							    
+												//ClaimDetails.datePurchased = RegisteredProdInstance.IndividualProduct.ServiceProcessInformation.PurchaseDateTime.content.ToString();
+												ClaimDetails.datePurchased = RegisteredProdServiceProcessInfo.PurchaseDateTime.content.ToString();
+											}
+										}
+									}
+
+								}
+								if (!inst.TextCollection.IsSet()) //If(13.3.2)
+								{
+									var textInstance = inst.TextCollection.Create();
+									if (textInstance.IsSet())//If(13.3.3)
+									{
+										var NewNotes_element : elementsof ServiceRequest.TextCollection.Text;
+										var NewNotes_TextContent_element : elementsof ServiceRequest.TextCollection.Text.TextContent;
+										NewNotes_element.TypeCode.content = "10011";
+										NewNotes_TextContent_element.Text.content = "Purchase date is mapped from Registered Product and is missing in Ticket";
+										
+										ErrorMessages.content =  "58";
+										ErrorMessageCollection.Add(ErrorMessages);
+
+										var NewNotes = textInstance.Text.Create(NewNotes_element);
+										if (NewNotes.IsSet())
+										{
+											var NewNotesText = NewNotes.TextContent.Create(NewNotes_TextContent_element);
+											if (!NewNotesText.IsSet())
+											{
+												raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+											}
+										}
+									}//If(13.3.3)
+								} //If(13.3.2)
+								else
+								{ //Else (13.3)
+
+									var ExistingNotes : elementsof inst.TextCollection.Text;
+									ExistingNotes.TypeCode.content = "10011";
+									var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+									var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+									if (AddNotes.IsSet()) //If(13.3.5)
+									{
+										//added for SDK31.0
+										ExistingNoteText.Text.content = "Purchase date is mapped from Registered Product and is missing in Ticket";
+										
+										ErrorMessages.content =  "58";
+										ErrorMessageCollection.Add(ErrorMessages);
+
+										var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);
+										if (!AddNotesText.IsSet())
+										{
+											raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+										}
+										//added for SDK31.0
+														  
+									} //If(13.3.5)
+								} //Else (13.3)
+
+							}
+					
+		            
+							if (SalesArea.IsSet()) //If(9)
+							{
+								ClaimDetails.manufacturerName = "ELECTROLUX UK";										//Sales Organisation
+								ClaimDetails.distributorTransmittalNumber = SalesArea.SalesOrganisationID.RemoveLeadingZeros();	//Sales Organisation
+							} //If(9)
+		
+							if (ServiceExecutionParty.IsSet()) //If(10)
+							{
+								if (!ServiceExecutionParty.PartyKey.IsInitial())
+								{
+									ClaimDetails.serviceCenterNumber = ServiceExecutionParty.PartyKey.PartyID.content; //Ticket Service Technician ID
+								}
+
+							} //If(10)
+
+							if (RequestedStartDate.IsSet()) //If(11)
+							{
+								ClaimDetails.dateReceived = RequestedStartDate.TimePointPeriod.StartTimePoint.DateTime.content.ToString(); //Ticket Requested Date
+							} //If(11)
+					
+							//Populate Parts Node (Items)
+							//foreach (var items in inst.Item) //Foreach
+							foreach (var items in ItemInstances) //Foreach//commented above and added for SDK31.0
+							{
+								//Replicate Labor & Claim Parts Claim Line Item
+								if (items.UserServiceTransactionProcessingTypeCode == "ZCLM" || items.UserServiceTransactionProcessingTypeCode == "ZPAR") //If(12)
+								{
+									var ItemsRegisteredProduct = items.MainServiceRefObject;
+									var ItemQuantityValues = items.FirstFulfilledItemScheduleLine;
+									var ItemProduct = items.ItemPricingTerms;
+									var ItemProduct_Details = items.ItemProduct; //check if its needed
+									if (inst.LX_TKT_ISPTYP == "111") //Document number will be sent only for ISP2 Tickets
+									{
+										PartDetails.invoiceNumber = items.LX_TKT_INV;						//Item Procorner Doc Number
+									}									
+									PartDetails.priceRequested = items.LX_TKT_CLM.content.ToString();		//Claim Amount
+									PartDetails.schematicLocation = items.ID.RemoveLeadingZeros();			//Item Line number
+
+									if (items.UserServiceTransactionProcessingTypeCode == "ZCLM")
+									{
+										//PartDetails.claimType			= "02";		
+										PartDetails.returned = "2";									//Labor Claim Processing Code
+									}
+									else if (items.UserServiceTransactionProcessingTypeCode == "ZPAR")
+									{
+										//PartDetails.claimType			= "01";	
+										PartDetails.returned = "1";									//Parts Claim Processing Code
+									}
+						
+									//if (ItemsRegisteredProduct.IsSet()) //If(12.1)
+									//{
+									//var IndividualPrd = ItemsRegisteredProduct.IndividualProduct;
+									//if (IndividualPrd.IsSet()) //If(12.2)
+									//{
+									//if (IndividualPrd.ServiceProcessInformation.IsSet()) //If(12.3)
+									//{
+									//if (IndividualPrd.ServiceProcessInformation.ReferencedMaterial.IsSet()) //If(12.4)
+									//{ 
+									//PartDetails.number = items.ItemProduct.ProductInternalID.RemoveLeadingZeros().content; //Items Parts Number
+									//}//If(12.4)
+									//}//If(12.3)
+									//}//If(12.2)
+									//} //If(12.1)
+
+									if (ItemProduct_Details.IsSet())
+									{
+										PartDetails.number = ItemProduct_Details.ProductInternalID.RemoveLeadingZeros().content;
+									}
+									if (ItemQuantityValues.IsSet()) //If(12.5)
+									{
+										PartDetails.quantity = ItemQuantityValues.Quantity.content.ToString();	//Items Actual Quantity
+									} //If(12.5)
+
+									if (ItemProduct.IsSet()) //If(12.7)
+									{
+										PartDetails.jobCode = ItemProduct.WarrantyGoodwillCode.content;			//Items Coverage code
+									}
+
+									ClaimDetails.parts.Add(PartDetails);
+									PartDetails.Clear();
+								} //If(12)
+
+							} //Foreach
+
+					
+							if (!ClaimDetails.IsInitial() && ClaimDetails.parts.Count() > 0)  //If(13)
+							{
+						
+								//if (Context.GetSystemURL().ToLowerCase().Contains("my324697"))		//Test system
+								//{
+									//Request.MT_SERVICEPOWER_REQ.authentication.userId = "ELXUKWS01";
+									//Request.MT_SERVICEPOWER_REQ.authentication.password = "Ct5Gkej8iE";
+								//}
+								//else if (Context.GetSystemURL().ToLowerCase().Contains("my338453")) //QA System
+								//{
+									//Request.MT_SERVICEPOWER_REQ.authentication.userId = "ELXUKWS01";
+									//Request.MT_SERVICEPOWER_REQ.authentication.password = "Ct5Gkej8iE";
+								//}
+								//else if (Context.GetSystemURL().ToLowerCase().Contains("my339657"))	//Production System
+								//{
+									//Request.MT_SERVICEPOWER_REQ.authentication.userId = "ELEUKUSR";
+									//Request.MT_SERVICEPOWER_REQ.authentication.password = "e5UlYx9Bdi";
+								//}
+						
+								//Add Claim Details to Request Message
+								Request.MT_SERVICEPOWER_REQ.claims.Add(ClaimDetails);
+			
+								var Response = Library::SP_ClaimsSubmission.SI_Claim_Submission_Sync(Request, "", "SubmitClaims_SP");  //Trigger Webservice
+
+						
+								//Response Handling
+								if (!Response.IsInitial()) //If(13.1)
+								{
+									if (!Response.MT_Claim_Response.IsInitial()) //If(13.2) ----------- Claims Response from Service Power
+									{
+										// ********************************************* CLAIMS SUBMISSION SUCCESSFUL ****************************************************************
+										if (Response.MT_Claim_Response.responseCode == "OK") //If(13.3)
+										{
+											raise MSG_ReplicationResponse.Create("I", "Claims Ticket successfully replicated to Service Power");
+
+											ErrorMessages.content =  "57";
+											ErrorMessageCollection.Add(ErrorMessages);
+
+											// Secondary Validation Failure
+											foreach (var claimsResponse in Response.MT_Claim_Response.claimsResponse) //Foreach(13.3)
+											{
+												if (!claimsResponse.claimBatchNumber.IsInitial())
+												{
+													inst.LX_TKT_CLMBNR = claimsResponse.claimBatchNumber;	//Claims Batch Number
+												}
+												if (!claimsResponse.claimSequenceNumber.IsInitial())
+												{
+													inst.LX_TKT_CLMSQNR = claimsResponse.claimSequenceNumber;//Claims Sequence Number
+												}
+												if (!claimsResponse.claimStatusCode.IsInitial())
+												{
+													inst.LX_TKT_CLMSTS = claimsResponse.claimStatusCode;	//Claims Status Update
+												}
+												foreach (var dataErrors in claimsResponse.errors)
+												{
+													if (!inst.TextCollection.IsSet()) //If(13.3.2)
+													{
+														var textInstance = inst.TextCollection.Create();
+														if (textInstance.IsSet())//If(13.3.3)
+														{
+															//var NewNotes = textInstance.Text.Create();
+															//if (NewNotes.IsSet()) //If(13.3.4)
+															//{
+															//NewNotes.TypeCode.content = "10011";
+															//var NewNotesText = NewNotes.TextContent.Create();
+															//if (NewNotesText.IsSet())
+															//{
+															//NewNotesText.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															//}
+															//}//If(13.3.4)	
+															//added for SDK31.0
+															var Correct_Newnotes : elementsof ServiceRequest.TextCollection.Text;
+															var Correct_Newnotes_content : elementsof ServiceRequest.TextCollection.Text.TextContent;
+															Correct_Newnotes.TypeCode.content = "10011";
+															Correct_Newnotes_content.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															var NewNotes = textInstance.Text.Create(Correct_Newnotes);
+															if (NewNotes.IsSet())
+															{
+																var NewNoteText = NewNotes.TextContent.Create(Correct_Newnotes_content);
+																if (!NewNoteText.IsSet())
+																{
+																	raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																}
+															}
+															//added for SDK31.0
+														}//If(13.3.3)
+													} //If(13.3.2)
+													else
+													{ //Else (13.3)
+
+														var ExistingNotes : elementsof inst.TextCollection.Text;
+														ExistingNotes.TypeCode.content = "10011";
+														var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+														//added for SDK31.0
+														var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;
+														ExistingNoteText.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+														//added for SDK31.0
+														if (AddNotes.IsSet()) //If(13.3.5)
+														{
+															//var AddNotesText = AddNotes.TextContent.Create();
+															var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);//commenetd above and added for SDK31.0
+															if (!AddNotesText.IsSet())
+															{
+																raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+															}
+															//Commented for SDK31.0
+															//if (AddNotesText.IsSet())
+															//{
+															//AddNotesText.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															//}
+															//Commented for SDK31.0
+														} //If(13.3.5)
+													} //Else (13.3)
+												}
+											}//Foreach(13.3)
+										}//If(13.3)
+
+										// ************************************************** CLAIMS SUBMISSION FAILED (DATA / API ERRORS) **************************************************************
+										else if (Response.MT_Claim_Response.responseCode == "ER") // else if(14)
+										{
+											if (Response.MT_Claim_Response.totalClaimProcessedSuccessfully == "1")
+											{
+												raise MSG_ReplicationResponse.Create("W", "Claims Ticket replicated to Service Power with errors, further details in Notes tab");
+
+												ErrorMessages.content =  "56";
+												ErrorMessageCollection.Add(ErrorMessages);
+											}
+											else
+											{
+												inst.LX_TKT_CLMSTS = "Z1";	//Set to "Sent" when claim ticket is not created in SP
+												raise MSG_ReplicationResponse.Create("W", "Claims Replication to Service Power failed, further details in Notes tab");
+
+												ErrorMessages.content =  "55";
+												ErrorMessageCollection.Add(ErrorMessages);
+
+												raise MSG_ReplicationResponse.Create("W", "Retrigger Claims once error resolved");
+											}
+
+											foreach (var claimsResponse in Response.MT_Claim_Response.claimsResponse) //foreach(14)
+											{
+												if (!claimsResponse.claimBatchNumber.IsInitial())
+												{
+													inst.LX_TKT_CLMBNR = claimsResponse.claimBatchNumber;		//Claims Batch Number
+												}
+												if (!claimsResponse.claimSequenceNumber.IsInitial())
+												{
+													inst.LX_TKT_CLMSQNR = claimsResponse.claimSequenceNumber;	//Claims Sequence Number
+												}
+												if (!claimsResponse.claimStatusCode.IsInitial())
+												{
+													inst.LX_TKT_CLMSTS = claimsResponse.claimStatusCode;		//Claims Status Update
+												}
+												foreach (var dataErrors in claimsResponse.errors) //If(14.1)
+												{
+													if (!inst.TextCollection.IsSet()) //If(14.2)
+													{
+														var textInstance = inst.TextCollection.Create();
+														if (textInstance.IsSet())//If(14.3)
+														{
+															//commented and added below for SDK31.0
+															//var NewNotes = textInstance.Text.Create();
+															//if (NewNotes.IsSet()) //If(14.4)
+															//{
+															//NewNotes.TypeCode.content = "10011";
+															//var NewNotesText = NewNotes.TextContent.Create();
+															//if (NewNotesText.IsSet()) //If(14.5)
+															//{
+															//NewNotesText.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															//}  //If(14.5)
+															//}//If(14.4)
+															//commented and added below for SDK31.0
+															//added for SDK31.0
+															var Correct_Newnotes : elementsof ServiceRequest.TextCollection.Text;
+															var Correct_Newnotes_content : elementsof ServiceRequest.TextCollection.Text.TextContent;
+															Correct_Newnotes.TypeCode.content = "10011";
+															Correct_Newnotes_content.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															var NewNotes = textInstance.Text.Create(Correct_Newnotes);
+															if (NewNotes.IsSet())
+															{
+																var NewNoteText = NewNotes.TextContent.Create(Correct_Newnotes_content);
+																if (!NewNoteText.IsSet())
+																{
+																	raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																}
+															}
+															//added for SDK31.0
+														}//If(14.3)
+													} //If(14.2)
+
+													else
+													{ //Else (14.6)
+														var ExistingNotes : elementsof inst.TextCollection.Text;
+														ExistingNotes.TypeCode.content = "10011";
+														var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+														var ExistingNotesText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+														if (AddNotes.IsSet()) //If(14.6)
+														{
+															//added for SDK31.0
+															ExistingNotesText.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															var AddNotesText = AddNotes.TextContent.Create(ExistingNotesText);
+															if (!AddNotesText.IsSet())
+															{
+																raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+															}
+															//added for SDK31.0
+
+															//commented for SDK31.0
+															//var AddNotesText = AddNotes.TextContent.Create();
+															//if (AddNotesText.IsSet()) //If(14.7)
+															//{
+															//AddNotesText.Text.content = dataErrors.errorDescription + "-" + dataErrors.partNumber;
+															//}//If(14.7)
+															//commented for SDK31.0
+														} //If(14.6)
+													} //Else (14.6)
+												} //Foreach(14.1)
+											} //Foreach(14)
+							
+											//********************************************************* API ERRORS ***********************************************************
+											foreach (var APIErrors in Response.MT_Claim_Response.messages) //Foreach(15)
+											{
+												inst.LX_TKT_CLMSTS = "Z1";	//Set to "Sent" when claim ticket is not created in SP
+
+												raise MSG_ReplicationResponse.Create("E", "Claims replication to Service Power failed, further details in Notes Tab"); 
+
+												ErrorMessages.content =  "55";
+												ErrorMessageCollection.Add(ErrorMessages);
+
+												if (!inst.TextCollection.IsSet()) //If(15.1)
+												{
+													var textInstance = inst.TextCollection.Create();
+													if (textInstance.IsSet())//If(15.2)
+													{
+														//commented for SDK31.0
+														//var NewNotes = textInstance.Text.Create();
+														//if (NewNotes.IsSet()) //If(15.3)
+														//{
+														//NewNotes.TypeCode.content = "10011";
+														//var NewNotesText = NewNotes.TextContent.Create();
+														//if (NewNotesText.IsSet()) //If(15.4)
+														//{
+														//NewNotesText.Text.content = APIErrors.message;
+														//} //If(15.4)
+														//}//If(15.3)	
+														//commented for SDK31.0
+
+														//added for SDK31.0
+														var NewNotes_element : elementsof ServiceRequest.TextCollection.Text;
+														var NewNotes_TextContent_element : elementsof ServiceRequest.TextCollection.Text.TextContent;
+														NewNotes_element.TypeCode.content = "10011";
+														NewNotes_TextContent_element.Text.content = APIErrors.message;
+
+														var NewNotes = textInstance.Text.Create(NewNotes_element);
+														if (NewNotes.IsSet())
+														{
+															var NewNotesText = NewNotes.TextContent.Create(NewNotes_TextContent_element);
+															if (!NewNotesText.IsSet())
+															{
+																raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+															}
+														}
+														//added for SDK31.0
+													}//If(15.2)
+												} //If(15.1)
+												else
+												{ //Else (15)
+													var ExistingNotes : elementsof inst.TextCollection.Text;
+													ExistingNotes.TypeCode.content = "10011";
+													var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+													var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+													if (AddNotes.IsSet()) //If(15.5)
+													{
+														//added for SDK31.0
+														ExistingNoteText.Text.content = APIErrors.message;
+														var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);
+														if (!AddNotesText.IsSet())
+														{
+															raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+														}
+														//added for SDK31.0
+
+														//commented for SDK31.0
+														//var AddNotesText = AddNotes.TextContent.Create();
+														//if (AddNotesText.IsSet()) //If(15.6)
+														//{
+														//AddNotesText.Text.content = APIErrors.message;
+														//} //If(15.6)
+														//commented for SDK31.0
+													} //If(15.5)
+												} //Else (15)
+											} //Foreach(15)
+										} //Else If(14)
+									} //If(13.2)
+
+									// *****************************************************************If Messages fails to reach CPI ***********************************************************
+									else if (!Response.CommunicationFault.IsInitial()) //If(16)
+									{
+										inst.LX_TKT_CLMSTS = "Z1";	//Set to "Sent" when claim ticket is not created in SP
+
+										if (Response.CommunicationFault.Item.Count() > 0) //If(16.1)
+										{
+											raise MSG_ReplicationResponse.Create("E", "Claims replication to Service Power failed, further details in Notes Tab"); 
+
+											ErrorMessages.content =  "55";
+											ErrorMessageCollection.Add(ErrorMessages);
+
+											var IntegrationError = Response.CommunicationFault.Item.GetFirst();
+											if (!IntegrationError.Note.IsInitial()) //If(16.2)
+											{
+												if (!inst.TextCollection.IsSet()) //If(16.3)
+												{
+													var textInstance = inst.TextCollection.Create();
+													if (textInstance.IsSet())//If(16.4)
+													{
+														//var NewNotes = textInstance.Text.Create();
+														//if (NewNotes.IsSet()) //If(16.5)
+														//{
+														//NewNotes.TypeCode.content = "10011";
+														//var NewNotesText = NewNotes.TextContent.Create();
+														//if (NewNotesText.IsSet()) //If(16.6)
+														//{
+														//NewNotesText.Text.content = IntegrationError.Note;
+														//} //If(16.6)
+														//}//If(16.5)	
+														//added for SDK31.0
+														var NewNotes_element : elementsof ServiceRequest.TextCollection.Text;
+														var NewNotes_TextContent_element : elementsof ServiceRequest.TextCollection.Text.TextContent;
+														NewNotes_element.TypeCode.content = "10011";
+														NewNotes_TextContent_element.Text.content = IntegrationError.Note;
+
+														var NewNotes = textInstance.Text.Create(NewNotes_element);
+														if (NewNotes.IsSet())
+														{
+															var NewNotesText = NewNotes.TextContent.Create(NewNotes_TextContent_element);
+															if (!NewNotesText.IsSet())
+															{
+																raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+															}
+														}
+														//added for SDK31.0
+													}//If(16.4)
+												} //If(16.3)
+												else
+												{ //Else (17)
+													var ExistingNotes : elementsof inst.TextCollection.Text;
+													ExistingNotes.TypeCode.content = "10011";
+													var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+													var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+													if (AddNotes.IsSet()) //If(17.5)
+													{
+														//added for SDK31.0
+														ExistingNoteText.Text.content = IntegrationError.Note;
+														var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);
+														if (!AddNotesText.IsSet())
+														{
+															raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+														}
+														//added for SDK31.0
+
+														//commented for SDK31.0
+														//var AddNotesText = AddNotes.TextContent.Create();
+														//if (AddNotesText.IsSet()) //If(17.6)
+														//{
+														//AddNotesText.Text.content = IntegrationError.Note;
+														//} //If(17.7)
+														//commented for SDK31.0
+													} //If(17.6)
+												} //Else (17)
+											} //If(16.2)
+										}//If(16.1)
+									}//If(16)
+								} //If(13.1)
+								//Proof of Purchase Document replication
+								var Doc_Request : Library::ExtClaim_POP.SIOS_SERVICEPOWER.Request;
+								var Doc_ClaimDetails : Library::ExtClaim_POP.SIOS_SERVICEPOWER.Request.MT_SERVICEPOWER_REQ.claim;
+								var Doc_Details : Library::ExtClaim_POP.SIOS_SERVICEPOWER.Request.MT_SERVICEPOWER_REQ.document;
+								var Doc_Authentication : Library::ExtClaim_POP.SIOS_SERVICEPOWER.Request.MT_SERVICEPOWER_REQ.authentication;
+
+								var servicecountry;
+								var POP;
+								if (serviceloc.IsSet())
+								{ 
+									//if (serviceloc.UsedAddress.IsSet())
+									if (SPLocAdd.IsSet())
+									{
+										//if (serviceloc.UsedAddress.DefaultPostalAddressRepresentation.IsSet())
+										//if(SPLocAdd.DefaultPostalAddressRepresentation.IsSet())
+										if (DfltPost.IsSet())
+										{
+											//servicecountry = serviceloc.UsedAddress.DefaultPostalAddressRepresentation.CountryCode;
+											//servicecountry = SPLocAdd.DefaultPostalAddressRepresentation.CountryCode;
+											servicecountry = DfltPost.CountryCode;
+										}
+									}
+								}
+						
+								if (attachmentfolder.IsSet())
+								{
+									//if (attachmentfolder.Document.Count() > 0)
+									if (attachmentfolder_Doc.Count() > 0)
+									{
+										//POP = attachmentfolder.Document.Where(n => n.TypeCode.content == "ZPOP");
+										POP = attachmentfolder_Doc.Where(n => n.TypeCode.content == "ZPOP");
+									}
+								}
+								if (!inst.LX_TKT_CLMBNR.IsInitial() && !inst.LX_TKT_CLMSQNR.IsInitial() && servicecountry != "GB" && POP.Count() > 0)//claim is created in SP
+								{
+									foreach (var popitem in POP)
+									{
+							
+										//claim Details
+										Doc_ClaimDetails.manufacturerName = ClaimDetails.manufacturerName;//Manufacturer name
+										Doc_ClaimDetails.claimBatchNumber = inst.LX_TKT_CLMBNR;//Claims Batch Number
+										Doc_ClaimDetails.claimSequenceNumber = inst.LX_TKT_CLMSQNR;//Claims Sequence Number
+										if(!ClaimDetails.claimNumber.IsInitial())
+										{
+										Doc_ClaimDetails.claimNumber = ClaimDetails.claimNumber;//C4C Claim Number
+										}
+										else
+										{
+										Doc_ClaimDetails.claimNumber = inst.ID.content.RemoveLeadingZeros();//C4C Ticket Number
+										}
+										Doc_ClaimDetails.country = servicecountry;
+										Doc_Request.MT_SERVICEPOWER_REQ.claim.Add(Doc_ClaimDetails);
+										//Document details
+										//foreach (var popitem in POP)
+										//{
+										Doc_Details.category = "POP";
+										Doc_Details.description = popitem.Name;
+										Doc_Details.filename = popitem.Name;
+										Doc_Details.file = Binary.ToBase64String(popitem.FileContent.BinaryObject.content);
+										//Doc_Details.existingDocumentId      = "0";
+										Doc_Request.MT_SERVICEPOWER_REQ.document.Add(Doc_Details);
+										//}
+										//Authentication
+										//if (!Request.MT_SERVICEPOWER_REQ.authentication.userId.IsInitial())
+										//{
+											//Doc_Authentication.userId = Request.MT_SERVICEPOWER_REQ.authentication.userId;
+										//}
+										//if (!Request.MT_SERVICEPOWER_REQ.authentication.password.IsInitial())
+										//{
+											//Doc_Authentication.password = Request.MT_SERVICEPOWER_REQ.authentication.password;
+										//}
+										//Doc_Request.MT_SERVICEPOWER_REQ.authentication.Add(Doc_Authentication);
+
+										var Doc_Response = Library::ExtClaim_POP.SIOS_SERVICEPOWER(Doc_Request, "", "ExtClaim_POP_CS");
+										if (!Doc_Response.IsInitial())
+										{ 
+											if (!Doc_Response.MT_SERVICEPOWER_RES.IsInitial())
+											{
+												if (Doc_Response.MT_SERVICEPOWER_RES.responseCode == "OK")
+												{
+													raise MSG_ReplicationResponse.Create("I", "Proof of Purchase document successfully replicated to Service Power.For furthur details see Notes Tab");
+													
+													ErrorMessages.content =  "54";
+													ErrorMessageCollection.Add(ErrorMessages);
+													
+													if (!inst.TextCollection.IsSet()) //If(13.3.2)
+													{
+														var textInstance = inst.TextCollection.Create();
+														if (textInstance.IsSet())//If(13.3.3)
+														{
+															//commented for SDK31.0
+															//var NewNotes = textInstance.Text.Create();
+															//if (NewNotes.IsSet()) //If(13.3.4)
+															//{
+															//NewNotes.TypeCode.content = "10011";
+															//var NewNotesText = NewNotes.TextContent.Create();
+															//if (NewNotesText.IsSet())
+															//{
+															//NewNotesText.Text.content = "Proof Of Purchase Document " + popitem.Name + " created successfully";//Doc_Response.MT_SERVICEPOWER_RES.documentId
+															//}
+															//}//If(13.3.4)	
+															//commented for SDK31.0
+															//added for SDK31.0
+															var NewNotes_element : elementsof ServiceRequest.TextCollection.Text;
+															var NewNotes_TextContent_element : elementsof ServiceRequest.TextCollection.Text.TextContent;
+															NewNotes_element.TypeCode.content = "10011";
+															NewNotes_TextContent_element.Text.content = "Proof Of Purchase Document " + popitem.Name + " created successfully";//Doc_Response.MT_SERVICEPOWER_RES.documentId
+															var NewNotes = textInstance.Text.Create(NewNotes_element);
+															if (NewNotes.IsSet())
+															{
+																var NewNotesText = NewNotes.TextContent.Create(NewNotes_TextContent_element);
+																if (!NewNotesText.IsSet())
+																{
+																	raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																}
+															}
+															//added for SDK31.0
+														}//If(13.3.3)
+													} //If(13.3.2)
+													else
+													{ //Else (13.3)
+
+														var ExistingNotes : elementsof inst.TextCollection.Text;
+														ExistingNotes.TypeCode.content = "10011";
+														var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+														var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+														if (AddNotes.IsSet()) //If(13.3.5)
+														{
+															//added for SDK31.0
+															ExistingNoteText.Text.content = "Proof Of Purchase Document " + popitem.Name + " created successfully";
+															var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);
+															if (!AddNotesText.IsSet())
+															{
+																raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+															}
+															//added for SDK31.0
+
+															//commented for SDK31.0
+															//var AddNotesText = AddNotes.TextContent.Create();
+															//if (AddNotesText.IsSet())
+															//{
+															//AddNotesText.Text.content = "Proof Of Purchase Document " + popitem.Name + " created successfully";
+															//}
+															//commented for SDK31.0
+														} //If(13.3.5)
+													} //Else (13.3)	
+											
+												}//if (Doc_Response.MT_SERVICEPOWER_RES.responseCode == "OK")
+												else if (Doc_Response.MT_SERVICEPOWER_RES.responseCode == "ER")
+												{
+										   
+													raise MSG_ReplicationResponse.Create("W", "Proof of Purchase document replication to Service Power failed, further details in Notes tab");
+													
+													ErrorMessages.content =  "53";
+													ErrorMessageCollection.Add(ErrorMessages);
+
+													foreach (var doc_error in Doc_Response.MT_SERVICEPOWER_RES.messages)
+													{
+														if (!inst.TextCollection.IsSet()) //If(13.3.2)
+														{
+															var textInstance = inst.TextCollection.Create();
+															if (textInstance.IsSet())//If(13.3.3)
+															{
+																//commented for SDK31.0
+																//var NewNotes = textInstance.Text.Create();
+																//if (NewNotes.IsSet()) //If(13.3.4)
+																//{
+																//NewNotes.TypeCode.content = "10011";
+																//var NewNotesText = NewNotes.TextContent.Create();
+																//if (NewNotesText.IsSet())
+																//{
+																//NewNotesText.Text.content = doc_error.message + " for Proof of Purchase Document " + popitem.Name;
+																//}
+																//}//If(13.3.4)	
+																//commented for SDK31.0
+
+																//added for SDK31.0
+																var NewNotes_element : elementsof ServiceRequest.TextCollection.Text;
+																var NewNotes_TextContent_element : elementsof ServiceRequest.TextCollection.Text.TextContent;
+																NewNotes_element.TypeCode.content = "10011";
+																NewNotes_TextContent_element.Text.content = doc_error.message + " for Proof of Purchase Document " + popitem.Name;
+																var NewNotes = textInstance.Text.Create(NewNotes_element);
+																if (NewNotes.IsSet())
+																{
+																	var NewNotesText = NewNotes.TextContent.Create(NewNotes_TextContent_element);
+																	if (!NewNotesText.IsSet())
+																	{
+																		raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																	}
+																}
+																//added for SDK31.0
+															}//If(13.3.3)
+														} //If(13.3.2)
+														else
+														{ //Else (13.3)
+
+															var ExistingNotes : elementsof inst.TextCollection.Text;
+															ExistingNotes.TypeCode.content = "10011";
+															var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+															var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+															if (AddNotes.IsSet()) //If(13.3.5)
+															{
+																//added for SDK31.0
+																ExistingNoteText.Text.content = doc_error.message + " for Proof of Purchase Document " + popitem.Name;
+																var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);
+																if (!AddNotesText.IsSet())
+																{
+																	raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																}
+																//added for SDK31.0
+
+																//commented for SDK31.0
+																//var AddNotesText = AddNotes.TextContent.Create();
+																//if (AddNotesText.IsSet())
+																//{
+																//AddNotesText.Text.content = doc_error.message + " for Proof of Purchase Document " + popitem.Name;
+																//}
+																//commented for SDK31.0
+															} //If(13.3.5)
+														} //Else (13.3)
+
+													}//foreach (var doc_error in Doc_Response.MT_SERVICEPOWER_RES.messages)	    
+												}//else if(Doc_Response.MT_SERVICEPOWER_RES.responseCode == "ER")
+												if (!Doc_Response.CommunicationFault.IsInitial())
+												{
+													if (Doc_Response.CommunicationFault.Item.Count() > 0)
+													{
+														raise MSG_ReplicationResponse.Create("E", "Proof of Purchase document replication to Service Power failed, further details in Notes Tab"); 
+
+														ErrorMessages.content =  "53";
+														ErrorMessageCollection.Add(ErrorMessages);
+
+														foreach (var comm_fault in Doc_Response.CommunicationFault.Item)
+														{
+															if (!inst.TextCollection.IsSet()) //If(13.3.2)
+															{
+																var textInstance = inst.TextCollection.Create();
+																if (textInstance.IsSet())//If(13.3.3)
+																{
+																	//var NewNotes = textInstance.Text.Create();
+																	//if (NewNotes.IsSet()) //If(13.3.4)
+																	//{
+																	//NewNotes.TypeCode.content = "10011";
+																	//var NewNotesText = NewNotes.TextContent.Create();
+																	//if (NewNotesText.IsSet())
+																	//{
+																	//NewNotesText.Text.content = comm_fault.Note;
+																	//}
+																	//}//If(13.3.4)	
+																	//added for SDK31.0
+																	var NewNotes_element : elementsof ServiceRequest.TextCollection.Text;
+																	var NewNotes_TextContent_element : elementsof ServiceRequest.TextCollection.Text.TextContent;
+																	NewNotes_element.TypeCode.content = "10011";
+																	NewNotes_TextContent_element.Text.content = comm_fault.Note;
+																	var NewNotes = textInstance.Text.Create(NewNotes_element);
+																	if (NewNotes.IsSet())
+																	{
+																		var NewNotesText = NewNotes.TextContent.Create(NewNotes_TextContent_element);
+																		if (!NewNotesText.IsSet())
+																		{
+																			raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																		}
+																	}
+																	//added for SDK31.0
+																}//If(13.3.3)
+															} //If(13.3.2)
+															else
+															{ //Else (13.3)
+
+																var ExistingNotes : elementsof inst.TextCollection.Text;
+																ExistingNotes.TypeCode.content = "10011";
+																var AddNotes = inst.TextCollection.Text.Create(ExistingNotes);
+																var ExistingNoteText : elementsof ServiceRequest.TextCollection.Text.TextContent;//added for SDK31.0
+																if (AddNotes.IsSet()) //If(13.3.5)
+																{
+																	//added for SDK31.0
+																	ExistingNoteText.Text.content = comm_fault.Note;
+																	var AddNotesText = AddNotes.TextContent.Create(ExistingNoteText);
+																	if (!AddNotesText.IsSet())
+																	{
+																		raise MSG_ReplicationResponse.Create("E", "Note text is not created ");
+																	}
+																	//added for SDK31.0
+
+																	//commented for SDK31.0
+																	//var AddNotesText = AddNotes.TextContent.Create();
+																	//if (AddNotesText.IsSet())
+																	//{
+																	//AddNotesText.Text.content = comm_fault.Note;
+																	//}
+																	//commented for SDK31.0
+																} //If(13.3.5)
+															} //Else (13.3)
+														}
+													}
+												}
+											}//if (!Doc_Response.MT_SERVICEPOWER_RES.IsInitial())
+										}//if (!Doc_Response.IsInitial())					
+									}//foreach(var popitem in POP)
+								}//if (!inst.LX_TKT_CLMBNR.IsInitial() && !inst.LX_TKT_CLMSQNR.IsInitial())&& if (servicecountry != "GB" && POP.Count() > 0) 
+								//Proof of Purchase Document replication
+							} //If(13)
+							
+						} //Validation IF
+					}
+					else
+					{
+						raise MSG_ReplicationResponse.Create("E", "No Claims Relevant Item found: Parts Claims or Labour Claim Item is expected");
+
+						ErrorMessages.content =  "52";
+						ErrorMessageCollection.Add(ErrorMessages);
+					}
+				}
+				else
+				{
+					raise MSG_ReplicationResponse.Create("E", "No Claims Relevant Item found: Parts Claims or Labour Claim Item is expected");
+
+					ErrorMessages.content =  "52";
+					ErrorMessageCollection.Add(ErrorMessages);
+				}
+			}//If(1.1)
+		} //If(1) Service Terms
+
+		foreach(var FileUploadMessages in ErrorMessageCollection)
+		{
+			if(!inst.LX_TKT_FUPID.IsInitial())
+			{
+				var FileInstanceRecord = PBO_DataUpload.Retrieve(inst.LX_TKT_FUPID);
+				if(FileInstanceRecord.IsSet())
+				{
+					var CreateProcessLog : elementsof PBO_DataUpload.ProcessLog;
+					CreateProcessLog.TimeStamp = Context.GetCurrentSystemDateTime().ToString();
+					CreateProcessLog.Trans_ProcessedObject.content = "02";					//"Ticket Creation";
+					CreateProcessLog.Trans_ObjectType.content = "05";						//"Transactional Data";
+					CreateProcessLog.LogDescriptions.content = FileUploadMessages.content;
+					FileInstanceRecord.ProcessLog.Create(CreateProcessLog);
+				}
+			}
+		}
+	} //If(1)
+}
